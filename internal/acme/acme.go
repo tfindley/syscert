@@ -1,0 +1,93 @@
+// Package acme drives ACME issuance via lego. The dry-run path runs the full
+// order + challenge flow but persists nothing (like `certbot --dry-run`).
+package acme
+
+import (
+	"context"
+
+	"github.com/tfindley/syscert/internal/config"
+)
+
+const (
+	leProductionURL = "https://acme-v02.api.letsencrypt.org/directory"
+	leStagingURL    = "https://acme-staging-v02.api.letsencrypt.org/directory"
+)
+
+// Params is the fully-resolved input to an issuance attempt.
+type Params struct {
+	DirectoryURL string
+	Email        string
+	KeyType      string
+	Challenge    string
+	DNSProvider  string
+	Profile      string
+	Identifiers  []string
+}
+
+// Result reports the outcome of an issuance attempt (no cert material in dry-run).
+type Result struct {
+	Identifiers []string
+}
+
+// Obtainer performs the ACME order + challenge. Implemented by the real lego
+// client; faked in tests.
+type Obtainer interface {
+	Obtain(ctx context.Context, p Params) (*Result, error)
+}
+
+// DirectoryURL resolves the ACME directory endpoint to use.
+//
+// An explicit acme.directory_url always wins. Otherwise, for Let's Encrypt it
+// selects staging during a dry-run and production otherwise. Internal CAs must
+// supply directory_url (the validator enforces this).
+func DirectoryURL(cfg *config.Config, dryRun bool) string {
+	if cfg.ACME.DirectoryURL != "" {
+		return cfg.ACME.DirectoryURL
+	}
+	if cfg.ACME.CA == "letsencrypt" {
+		if dryRun {
+			return leStagingURL
+		}
+		return leProductionURL
+	}
+	return ""
+}
+
+// Identifiers returns the certificate identifiers: the subject first, then any
+// DNS SANs and IP SANs, de-duplicated. lego treats IP-shaped entries as IP
+// identifiers (RFC 8738).
+func Identifiers(cfg *config.Config, subject string) []string {
+	out := make([]string, 0, 1+len(cfg.Cert.SANs)+len(cfg.Cert.IPSANs))
+	seen := map[string]bool{}
+	add := func(id string) {
+		if id == "" || seen[id] {
+			return
+		}
+		seen[id] = true
+		out = append(out, id)
+	}
+	add(subject)
+	for _, id := range cfg.Cert.SANs {
+		add(id)
+	}
+	for _, id := range cfg.Cert.IPSANs {
+		add(id)
+	}
+	return out
+}
+
+// DryRun runs the full ACME order + challenge through the obtainer but persists
+// nothing — no store writes, no distribution. It always targets the dry-run
+// directory (LE staging for Let's Encrypt).
+func DryRun(ctx context.Context, cfg *config.Config, subject string, ob Obtainer) (*Result, error) {
+	p := Params{
+		DirectoryURL: DirectoryURL(cfg, true),
+		Email:        cfg.ACME.Email,
+		KeyType:      cfg.Cert.KeyType,
+		Challenge:    cfg.EffectiveChallenge(),
+		DNSProvider:  cfg.ACME.DNS.Provider,
+		Profile:      cfg.ACME.Profile,
+		Identifiers:  Identifiers(cfg, subject),
+	}
+	return ob.Obtain(ctx, p)
+}
