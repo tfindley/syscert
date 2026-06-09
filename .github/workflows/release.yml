@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # create the GitHub release + upload assets
+      id-token: write       # OIDC for provenance attestation
+      attestations: write   # attest binary provenance
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build static binaries
+        env:
+          CGO_ENABLED: "0"
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            echo "building linux/$arch"
+            GOOS=linux GOARCH="$arch" go build \
+              -trimpath \
+              -ldflags "-s -w -X main.version=v${VERSION}" \
+              -o "dist/syscert-linux-${arch}" ./cmd/syscert
+          done
+          ( cd dist && sha256sum syscert-linux-* > sha256sums.txt && cat sha256sums.txt )
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/syscert-linux-*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "SysCert v${{ steps.version.outputs.version }}"
+          body: |
+            ## SysCert v${{ steps.version.outputs.version }}
+
+            Static Linux binaries (no runtime dependencies).
+
+            | Arch | Asset |
+            |---|---|
+            | x86-64 | `syscert-linux-amd64` |
+            | arm64  | `syscert-linux-arm64` |
+
+            Verify downloads against `sha256sums.txt`. See the
+            [README](https://github.com/${{ github.repository }}/blob/main/README.md) for setup.
+          files: |
+            dist/syscert-linux-amd64
+            dist/syscert-linux-arm64
+            dist/sha256sums.txt
+          generate_release_notes: true

@@ -1,0 +1,20 @@
+CLAUDE.md
+.claude/
+docs/
+
+# Go build artifacts
+/syscert
+/dist/
+*.exe
+*.test
+*.out
+coverage.*
+
+# Local env / secrets (never commit)
+*.env
+*.local.toml
+secrets.toml
+
+/config.sample.toml
+/environment.sample
+*.code-workspace
