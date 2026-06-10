@@ -1,6 +1,8 @@
 package validate
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -114,6 +116,45 @@ func TestRejectsBadKeyType(t *testing.T) {
 	c.Cert.KeyType = "ed25519"
 	if ps := Config(c); !hasProblem(ps, "key_type") {
 		t.Fatalf("bad key_type: want a 'key_type' problem, got %+v", ps)
+	}
+}
+
+func TestRejectsMissingCABundleFile(t *testing.T) {
+	c := baseConfig()
+	c.ACME.CABundle = "/no/such/ca.pem"
+	if ps := Config(c); !hasProblem(ps, "ca_bundle") {
+		t.Fatalf("missing ca_bundle file: want a 'ca_bundle' problem, got %+v", ps)
+	}
+}
+
+func TestAcceptsReadableCABundleFile(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "ca.pem")
+	if err := os.WriteFile(p, []byte("-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	c := baseConfig()
+	c.ACME.CABundle = p
+	if ps := Config(c); hasProblem(ps, "ca_bundle") {
+		t.Fatalf("readable ca_bundle: want no 'ca_bundle' problem, got %+v", ps)
+	}
+}
+
+func TestRejectsUnknownLogFormat(t *testing.T) {
+	c := baseConfig()
+	c.Logging.Format = "yaml"
+	if ps := Config(c); !hasProblem(ps, "logging.format") {
+		t.Fatalf("bad log format: want a 'logging.format' problem, got %+v", ps)
+	}
+}
+
+func TestAcceptsKnownLogFormats(t *testing.T) {
+	for _, f := range []string{"", "text", "json"} {
+		c := baseConfig()
+		c.Logging.Format = f
+		if ps := Config(c); hasProblem(ps, "logging.format") {
+			t.Errorf("format %q should be valid, got %+v", f, ps)
+		}
 	}
 }
 

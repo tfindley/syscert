@@ -30,6 +30,7 @@ type ACMEConfig struct {
 	Email        string        `toml:"email"`
 	Challenge    string        `toml:"challenge"`
 	Profile      string        `toml:"profile"`
+	CABundle     string        `toml:"ca_bundle"`
 	DNS          ACMEDNSConfig `toml:"dns"`
 }
 
@@ -63,9 +64,10 @@ type RenewalConfig struct {
 	RenewBefore string `toml:"renew_before"`
 }
 
-// LoggingConfig controls logging.
+// LoggingConfig controls structured logging.
 type LoggingConfig struct {
-	Level string `toml:"level"`
+	Level  string `toml:"level"`  // debug | info (default) | warn | error
+	Format string `toml:"format"` // text (default) | json
 }
 
 // Load reads and decodes a TOML config file, then applies documented defaults.
@@ -77,6 +79,21 @@ func Load(path string) (*Config, error) {
 	cfg.applyDefaults()
 	return &cfg, nil
 }
+
+// IsInternalCA reports whether the CA's root is not in public trust stores
+// (HashiCorp Vault, Smallstep step-ca, or a custom internal ACME server).
+func IsInternalCA(ca string) bool {
+	switch ca {
+	case "vault", "stepca", "custom":
+		return true
+	default:
+		return false
+	}
+}
+
+// IsPublicCA reports whether the CA is publicly trusted (its root ships in
+// system trust stores), so it needs no system-trust install.
+func IsPublicCA(ca string) bool { return ca == "letsencrypt" }
 
 // EffectiveChallenge returns the challenge SysCert will actually use. When IP
 // SANs are configured, a DNS-based challenge (which RFC 8738 forbids for IP

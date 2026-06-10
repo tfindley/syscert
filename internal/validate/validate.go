@@ -8,6 +8,7 @@ package validate
 import (
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 
 	"github.com/tfindley/syscert/internal/config"
@@ -25,7 +26,7 @@ var (
 	validArtifacts  = map[string]bool{"cert": true, "privkey": true, "chain": true, "fullchain": true, "bundle": true}
 	keyBearing      = map[string]bool{"privkey": true, "bundle": true}
 	validBundleTok  = map[string]bool{"cert": true, "chain": true, "root": true, "key": true}
-	internalCAs     = map[string]bool{"vault": true, "stepca": true, "custom": true}
+	validLogFormats = map[string]bool{"": true, "text": true, "json": true} // "" => default (text)
 )
 
 // Config checks the configuration and returns any problems (empty == valid).
@@ -40,8 +41,17 @@ func Config(cfg *config.Config) []Problem {
 	if cfg.ACME.Email == "" {
 		add("acme.email", "an ACME account email is required")
 	}
-	if internalCAs[cfg.ACME.CA] && cfg.ACME.DirectoryURL == "" {
+	if config.IsInternalCA(cfg.ACME.CA) && cfg.ACME.DirectoryURL == "" {
 		add("acme.directory_url", fmt.Sprintf("ca=%q requires acme.directory_url", cfg.ACME.CA))
+	}
+	if cfg.ACME.CABundle != "" {
+		if _, err := os.Stat(cfg.ACME.CABundle); err != nil {
+			add("acme.ca_bundle", fmt.Sprintf("cannot read ca_bundle file %q: %v", cfg.ACME.CABundle, err))
+		}
+	}
+
+	if !validLogFormats[cfg.Logging.Format] {
+		add("logging.format", fmt.Sprintf("unknown format %q (text|json)", cfg.Logging.Format))
 	}
 
 	// Challenge + key type are from fixed sets.
@@ -55,7 +65,7 @@ func Config(cfg *config.Config) []Problem {
 	// IP SANs: a DNS challenge auto-switches to http-01 (config.EffectiveChallenge),
 	// so the only IP-SAN rule left here is the public-CA / routability policy.
 	if len(cfg.Cert.IPSANs) > 0 {
-		public := isPublicCA(cfg.ACME.CA)
+		public := config.IsPublicCA(cfg.ACME.CA)
 		for _, raw := range cfg.Cert.IPSANs {
 			ip := net.ParseIP(raw)
 			if ip == nil {
@@ -93,8 +103,6 @@ func Config(cfg *config.Config) []Problem {
 
 	return ps
 }
-
-func isPublicCA(ca string) bool { return ca == "letsencrypt" }
 
 // isPubliclyRoutable reports whether an address could plausibly be issued by a public CA.
 func isPubliclyRoutable(ip net.IP) bool {

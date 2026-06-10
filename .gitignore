@@ -18,3 +18,4 @@ secrets.toml
 /config.sample.toml
 /environment.sample
 *.code-workspace
+/syscert-store

@@ -7,9 +7,6 @@ import (
 	"io"
 
 	"github.com/tfindley/syscert/internal/acme"
-	"github.com/tfindley/syscert/internal/config"
-	"github.com/tfindley/syscert/internal/resolve"
-	"github.com/tfindley/syscert/internal/validate"
 )
 
 // cmdDryRun validates the config and, unless --config-only, runs the full ACME
@@ -18,35 +15,20 @@ import (
 func cmdDryRun(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("dry-run", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	cfgPath := fs.String("config", "", "path to syscert.toml")
+	cfgPath := fs.String("config", defaultConfigPath, "path to syscert.toml")
 	configOnly := fs.Bool("config-only", false, "validate config + resolve subject only; skip the ACME round-trip")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
-	if *cfgPath == "" {
-		fmt.Fprintln(stderr, "dry-run: --config is required")
-		return 2
-	}
 
-	cfg, err := config.Load(*cfgPath)
+	// --- Stage 1: config test (always) ---
+	cfg, subject, problems, err := loadAndCheck(*cfgPath)
 	if err != nil {
 		fmt.Fprintf(stderr, "dry-run: load config: %v\n", err)
 		return 2
 	}
-
-	// --- Stage 1: config test (always) ---
-	var problems []validate.Problem
-	subject, err := resolve.FQDN(cfg.Cert.Hostname, nil)
-	if err != nil {
-		problems = append(problems, validate.Problem{Field: "cert.hostname", Message: err.Error()})
-	}
-	problems = append(problems, validate.Config(cfg)...)
-
 	if len(problems) > 0 {
-		fmt.Fprintf(stdout, "FAIL: %d config problem(s)\n", len(problems))
-		for _, p := range problems {
-			fmt.Fprintf(stdout, "  - %s: %s\n", p.Field, p.Message)
-		}
+		printProblems(stdout, problems)
 		return 1
 	}
 
@@ -67,6 +49,7 @@ func cmdDryRun(args []string, stdout, stderr io.Writer) int {
 	dir := acme.DirectoryURL(cfg, true)
 	fmt.Fprintf(stdout, "\nACME dry-run against %s\n", dir)
 	fmt.Fprintln(stdout, "(performs real challenge validation; no certificate is saved)")
+	noteConnectionTrust(cfg, stdout)
 
 	res, err := acme.DryRun(context.Background(), cfg, subject, acme.NewLegoObtainer())
 	if err != nil {

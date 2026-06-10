@@ -6,7 +6,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 
 	"github.com/go-acme/lego/v5/acme"
 	"github.com/go-acme/lego/v5/certcrypto"
@@ -20,13 +22,13 @@ import (
 
 // legoObtainer is the production Obtainer backed by lego. It is intentionally
 // not unit-tested (it talks to a real ACME server); it is exercised by running
-// `syscert dry-run` against a real directory (LE staging / Vault).
+// against a real directory (LE staging / Vault).
 type legoObtainer struct{}
 
 // NewLegoObtainer returns the real lego-backed Obtainer.
 func NewLegoObtainer() Obtainer { return legoObtainer{} }
 
-// acmeUser implements registration.User with an ephemeral account key.
+// acmeUser implements registration.User.
 type acmeUser struct {
 	email string
 	reg   *acme.ExtendedAccount
@@ -45,32 +47,13 @@ func (legoObtainer) Obtain(ctx context.Context, p Params) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Ephemeral account key — the dry-run registers a throwaway account.
-	accountKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	client, err := newClientAndAccount(ctx, p)
 	if err != nil {
-		return nil, fmt.Errorf("generate account key: %w", err)
+		return nil, err
 	}
-	user := &acmeUser{email: p.Email, key: accountKey}
-
-	cfg := lego.NewConfig(user)
-	cfg.CADirURL = p.DirectoryURL
-
-	client, err := lego.NewClient(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("acme client: %w", err)
-	}
-
 	if err := setSolver(client, p); err != nil {
 		return nil, err
 	}
-
-	reg, err := client.Registration.Register(ctx, registration.RegisterOptions{TermsOfServiceAgreed: true})
-	if err != nil {
-		return nil, fmt.Errorf("register account: %w", err)
-	}
-	user.reg = reg
-
 	res, err := client.Certificate.Obtain(ctx, certificate.ObtainRequest{
 		Domains: p.Identifiers,
 		KeyType: kt,
@@ -80,9 +63,76 @@ func (legoObtainer) Obtain(ctx context.Context, p Params) (*Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("obtain certificate: %w", err)
 	}
+	return &Result{
+		Identifiers:       res.Domains,
+		Certificate:       res.Certificate,
+		PrivateKey:        res.PrivateKey,
+		IssuerCertificate: res.IssuerCertificate,
+	}, nil
+}
 
-	// Dry-run: the cert material in res is intentionally discarded (not persisted).
-	return &Result{Identifiers: res.Domains}, nil
+func (legoObtainer) Revoke(ctx context.Context, p Params, certPEM []byte) error {
+	if p.DirectoryURL == "" {
+		return fmt.Errorf("no ACME directory URL resolved (set acme.directory_url)")
+	}
+	client, err := newClientAndAccount(ctx, p)
+	if err != nil {
+		return err
+	}
+	if err := client.Certificate.Revoke(ctx, certPEM); err != nil {
+		return fmt.Errorf("revoke certificate: %w", err)
+	}
+	return nil
+}
+
+// newClientAndAccount builds a lego client using the account key (persistent
+// when p.AccountDir is set, ephemeral otherwise), optionally trusting an
+// internal CA for the connection (ca_bundle), and registers/loads the account.
+func newClientAndAccount(ctx context.Context, p Params) (*lego.Client, error) {
+	key, err := accountSigner(p)
+	if err != nil {
+		return nil, err
+	}
+	user := &acmeUser{email: p.Email, key: key}
+
+	cfg := lego.NewConfig(user)
+	cfg.CADirURL = p.DirectoryURL
+
+	// Trust the internal CA for this connection only (ADR-0035) — not the system store.
+	if p.CABundle != "" {
+		pool, err := loadCABundle(p.CABundle)
+		if err != nil {
+			return nil, err
+		}
+		cfg.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
+			},
+		}
+	}
+
+	client, err := lego.NewClient(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("acme client: %w", err)
+	}
+
+	// newAccount is idempotent for an existing key, so a persistent account is
+	// reused (and re-establishes the account URL needed for orders/revocation).
+	reg, err := client.Registration.Register(ctx, registration.RegisterOptions{TermsOfServiceAgreed: true})
+	if err != nil {
+		return nil, fmt.Errorf("register account: %w", err)
+	}
+	user.reg = reg
+	return client, nil
+}
+
+// accountSigner returns the persistent per-CA account key, or an ephemeral one
+// when no AccountDir is configured (e.g. dry-run).
+func accountSigner(p Params) (crypto.Signer, error) {
+	if p.AccountDir == "" {
+		return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	}
+	return accountKey(p.AccountDir, p.DirectoryURL)
 }
 
 // setSolver configures the challenge solver for the requested challenge type.

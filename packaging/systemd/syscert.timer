@@ -1,0 +1,19 @@
+# Runs syscert (ensure: issue/renew as needed, then distribute) on a schedule.
+# Enable with: systemctl enable --now syscert.timer
+
+[Unit]
+Description=Run SysCert daily to keep the system certificate fresh
+Documentation=https://github.com/tfindley/syscert
+
+[Timer]
+# Shortly after boot, then daily. A daily check covers both long-lived (~90d)
+# and short-lived (~6d) certs — renewal only fires when inside the window.
+OnBootSec=5min
+OnCalendar=daily
+# Spread load across a fleet so everyone doesn't hit the CA at 00:00.
+RandomizedDelaySec=12h
+# Catch up a missed run (machine was off) on next boot.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

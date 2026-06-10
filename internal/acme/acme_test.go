@@ -9,14 +9,23 @@ import (
 )
 
 type fakeObtainer struct {
-	got Params
-	res *Result
-	err error
+	got         Params
+	res         *Result
+	err         error
+	gotRevoke   Params
+	revokedCert []byte
+	revokeErr   error
 }
 
 func (f *fakeObtainer) Obtain(_ context.Context, p Params) (*Result, error) {
 	f.got = p
 	return f.res, f.err
+}
+
+func (f *fakeObtainer) Revoke(_ context.Context, p Params, certPEM []byte) error {
+	f.gotRevoke = p
+	f.revokedCert = certPEM
+	return f.revokeErr
 }
 
 func leConfig() *config.Config {
@@ -101,6 +110,56 @@ func TestDryRunAutoSwitchesChallengeForIPSAN(t *testing.T) {
 	}
 	if f.got.Challenge != "http-01" {
 		t.Errorf("obtainer got challenge %q, want http-01 (auto-switched)", f.got.Challenge)
+	}
+}
+
+func TestObtainProductionDirectoryWhenNotStaging(t *testing.T) {
+	f := &fakeObtainer{res: &Result{}}
+	if _, err := Obtain(context.Background(), leConfig(), "host.example.com", f, false); err != nil {
+		t.Fatalf("Obtain: %v", err)
+	}
+	if f.got.DirectoryURL != leProductionURL {
+		t.Errorf("non-staging Obtain directory = %q, want production %q", f.got.DirectoryURL, leProductionURL)
+	}
+}
+
+func TestRevokeCertUsesAccountAndCert(t *testing.T) {
+	c := leConfig()
+	c.Store.Path = "/var/lib/syscert"
+	f := &fakeObtainer{}
+	if err := RevokeCert(context.Background(), c, []byte("CERTPEM"), f, false); err != nil {
+		t.Fatalf("RevokeCert: %v", err)
+	}
+	if string(f.revokedCert) != "CERTPEM" {
+		t.Errorf("revoked cert = %q", f.revokedCert)
+	}
+	if f.gotRevoke.AccountDir != "/var/lib/syscert/accounts" {
+		t.Errorf("revoke AccountDir = %q, want /var/lib/syscert/accounts", f.gotRevoke.AccountDir)
+	}
+	if f.gotRevoke.DirectoryURL != leProductionURL {
+		t.Errorf("revoke directory = %q, want production", f.gotRevoke.DirectoryURL)
+	}
+}
+
+func TestObtainUsesPersistentAccountDir(t *testing.T) {
+	c := leConfig()
+	c.Store.Path = "/srv/syscert"
+	f := &fakeObtainer{res: &Result{}}
+	if _, err := Obtain(context.Background(), c, "host.example.com", f, false); err != nil {
+		t.Fatalf("Obtain: %v", err)
+	}
+	if f.got.AccountDir != "/srv/syscert/accounts" {
+		t.Errorf("Obtain AccountDir = %q, want /srv/syscert/accounts", f.got.AccountDir)
+	}
+}
+
+func TestDryRunUsesEphemeralAccount(t *testing.T) {
+	f := &fakeObtainer{res: &Result{}}
+	if _, err := DryRun(context.Background(), leConfig(), "host.example.com", f); err != nil {
+		t.Fatalf("DryRun: %v", err)
+	}
+	if f.got.AccountDir != "" {
+		t.Errorf("DryRun AccountDir = %q, want empty (ephemeral)", f.got.AccountDir)
 	}
 }
 

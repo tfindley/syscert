@@ -1,13 +1,13 @@
-// Command syscert obtains and renews a hostname-based system TLS certificate.
-//
-// This is the walking skeleton: `dry-run` is functional; the other verbs are
-// stubs to be filled in as the build progresses (see docs/user-flows.md).
+// Command syscert obtains, renews, and distributes a hostname-based system TLS
+// certificate. Bare `syscert` (the default) ensures the cert is present, fresh,
+// and distributed — the command a systemd timer runs periodically.
 package main
 
 import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 // version is the build version, overridden at release time via
@@ -21,23 +21,38 @@ func main() {
 // run dispatches a subcommand and returns a process exit code.
 func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		usage(stderr)
-		return 2
+		return cmdEnsure(nil, stdout, stderr) // bare `syscert` → ensure
 	}
-	cmd, rest := args[0], args[1:]
-	switch cmd {
-	case "dry-run":
-		return cmdDryRun(rest, stdout, stderr)
-	case "run", "issue", "renew", "void", "destroy", "trust":
-		fmt.Fprintf(stderr, "syscert %s: not implemented yet\n", cmd)
-		return 1
-	case "version", "--version":
-		fmt.Fprintf(stdout, "syscert %s\n", version)
-		return 0
+
+	switch args[0] {
 	case "-h", "--help", "help":
 		usage(stdout)
 		return 0
+	case "version", "--version":
+		fmt.Fprintf(stdout, "syscert %s\n", version)
+		return 0
+	}
+
+	cmd, rest := args[0], args[1:]
+	switch cmd {
+	case "issue":
+		return cmdIssue(rest, stdout, stderr)
+	case "renew":
+		return cmdRenew(rest, stdout, stderr)
+	case "distribute":
+		return cmdDistribute(rest, stdout, stderr)
+	case "dry-run":
+		return cmdDryRun(rest, stdout, stderr)
+	case "trust":
+		return cmdTrust(rest, stdout, stderr)
+	case "void":
+		return cmdVoid(rest, stdout, stderr)
+	case "destroy":
+		return cmdDestroy(rest, stdout, stderr)
 	default:
+		if strings.HasPrefix(cmd, "-") {
+			return cmdEnsure(args, stdout, stderr) // bare flags → ensure with options
+		}
 		fmt.Fprintf(stderr, "syscert: unknown command %q\n", cmd)
 		usage(stderr)
 		return 2
@@ -48,13 +63,19 @@ func usage(w io.Writer) {
 	fmt.Fprint(w, `syscert — hostname-based system TLS certificate service
 
 usage:
-  syscert dry-run --config <path>   config test + ACME dry-run (no cert saved)
-  syscert dry-run --config <path> --config-only   validate config only (offline)
-  syscert run     --config <path>   issuance + renewal loop            [todo]
-  syscert issue   --config <path>   one-shot issuance                  [todo]
-  syscert renew   --config <path>   force a renewal                    [todo]
-  syscert void    --config <path>   revoke/discard + reissue           [todo]
-  syscert destroy --config <path>   tear down + re-provision           [todo]
-  syscert trust install|remove      manage system trust store (root)   [todo]
+  syscert [--config <path>] [--staging]      ensure: issue/renew as needed, then
+                                             distribute (the default; run by the timer)
+  syscert issue   [--config <path>] [--staging]        obtain a fresh cert (no distribute)
+  syscert renew   [--config <path>] [--staging] [--force]  renew if due (no distribute)
+  syscert void    [--config <path>] [--staging] [--force]  revoke + reissue + distribute
+  syscert distribute [--config <path>]       push stored artifacts to targets
+  syscert dry-run [--config <path>] [--config-only]    validate + test ACME (nothing saved)
+  syscert trust install [--config <path>] [--ca-file <path>]   add internal CA to the system trust store (root)
+  syscert trust remove                       remove SysCert-managed CA anchors (root)
+  syscert destroy [--config <path>] [--force]   wipe stored cert + ACME account (provider switch)
+  syscert version
+
+--config defaults to /etc/syscert/syscert.toml.
+As a service, run bare 'syscert' from a systemd timer (the certbot model).
 `)
 }

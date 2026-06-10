@@ -1,0 +1,49 @@
+# syscert — hostname-based system TLS certificate service.
+#
+# This is a oneshot unit triggered by syscert.timer; running bare `syscert`
+# ensures the cert is issued/renewed as needed and distributed (idempotent).
+# Installed by packaging/install.sh (or place manually — see the README).
+
+[Unit]
+Description=SysCert — ensure system TLS certificate is issued, renewed, and distributed
+Documentation=https://github.com/tfindley/syscert
+# DNS-01 needs outbound network + DNS; http-01/tls-alpn-01 also need inbound.
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=syscert
+Group=syscert
+
+# Credentials (DNS provider / CA tokens) live here, 0600, owned by syscert.
+# Optional ("-"): the service still starts if it's absent (e.g. internal CA w/o creds).
+EnvironmentFile=-/etc/syscert/secrets
+
+ExecStart=/usr/local/bin/syscert --config /etc/syscert/syscert.toml
+
+# --- Hardening (ADR-0028) ---
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/syscert
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Distribution chowns artifacts to consumer owners → needs CAP_CHOWN (ADR-0020).
+# Add CAP_NET_BIND_SERVICE only if you use http-01/tls-alpn-01 on :80/:443.
+AmbientCapabilities=CAP_CHOWN
+CapabilityBoundingSet=CAP_CHOWN
+
+# No [Install] section: this oneshot is triggered by syscert.timer, not enabled
+# directly. Enable the timer (`systemctl enable --now syscert.timer`).
