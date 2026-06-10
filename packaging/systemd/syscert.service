@@ -16,11 +16,18 @@ Type=oneshot
 User=syscert
 Group=syscert
 
-# Credentials (DNS provider / CA tokens) live here, 0600, owned by syscert.
+# Operator settings (non-secret), e.g. SYSCERT_CONFIG to point at a different
+# config file. Optional ("-"): absent is fine.
+EnvironmentFile=-/etc/default/syscert
+
+# Credentials (DNS provider / CA tokens) live here, 0640, owned by syscert.
 # Optional ("-"): the service still starts if it's absent (e.g. internal CA w/o creds).
 EnvironmentFile=-/etc/syscert/secrets
 
-ExecStart=/usr/local/bin/syscert --config /etc/syscert/syscert.toml
+# Config path resolves to SYSCERT_CONFIG (from the EnvironmentFile above) if set,
+# otherwise the built-in default /etc/syscert/syscert.toml. Add --config <path>
+# here to override both.
+ExecStart=/usr/local/bin/syscert
 
 # --- Hardening (ADR-0028) ---
 NoNewPrivileges=true

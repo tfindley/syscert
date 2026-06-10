@@ -62,20 +62,37 @@ func run(args []string, stdout, stderr io.Writer) int {
 func usage(w io.Writer) {
 	fmt.Fprint(w, `syscert — hostname-based system TLS certificate service
 
-usage:
-  syscert [--config <path>] [--staging]      ensure: issue/renew as needed, then
-                                             distribute (the default; run by the timer)
-  syscert issue   [--config <path>] [--staging]        obtain a fresh cert (no distribute)
-  syscert renew   [--config <path>] [--staging] [--force]  renew if due (no distribute)
-  syscert void    [--config <path>] [--staging] [--force]  revoke + reissue + distribute
-  syscert distribute [--config <path>]       push stored artifacts to targets
-  syscert dry-run [--config <path>] [--config-only]    validate + test ACME (nothing saved)
-  syscert trust install [--config <path>] [--ca-file <path>]   add internal CA to the system trust store (root)
-  syscert trust remove                       remove SysCert-managed CA anchors (root)
-  syscert destroy [--config <path>] [--force]   wipe stored cert + ACME account (provider switch)
-  syscert version
+Obtains and auto-renews a TLS certificate for this host (Let's Encrypt, Vault,
+or step-ca) and distributes it to local consumers. As a service it's just bare
+'syscert' run by a systemd timer — no daemon.
 
---config defaults to /etc/syscert/syscert.toml.
-As a service, run bare 'syscert' from a systemd timer (the certbot model).
+Usage:
+  syscert [flags]              ensure the cert is issued, renewed, and distributed
+                               (the default — this is what the timer runs)
+  syscert <command> [flags]
+
+Commands:
+  issue        Obtain a fresh certificate into the store (no distribute)
+  renew        Renew only if due, into the store (no distribute)
+  distribute   Copy the stored artifacts to the configured targets
+  dry-run      Validate config and test the ACME flow; nothing is saved
+  void         Revoke the current certificate, then reissue and distribute
+  destroy      Wipe the stored cert + ACME account (e.g. when switching CA)
+  trust        Add/remove the internal CA in the system trust store (root)
+  version      Print the version
+
+Common flags:
+  --config <path>   Config file. Default /etc/syscert/syscert.toml; or set
+                    SYSCERT_CONFIG. An explicit --config wins over the env var.
+  --staging         Use the CA's staging environment (issue/renew/void/ensure).
+  --force           Skip the interactive confirmation (renew/void/destroy).
+  --config-only     dry-run only: check config, skip the live ACME test.
+
+Credentials (DNS-provider / CA tokens) come from the environment, never the
+config file — the service loads them from /etc/syscert/secrets. Look up the
+variables your provider needs at: https://go-acme.github.io/lego/dns/
+
+Run 'syscert <command> --help' for a command's own flags.
+Docs: https://github.com/tfindley/syscert
 `)
 }

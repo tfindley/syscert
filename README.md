@@ -10,13 +10,13 @@ host `certbot`.
 It speaks ACME via [lego](https://go-acme.github.io/lego/) and writes certbot-compatible output
 (`cert.pem` / `privkey.pem` / `chain.pem` / `fullchain.pem`) plus an all-in-one `bundle.pem`.
 
-**Get started in ~5 minutes:** [Install](#install) (build + `install.sh`) → edit two files →
-[done](#quick-start). It's just one static binary and a systemd timer.
+**Get started in ~5 minutes:** [Install](#install) (download or build, then `install.sh`) →
+edit two files → [done](#quick-start). It's just one static binary and a systemd timer.
 
 > **Project status: early (pre-1.0).** Working today: the full `syscert` CLI (the default *ensure*
 > plus `issue` / `renew` / `distribute` / `void` / `destroy` / `dry-run` / `trust install`/`remove`),
-> the systemd units, and `install.sh`. Not built yet: the Ansible role and published release
-> binaries (so for now you build from source — below).
+> the systemd units, `install.sh`, and **pre-built Linux binaries** (amd64/arm64) on the
+> [releases page](https://github.com/tfindley/syscert/releases). Not built yet: the Ansible role.
 
 ---
 
@@ -49,8 +49,8 @@ for its own cert, automatically.
 - **Encrypt the edge→backend hop** *(the original use case)* — HAProxy handles external TLS; SysCert
   gives the backend its own cert so the HAProxy→backend leg is encrypted too, with no lifecycle to manage.
 - **mTLS between services** — run SysCert on both ends against an internal CA: each side has its own
-  cert and trusts the other's CA, so services can require + verify client certs. *(The trust-store
-  command that completes this is on the roadmap.)*
+  cert, and `syscert trust install` adds the CA to the system store so each can verify the other's
+  client certs.
 - **Admin UIs & data stores** — Cockpit, Postgres, Redis, internal APIs, syslog/metrics over TLS.
 - **Any host that should just have a valid, auto-renewing cert** without someone owning the renewal.
 
@@ -58,40 +58,66 @@ for its own cert, automatically.
 
 **Supported targets:** Debian/Ubuntu and the RHEL family (others may work but aren't tested).
 
-There are no pre-built binaries yet, so build from source.
+Get the `syscert` binary by **downloading a release** (quickest) or **building from source**, then
+install it as a systemd service with `install.sh`.
 
-### 1. Install Go (≥ 1.26)
+### Option A — download a release (recommended)
+
+Pre-built static binaries for Linux **amd64** and **arm64** are published on every release.
 
 ```sh
-# official tarball (amd64); see https://go.dev/dl for other archs / latest version
+# amd64 — for arm64 use syscert-linux-arm64
+curl -fsSL https://github.com/tfindley/syscert/releases/latest/download/syscert-linux-amd64 -o syscert
+chmod +x syscert
+
+# optional: verify against the published checksums
+curl -fsSL https://github.com/tfindley/syscert/releases/latest/download/sha256sums.txt -o sha256sums.txt
+sha256sum --check --ignore-missing sha256sums.txt
+
+./syscert --help
+```
+
+Pin a specific version from the [releases page](https://github.com/tfindley/syscert/releases) by
+swapping `latest/download` for `download/<tag>` (e.g. `download/v0.0.3`).
+
+### Option B — build from source
+
+Requires Go ≥ 1.26.
+
+```sh
+# install Go if you don't have it — official tarball (amd64); see https://go.dev/dl for other archs
 curl -fsSL https://go.dev/dl/go1.26.4.linux-amd64.tar.gz -o /tmp/go.tar.gz
 sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf /tmp/go.tar.gz
 export PATH=/usr/local/go/bin:$PATH      # add to your shell profile to persist
-go version
-```
 
-### 2. Build
-
-```sh
 git clone https://github.com/tfindley/syscert.git
 cd syscert
 go build -o syscert ./cmd/syscert
 ./syscert --help
 ```
 
-### 3. Install as a service (systemd)
+### Install as a service (systemd)
+
+The installer and unit files live in the repo's [`packaging/`](packaging/) directory. If you built
+from source you already have them; if you downloaded a release binary, clone the repo for the
+packaging files (no Go needed):
+
+```sh
+git clone https://github.com/tfindley/syscert.git      # skip if you built from source
+```
 
 The installer is **external to the binary** — the `syscert` binary never modifies your system; the
-script does. It's idempotent (safe to re-run):
+script does. It's idempotent (safe to re-run). Point it at your downloaded or built binary:
 
 ```sh
 sudo packaging/install.sh ./syscert
 ```
 
 It creates the `syscert` system user and `/var/lib/syscert` (`0700`), installs the binary to
-`/usr/local/bin/syscert`, writes a starter `/etc/syscert/syscert.toml` and a `0640`
-`/etc/syscert/secrets` (never overwriting existing files), installs `syscert.service` +
-`syscert.timer`, enables the timer, and relabels for SELinux where active.
+`/usr/local/bin/syscert`, writes a starter `/etc/syscert/syscert.toml`, a `0640`
+`/etc/syscert/secrets`, and an `/etc/default/syscert` for operator settings (never overwriting
+existing files), installs `syscert.service` + `syscert.timer`, enables the timer, and relabels for
+SELinux where active.
 
 Then configure and test:
 
@@ -158,8 +184,9 @@ After=network-online.target
 Type=oneshot
 User=syscert
 Group=syscert
+EnvironmentFile=-/etc/default/syscert          # operator settings, e.g. SYSCERT_CONFIG; optional
 EnvironmentFile=-/etc/syscert/secrets          # DNS/CA creds (0640); optional
-ExecStart=/usr/local/bin/syscert --config /etc/syscert/syscert.toml
+ExecStart=/usr/local/bin/syscert               # config: $SYSCERT_CONFIG or the default path
 
 # Hardening
 NoNewPrivileges=true
@@ -217,8 +244,11 @@ After `install.sh` (above), it has written a starter `/etc/syscert/syscert.toml`
 # 1. set your hostname, CA, and challenge
 sudoedit /etc/syscert/syscert.toml
 
-# 2. add provider/CA credentials (kept out of the config). e.g. Gandi LiveDNS:
-echo 'GANDIV5_PERSONAL_ACCESS_TOKEN=…' | sudo tee -a /etc/syscert/secrets
+# 2. add your DNS provider's credentials (kept out of the config; the service loads
+#    this file as its environment). Look up the exact variable names for your
+#    provider at https://go-acme.github.io/lego/dns/ — e.g. Gandi LiveDNS:
+sudoedit /etc/syscert/secrets
+#    GANDIV5_PERSONAL_ACCESS_TOKEN=your-token-here
 
 # 3. validate offline (no network), then do a real run against LE staging to test
 sudo -u syscert syscert dry-run --config-only
@@ -270,7 +300,10 @@ uses **staging**. The obtained certificate is discarded, not written to disk.
 
 ## Configuration
 
-TOML. Default location `/etc/syscert/syscert.toml`; pass any path with `--config`.
+TOML. Default location `/etc/syscert/syscert.toml`; override it with `--config <path>` or the
+`SYSCERT_CONFIG` environment variable (precedence: `--config` flag > `SYSCERT_CONFIG` > default).
+The shipped systemd unit reads `SYSCERT_CONFIG` from `/etc/default/syscert`, so to point the service
+at a different config you set it there once — no unit edit needed.
 **Secrets never go in this file** — see [DNS provider credentials](#acmedns--dns-provider--credentials).
 
 ### `[cert]` — certificate subject
@@ -367,9 +400,9 @@ Each lego provider reads its own variables — for example:
 > Note: the legacy `gandi` provider uses Gandi's retired XML-RPC API; use **`gandiv5`** (LiveDNS)
 > with a **Personal Access Token**.
 
-See the [lego provider docs](https://go-acme.github.io/lego/dns/) for the exact variable names. A CA
-that requires External Account Binding (EAB) takes its EAB key id/HMAC the same way. *(Secret
-loading is part of the issuance increment and is not active in the current skeleton.)*
+See the [lego provider docs](https://go-acme.github.io/lego/dns/) for the exact variable names.
+SysCert reads these from the environment (or the `EnvironmentFile` the service loads) at issuance
+time. *(External Account Binding (EAB), required by some public CAs, is not supported yet.)*
 
 ### `[store]` — canonical store
 

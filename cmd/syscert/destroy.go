@@ -18,7 +18,7 @@ import (
 func cmdDestroy(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("destroy", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	cfgPath := fs.String("config", defaultConfigPath, "path to syscert.toml")
+	cfgPath := configFlag(fs)
 	force := fs.Bool("force", false, "skip the interactive confirmation(s)")
 	if err := fs.Parse(args); err != nil {
 		return 2

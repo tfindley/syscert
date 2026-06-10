@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -20,6 +21,20 @@ import (
 
 // defaultConfigPath is used when --config is not given.
 const defaultConfigPath = "/etc/syscert/syscert.toml"
+
+// envConfig names the env var that sets the default config path (overridden by --config).
+const envConfig = "SYSCERT_CONFIG"
+
+// configFlag registers --config on fs. Its default comes from SYSCERT_CONFIG when
+// set, otherwise defaultConfigPath; an explicit --config overrides both
+// (flag > env > built-in default).
+func configFlag(fs *flag.FlagSet) *string {
+	def := defaultConfigPath
+	if p := os.Getenv(envConfig); p != "" {
+		def = p
+	}
+	return fs.String("config", def, "path to syscert.toml (env: SYSCERT_CONFIG)")
+}
 
 // loadConfig loads the config and installs the structured logger from it, so
 // every command logs consistently the moment its config is available — whether

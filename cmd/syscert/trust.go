@@ -32,7 +32,7 @@ func cmdTrust(args []string, stdout, stderr io.Writer) int {
 func cmdTrustInstall(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("trust install", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	cfgPath := fs.String("config", defaultConfigPath, "path to syscert.toml")
+	cfgPath := configFlag(fs)
 	caFile := fs.String("ca-file", "", "PEM of the CA to trust (overrides acme.ca_bundle)")
 	if err := fs.Parse(args); err != nil {
 		return 2

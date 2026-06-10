@@ -15,7 +15,7 @@ import (
 func cmdRenew(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("renew", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	cfgPath := fs.String("config", defaultConfigPath, "path to syscert.toml")
+	cfgPath := configFlag(fs)
 	staging := fs.Bool("staging", false, "use the CA staging directory (Let's Encrypt) — for testing")
 	force := fs.Bool("force", false, "renew even if the current cert is not yet due")
 	if err := fs.Parse(args); err != nil {

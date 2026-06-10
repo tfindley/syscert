@@ -15,7 +15,7 @@ import (
 func cmdDryRun(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("dry-run", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	cfgPath := fs.String("config", defaultConfigPath, "path to syscert.toml")
+	cfgPath := configFlag(fs)
 	configOnly := fs.Bool("config-only", false, "validate config + resolve subject only; skip the ACME round-trip")
 	if err := fs.Parse(args); err != nil {
 		return 2

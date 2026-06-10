@@ -13,7 +13,7 @@ import (
 func cmdDistribute(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("distribute", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	cfgPath := fs.String("config", defaultConfigPath, "path to syscert.toml")
+	cfgPath := configFlag(fs)
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}

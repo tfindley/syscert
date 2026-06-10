@@ -15,6 +15,7 @@ readonly STORE_DIR="/var/lib/syscert"
 readonly CONF_DIR="/etc/syscert"
 readonly CONF_FILE="${CONF_DIR}/syscert.toml"
 readonly SECRETS_FILE="${CONF_DIR}/secrets"
+readonly DEFAULTS_FILE="/etc/default/syscert"
 readonly BIN_DEST="/usr/local/bin/syscert"
 readonly UNIT_DIR="/etc/systemd/system"
 
@@ -69,6 +70,13 @@ install_syscert() {
     log "Keeping existing ${SECRETS_FILE}"
   fi
 
+  if [ ! -e "$DEFAULTS_FILE" ]; then
+    log "Writing defaults template ${DEFAULTS_FILE} (operator settings; optional)"
+    write_defaults_template
+  else
+    log "Keeping existing ${DEFAULTS_FILE}"
+  fi
+
   log "Installing systemd units → ${UNIT_DIR}"
   install -o root -g root -m 0644 "${SCRIPT_DIR}/systemd/syscert.service" "${UNIT_DIR}/syscert.service"
   install -o root -g root -m 0644 "${SCRIPT_DIR}/systemd/syscert.timer"   "${UNIT_DIR}/syscert.timer"
@@ -104,10 +112,11 @@ uninstall_syscert() {
   if [ "$purge" = "purge" ]; then
     log "Purging data, config, and the ${SVC_USER} user"
     rm -rf "$STORE_DIR" "$CONF_DIR"
+    rm -f "$DEFAULTS_FILE"
     userdel "$SVC_USER" 2>/dev/null || true
     groupdel "$SVC_GROUP" 2>/dev/null || true
   else
-    log "Kept ${STORE_DIR} and ${CONF_DIR} (use --purge to remove)"
+    log "Kept ${STORE_DIR}, ${CONF_DIR}, and ${DEFAULTS_FILE} (use --purge to remove)"
   fi
   log "Uninstalled."
 }
@@ -145,12 +154,29 @@ write_secrets_template() {
   umask 077
   cat > "$SECRETS_FILE" <<'EOF'
 # DNS provider / CA credentials, sourced by the systemd unit (EnvironmentFile).
-# This file is 0600 and must never be world-readable. Examples:
+# This file is 0600 and must never be world-readable.
+#
+# Set the variables your DNS provider needs (one KEY=value per line). Find the
+# exact names for your provider at: https://go-acme.github.io/lego/dns/
+# Examples:
 # GANDIV5_PERSONAL_ACCESS_TOKEN=replace-me
 # CLOUDFLARE_DNS_API_TOKEN=replace-me
 EOF
   chown root:"$SVC_GROUP" "$SECRETS_FILE"
   chmod 0640 "$SECRETS_FILE"
+}
+
+write_defaults_template() {
+  install -d -o root -g root -m 0755 "$(dirname "$DEFAULTS_FILE")"
+  cat > "$DEFAULTS_FILE" <<'EOF'
+# SysCert operator settings, sourced by the systemd unit (EnvironmentFile).
+# Non-secret only — DNS/CA credentials belong in /etc/syscert/secrets.
+#
+# Point SysCert at a non-default config file. Without this, it uses the
+# built-in default /etc/syscert/syscert.toml.
+# SYSCERT_CONFIG=/etc/syscert/syscert.toml
+EOF
+  chmod 0644 "$DEFAULTS_FILE"
 }
 
 # ----------------------------------------------------------------------------

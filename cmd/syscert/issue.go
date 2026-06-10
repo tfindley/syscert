@@ -14,7 +14,7 @@ import (
 func cmdIssue(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("issue", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	cfgPath := fs.String("config", defaultConfigPath, "path to syscert.toml")
+	cfgPath := configFlag(fs)
 	staging := fs.Bool("staging", false, "use the CA staging directory (Let's Encrypt) — for testing")
 	if err := fs.Parse(args); err != nil {
 		return 2
