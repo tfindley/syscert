@@ -40,11 +40,12 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           mkdir -p dist
+          BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           for arch in amd64 arm64; do
             echo "building linux/$arch"
             GOOS=linux GOARCH="$arch" go build \
               -trimpath \
-              -ldflags "-s -w -X main.version=v${VERSION}" \
+              -ldflags "-s -w -X main.version=v${VERSION} -X main.date=${BUILD_DATE}" \
               -o "dist/syscert-linux-${arch}" ./cmd/syscert
           done
           ( cd dist && sha256sum syscert-linux-* > sha256sums.txt && cat sha256sums.txt )

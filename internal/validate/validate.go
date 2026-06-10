@@ -21,6 +21,7 @@ type Problem struct {
 }
 
 var (
+	validCAs        = map[string]bool{"letsencrypt": true, "custom": true}
 	validChallenges = map[string]bool{"dns-01": true, "http-01": true, "tls-alpn-01": true, "dns-persist-01": true}
 	validKeyTypes   = map[string]bool{"ec256": true, "ec384": true, "rsa2048": true, "rsa4096": true}
 	validArtifacts  = map[string]bool{"cert": true, "privkey": true, "chain": true, "fullchain": true, "bundle": true}
@@ -36,7 +37,9 @@ func Config(cfg *config.Config) []Problem {
 
 	// Required CA fields.
 	if cfg.ACME.CA == "" {
-		add("acme.ca", "a CA must be set (e.g. letsencrypt, vault, stepca)")
+		add("acme.ca", "a CA must be set (letsencrypt | custom)")
+	} else if !validCAs[cfg.ACME.CA] {
+		add("acme.ca", fmt.Sprintf("unknown ca %q (letsencrypt | custom — use \"custom\" for Vault, step-ca, or any internal ACME server)", cfg.ACME.CA))
 	}
 	if cfg.ACME.Email == "" {
 		add("acme.email", "an ACME account email is required")

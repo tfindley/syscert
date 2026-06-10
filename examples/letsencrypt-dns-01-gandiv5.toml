@@ -1,0 +1,44 @@
+# Let's Encrypt via DNS-01 (Gandi LiveDNS)
+# ------------------------------------------------------------------------------
+# Public certificate for a domain you control, validated by a DNS TXT record —
+# works even when the host has no inbound :80/:443.
+#
+# Credentials go in the ENVIRONMENT, never here (e.g. /etc/syscert/secrets):
+#   GANDIV5_PERSONAL_ACCESS_TOKEN=...
+# Provider variable names: https://go-acme.github.io/lego/dns/
+# Every option, annotated:  examples/full.toml
+
+[cert]
+hostname = "host.example.com"   # change me (or remove to use the system FQDN)
+key_type = "ec256"
+
+[acme]
+ca        = "letsencrypt"
+email     = "you@example.com"
+challenge = "dns-01"
+
+[acme.dns]
+provider = "gandiv5"            # creds via env: GANDIV5_PERSONAL_ACCESS_TOKEN
+
+[store]
+path = "/var/lib/syscert"
+
+# Deliver to nginx. One artifact per block; the consumer watches its file and
+# reloads itself (SysCert never runs reload commands).
+[[distribute]]
+artifact = "fullchain"
+path     = "/etc/nginx/tls/fullchain.pem"
+owner    = "root"
+group    = "root"
+mode     = "0644"
+
+[[distribute]]
+artifact = "privkey"
+path     = "/etc/nginx/tls/privkey.pem"
+owner    = "root"
+group    = "root"
+mode     = "0600"               # key-bearing → must not be world-readable
+
+[logging]
+level  = "info"
+format = "text"

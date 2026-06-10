@@ -80,20 +80,17 @@ func Load(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// IsInternalCA reports whether the CA's root is not in public trust stores
-// (HashiCorp Vault, Smallstep step-ca, or a custom internal ACME server).
-func IsInternalCA(ca string) bool {
-	switch ca {
-	case "vault", "stepca", "custom":
-		return true
-	default:
-		return false
-	}
-}
-
 // IsPublicCA reports whether the CA is publicly trusted (its root ships in
-// system trust stores), so it needs no system-trust install.
+// system trust stores), so it needs no system-trust install. Let's Encrypt is
+// the only CA SysCert special-cases (built-in directory URLs + --staging).
 func IsPublicCA(ca string) bool { return ca == "letsencrypt" }
+
+// IsInternalCA reports whether the CA is an internal/private ACME server
+// (ca = "custom" — e.g. HashiCorp Vault PKI or Smallstep step-ca): its root
+// isn't publicly trusted and it requires an explicit directory_url. Defined as
+// "set, but not public" so trust/lifecycle paths stay correct even for a CA
+// value the validator hasn't vetted.
+func IsInternalCA(ca string) bool { return ca != "" && !IsPublicCA(ca) }
 
 // EffectiveChallenge returns the challenge SysCert will actually use. When IP
 // SANs are configured, a DNS-based challenge (which RFC 8738 forbids for IP

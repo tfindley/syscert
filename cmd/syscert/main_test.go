@@ -168,8 +168,24 @@ func TestVersionCommand(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("%q: exit = %d, want 0", arg, code)
 		}
-		if !strings.Contains(out.String(), version) {
-			t.Errorf("%q: output %q should contain version %q", arg, out.String(), version)
+		got := out.String()
+		if !strings.HasPrefix(got, "syscert ") {
+			t.Errorf("%q: output %q should start with %q", arg, got, "syscert ")
 		}
+		if !strings.Contains(got, repoURL) {
+			t.Errorf("%q: output %q should contain the repo URL %q", arg, got, repoURL)
+		}
+	}
+}
+
+func TestBuildInfoFallsBackToVCS(t *testing.T) {
+	// Under `go test` the binary carries VCS info but no ldflags, so version
+	// resolves to a dev+commit string (or stays "dev" if VCS data is absent).
+	ver, _ := buildInfo()
+	if ver == "" {
+		t.Fatal("buildInfo returned an empty version")
+	}
+	if ver != "dev" && !strings.HasPrefix(ver, "dev+") && ver != version {
+		t.Errorf("unexpected dev version %q (want \"dev\" or \"dev+<commit>\")", ver)
 	}
 }

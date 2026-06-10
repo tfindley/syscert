@@ -1,0 +1,38 @@
+# Let's Encrypt via HTTP-01
+# ------------------------------------------------------------------------------
+# Simplest public setup: no DNS provider. The CA reaches this host on :80 to
+# verify a token. The host must be publicly reachable on port 80.
+#
+# Binding :80 as the unprivileged syscert user needs CAP_NET_BIND_SERVICE — add
+# it to the systemd unit's AmbientCapabilities/CapabilityBoundingSet.
+# Every option, annotated: examples/full.toml
+
+[cert]
+hostname = "host.example.com"   # change me (or remove to use the system FQDN)
+key_type = "ec256"
+
+[acme]
+ca        = "letsencrypt"
+email     = "you@example.com"
+challenge = "http-01"           # CA validates over :80
+
+[store]
+path = "/var/lib/syscert"
+
+[[distribute]]
+artifact = "fullchain"
+path     = "/etc/nginx/tls/fullchain.pem"
+owner    = "root"
+group    = "root"
+mode     = "0644"
+
+[[distribute]]
+artifact = "privkey"
+path     = "/etc/nginx/tls/privkey.pem"
+owner    = "root"
+group    = "root"
+mode     = "0600"
+
+[logging]
+level  = "info"
+format = "text"

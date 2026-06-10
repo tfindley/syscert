@@ -1,0 +1,39 @@
+# Let's Encrypt via TLS-ALPN-01
+# ------------------------------------------------------------------------------
+# Modern :443-only challenge (RFC 8737): the CA validates over a special TLS
+# handshake on port 443 — no DNS provider and no port 80 needed. The host must
+# be publicly reachable on :443.
+#
+# Binding :443 as the unprivileged syscert user needs CAP_NET_BIND_SERVICE —
+# add it to the systemd unit's AmbientCapabilities/CapabilityBoundingSet.
+# Every option, annotated: examples/full.toml
+
+[cert]
+hostname = "host.example.com"   # change me (or remove to use the system FQDN)
+key_type = "ec256"
+
+[acme]
+ca        = "letsencrypt"
+email     = "you@example.com"
+challenge = "tls-alpn-01"       # CA validates over :443
+
+[store]
+path = "/var/lib/syscert"
+
+[[distribute]]
+artifact = "fullchain"
+path     = "/etc/nginx/tls/fullchain.pem"
+owner    = "root"
+group    = "root"
+mode     = "0644"
+
+[[distribute]]
+artifact = "privkey"
+path     = "/etc/nginx/tls/privkey.pem"
+owner    = "root"
+group    = "root"
+mode     = "0600"
+
+[logging]
+level  = "info"
+format = "text"

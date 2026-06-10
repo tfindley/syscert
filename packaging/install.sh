@@ -129,10 +129,10 @@ write_config_template() {
 key_type = "ec256"
 
 [acme]
-ca        = "letsencrypt"          # letsencrypt | vault | stepca | custom
+ca        = "letsencrypt"          # letsencrypt | custom (custom = Vault / step-ca / any internal ACME CA)
 email     = "you@example.com"
 challenge = "dns-01"
-# directory_url = "https://vault.example.com:8200/v1/pki/acme/directory"   # internal CAs
+# directory_url = "https://vault.example.com:8200/v1/pki/acme/directory"   # required when ca = "custom"
 
 [acme.dns]
 provider = "gandiv5"               # any lego DNS provider; creds go in the secrets file

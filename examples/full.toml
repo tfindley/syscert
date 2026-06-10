@@ -1,0 +1,126 @@
+# ============================================================================
+# SysCert configuration — annotated reference
+# ============================================================================
+# Copy to /etc/syscert/syscert.toml (the default path) and edit. Override the
+# path with `--config <path>` or the SYSCERT_CONFIG environment variable.
+#
+# Secrets (DNS-provider / CA tokens) NEVER go in this file — they're read from
+# the environment, typically via the systemd unit's EnvironmentFile
+# (/etc/syscert/secrets). Look up your provider's variables at:
+#   https://go-acme.github.io/lego/dns/
+#
+# Values shown uncommented are the defaults; commented lines are optional.
+# Full prose reference: https://github.com/tfindley/syscert
+# ============================================================================
+
+
+# ── Certificate subject ─────────────────────────────────────────────────────
+[cert]
+# The name the certificate is built around. Empty = use the system FQDN;
+# if the host has no FQDN, SysCert errors and refuses to run (it never guesses).
+# hostname = "host.example.com"
+
+# sans     = ["www.example.com", "api.example.com"]   # additional DNS SANs
+
+# IP SANs. Setting this forces the challenge to http-01/tls-alpn-01 (RFC 8738
+# forbids DNS-01 for IPs), and the CA must reach this host on :80/:443.
+# Private (RFC 1918) IPs require an internal CA; a private IP against a public
+# CA is rejected up front. Public-CA IP certs also need acme.profile = "shortlived".
+# ip_sans  = ["192.0.2.10"]
+
+key_type  = "ec256"     # ec256 (default) | ec384 | rsa2048 | rsa4096
+reuse_key = false       # true only if a consumer pins the public key (keeps the keypair across renewals)
+
+
+# ── ACME / CA ────────────────────────────────────────────────────────────────
+[acme]
+ca    = "letsencrypt"             # letsencrypt | custom
+                                  #   letsencrypt = public CA (built-in URLs + --staging)
+                                  #   custom      = any internal/other ACME CA (Vault, step-ca, …)
+email = "you@example.com"         # ACME account contact
+
+# ACME directory endpoint. Leave empty for Let's Encrypt (defaults to production;
+# set the staging URL while testing). REQUIRED when ca = "custom", e.g.:
+#   Vault    https://vault.example.com:8200/v1/pki/acme/directory
+#   step-ca  https://ca.example.com:9000/acme/<provisioner>/directory
+# directory_url = ""
+
+challenge = "dns-01"              # dns-01 (default) | http-01 | tls-alpn-01 | dns-persist-01
+                                  # Auto-switched to http-01/tls-alpn-01 when cert.ip_sans is set.
+                                  # dns-persist-01 is opt-in and capability-checked at runtime.
+
+# ACME profile to request, e.g. "shortlived" (~6-day certs; required for public-CA
+# IP certs). Validated at runtime against the directory's meta.profiles.
+# profile = "shortlived"
+
+# Trust an internal CA for the ACME CONNECTION ONLY (not the system trust store).
+# Bootstraps issuance against a Vault/step-ca the host doesn't trust yet; SysCert
+# warns when it's set. Afterwards run `syscert trust install` for host-wide trust.
+# ca_bundle = "/etc/syscert/internal-ca.pem"
+
+# DNS settings — used when challenge = "dns-01" or "dns-persist-01".
+[acme.dns]
+provider = "cloudflare"           # any lego DNS-provider id (cloudflare, gandiv5, route53, …)
+# Credentials are NOT here — set the provider's env vars (see the header link).
+
+
+# ── Canonical store ──────────────────────────────────────────────────────────
+# Source-of-truth cert material + ACME account state. Owned by the syscert user;
+# key-bearing files are kept 0600.
+[store]
+path = "/var/lib/syscert"
+
+
+# ── Bundle artifact (bundle.pem) ───────────────────────────────────────────────
+# Composition + order of bundle.pem. Omit a token to exclude it. Tokens:
+#   cert (leaf) | chain (intermediates) | root | key
+# `root` is dropped automatically when the CA provides none (public CAs).
+# If `key` is present, any target receiving `bundle` must use a tight mode.
+[bundle]
+order = ["cert", "chain", "root", "key"]   # default: leaf → chain → root → key
+
+
+# ── Distribution targets (zero or more) ────────────────────────────────────────
+# Each block copies ONE artifact to a consumer path with the ownership/mode/context
+# it needs. SysCert does NOT reload consumers — have the consumer watch its file
+# (e.g. a systemd.path unit) and reload itself.
+#
+# artifact: cert | privkey | chain | fullchain | bundle
+# Key-bearing artifacts (privkey, bundle) must NOT be world-readable.
+
+[[distribute]]
+artifact = "fullchain"
+path     = "/etc/nginx/tls/fullchain.pem"
+owner    = "root"
+group    = "root"
+mode     = "0644"
+
+[[distribute]]
+artifact = "privkey"
+path     = "/etc/nginx/tls/privkey.pem"
+owner    = "root"
+group    = "root"
+mode     = "0600"                 # key-bearing → must not be world-readable
+
+# [[distribute]]                  # an all-in-one consumer
+# artifact        = "bundle"
+# path            = "/etc/someapp/tls/combined.pem"
+# owner           = "someapp"
+# group           = "someapp"
+# mode            = "0600"
+# selinux_context = "cert_t"      # optional; RHEL family
+
+
+# ── Renewal ────────────────────────────────────────────────────────────────────
+[renewal]
+# Empty = auto: window derived from the cert's lifetime (short-lived/IP certs renew
+# ~daily; long-lived use a wide window). Set a duration like "30d" to override.
+renew_before = ""
+
+
+# ── Logging ─────────────────────────────────────────────────────────────────────
+# Operational logs (events + errors + lego's ACME output) go to stderr; command
+# results/prompts go to stdout. Secret values are never logged.
+[logging]
+level  = "info"     # debug | info (default) | warn | error
+format = "text"     # text (default, journald-friendly) | json

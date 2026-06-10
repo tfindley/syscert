@@ -96,6 +96,10 @@ go build -o syscert ./cmd/syscert
 ./syscert --help
 ```
 
+`syscert version` reports the build version, date, and repo. Release binaries are stamped with the
+git tag; a local `go build` derives the version from the checkout's VCS info automatically (the
+tag, with a `+dirty` suffix when the tree has uncommitted changes) — no extra flags needed.
+
 ### Install as a service (systemd)
 
 The installer and unit files live in the repo's [`packaging/`](packaging/) directory. If you built
@@ -262,7 +266,7 @@ A passing `--config-only` run prints the resolved subject, CA and challenge:
 ```
 config OK:
   subject:   demo.internal.lan
-  CA:        vault
+  CA:        custom
   challenge: http-01
 ```
 
@@ -304,6 +308,8 @@ TOML. Default location `/etc/syscert/syscert.toml`; override it with `--config <
 `SYSCERT_CONFIG` environment variable (precedence: `--config` flag > `SYSCERT_CONFIG` > default).
 The shipped systemd unit reads `SYSCERT_CONFIG` from `/etc/default/syscert`, so to point the service
 at a different config you set it there once — no unit edit needed.
+Ready-to-edit configs live in [`examples/`](examples/) — a fully-commented [`full.toml`](examples/full.toml)
+covering every option, plus focused starters (Let's Encrypt dns-01/http-01/tls-alpn-01, Vault, step-ca).
 **Secrets never go in this file** — see [DNS provider credentials](#acmedns--dns-provider--credentials).
 
 ### `[cert]` — certificate subject
@@ -327,8 +333,8 @@ key_type = "ec256"
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `ca` | string | *(required)* | `letsencrypt` \| `vault` \| `stepca` \| `custom`. Selects known defaults and behaviour. |
-| `directory_url` | string | per-CA | The ACME **directory endpoint URL** (see below). **Required** for `vault`, `stepca`, `custom`. For `letsencrypt` it defaults to production. |
+| `ca` | string | *(required)* | `letsencrypt` (public CA — built-in directory URLs + `--staging`) \| `custom` (any internal/other ACME CA: HashiCorp Vault, Smallstep step-ca, …, set via `directory_url`). |
+| `directory_url` | string | per-CA | The ACME **directory endpoint URL** (see below). **Required** when `ca = "custom"`. For `letsencrypt` it defaults to production. |
 | `email` | string | *(required)* | ACME account contact address. |
 | `challenge` | string | `dns-01` | `dns-01` (default) \| `http-01` \| `tls-alpn-01` \| `dns-persist-01`. Auto-switched to `http-01`/`tls-alpn-01` when `ip_sans` is set. `dns-persist-01` is opt-in and capability-checked at runtime. |
 | `profile` | string | `""` | ACME *profile* to request (e.g. `shortlived`). Leave empty unless you specifically need one — `shortlived` yields ~6-day certs (required for public-CA **IP** certs). Validated at runtime against the directory's `meta.profiles`. |
@@ -353,12 +359,16 @@ discover all the other endpoints (`newAccount`, `newOrder`, `newNonce`, `revokeC
 CA's metadata (RFC 8555 §7.1.1). `directory_url` is just that URL. Point SysCert at the right one
 for your CA:
 
-| CA (`ca =`) | `directory_url` | Notes |
+| Your CA | `ca` | `directory_url` |
 |---|---|---|
-| `letsencrypt` | *(leave empty)* → `https://acme-v02.api.letsencrypt.org/directory` | Set it explicitly to the **staging** URL `https://acme-staging-v02.api.letsencrypt.org/directory` while testing (staging has far higher rate limits; its certs aren't publicly trusted). |
-| `vault` | `https://<vault-addr>:8200/v1/<pki-mount>/acme/directory` | e.g. `https://vault.example.com:8200/v1/pki/acme/directory`. Role/issuer-scoped variants exist: `.../v1/pki/roles/<role>/acme/directory`. Requires ACME enabled on the PKI mount (`vault write pki/config/acme enabled=true` and a `pki/config/cluster path=…`). |
-| `stepca` | `https://<ca-host>:9000/acme/<provisioner>/directory` | e.g. `https://ca.example.com:9000/acme/acme/directory`. `<provisioner>` is the name of your ACME provisioner in step-ca. |
-| `custom` | any RFC 8555 directory URL | For any other ACME server. |
+| Let's Encrypt | `letsencrypt` | *(leave empty)* → `https://acme-v02.api.letsencrypt.org/directory`. Set the **staging** URL `https://acme-staging-v02.api.letsencrypt.org/directory` while testing (higher rate limits; certs aren't publicly trusted). |
+| HashiCorp Vault PKI | `custom` | `https://<vault-addr>:8200/v1/<pki-mount>/acme/directory` — e.g. `https://vault.example.com:8200/v1/pki/acme/directory`. Role/issuer-scoped variants exist (`.../v1/pki/roles/<role>/acme/directory`). Requires ACME enabled on the mount (`vault write pki/config/acme enabled=true` + a `pki/config/cluster path=…`). |
+| Smallstep step-ca | `custom` | `https://<ca-host>:9000/acme/<provisioner>/directory` — `<provisioner>` is your ACME provisioner's name. |
+| Any other ACME server | `custom` | its RFC 8555 directory URL. |
+
+> **Challenge support differs by CA.** Vault PKI ACME supports **`http-01`** and **`tls-alpn-01`**
+> only — *not* `dns-01`. step-ca supports all three (`dns-01`, `http-01`, `tls-alpn-01`). Let's
+> Encrypt supports `dns-01`, `http-01`, `tls-alpn-01`.
 
 ```toml
 # Let's Encrypt (production) via DNS-01

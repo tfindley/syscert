@@ -1,0 +1,48 @@
+# Smallstep step-ca (internal CA) via DNS-01
+# ------------------------------------------------------------------------------
+# Internal cert from a step-ca ACME provisioner. ca = "custom" + directory_url.
+# step-ca supports all three challenges (dns-01, http-01, tls-alpn-01); this
+# uses dns-01, so no inbound :80/:443 is needed.
+#
+# directory_url format: https://<ca-host>:9000/acme/<provisioner>/directory
+# Credentials for your DNS provider go in the environment, never here:
+#   https://go-acme.github.io/lego/dns/
+# Every option, annotated: examples/full.toml
+
+[cert]
+hostname = "app01.internal.lan"   # change me (or remove to use the system FQDN)
+key_type = "ec256"
+
+[acme]
+ca            = "custom"
+directory_url = "https://ca.example.com:9000/acme/acme/directory"
+email         = "ops@example.com"
+challenge     = "dns-01"
+
+# If the host doesn't trust step-ca's root yet, bootstrap the ACME connection
+# (SysCert warns), then `sudo syscert trust install` to trust it host-wide.
+# ca_bundle   = "/etc/syscert/step-ca-root.pem"
+
+[acme.dns]
+provider = "cloudflare"           # creds via env: CLOUDFLARE_DNS_API_TOKEN
+
+[store]
+path = "/var/lib/syscert"
+
+[[distribute]]
+artifact = "fullchain"
+path     = "/etc/nginx/tls/fullchain.pem"
+owner    = "root"
+group    = "root"
+mode     = "0644"
+
+[[distribute]]
+artifact = "privkey"
+path     = "/etc/nginx/tls/privkey.pem"
+owner    = "root"
+group    = "root"
+mode     = "0600"
+
+[logging]
+level  = "info"
+format = "text"

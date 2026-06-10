@@ -7,12 +7,65 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"strings"
 )
 
-// version is the build version, overridden at release time via
-// -ldflags "-X main.version=v1.2.3".
-var version = "dev"
+// version and date are stamped at release time via
+//
+//	-ldflags "-X main.version=v1.2.3 -X main.date=2026-06-10T12:00:00Z"
+//
+// For non-release builds they stay at their defaults and are enriched from the
+// VCS info Go embeds in the binary (see buildInfo).
+var (
+	version = "dev"
+	date    = ""
+)
+
+// repoURL is shown by `syscert version`.
+const repoURL = "https://github.com/tfindley/syscert"
+
+// buildInfo resolves the version and build date to report. A release build uses
+// the ldflags-stamped values; otherwise it falls back to what `go build` /
+// `go install` embed — the module version (for `go install …@vX.Y.Z`), else the
+// VCS commit + dirty flag, and the commit time as the build date.
+func buildInfo() (ver, built string) {
+	ver, built = version, date
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ver, built
+	}
+
+	var rev string
+	var dirty bool
+	for _, s := range info.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			rev = s.Value
+		case "vcs.modified":
+			dirty = s.Value == "true"
+		case "vcs.time":
+			if built == "" {
+				built = s.Value // commit time, as a build-date fallback
+			}
+		}
+	}
+
+	if ver == "dev" {
+		if v := info.Main.Version; v != "" && v != "(devel)" {
+			ver = v // e.g. go install …@vX.Y.Z, or a tag-derived pseudo-version
+		} else if rev != "" {
+			if len(rev) > 12 {
+				rev = rev[:12]
+			}
+			ver = "dev+" + rev
+			if dirty {
+				ver += "-dirty"
+			}
+		}
+	}
+	return ver, built
+}
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
@@ -29,7 +82,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 		usage(stdout)
 		return 0
 	case "version", "--version":
-		fmt.Fprintf(stdout, "syscert %s\n", version)
+		ver, built := buildInfo()
+		fmt.Fprintf(stdout, "syscert %s\n", ver)
+		if built != "" {
+			fmt.Fprintf(stdout, "built   %s\n", built)
+		}
+		fmt.Fprintf(stdout, "%s\n", repoURL)
 		return 0
 	}
 
@@ -60,7 +118,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func usage(w io.Writer) {
-	fmt.Fprint(w, `syscert — hostname-based system TLS certificate service
+	fmt.Fprintf(w, `syscert — hostname-based system TLS certificate service
 
 Obtains and auto-renews a TLS certificate for this host (Let's Encrypt, Vault,
 or step-ca) and distributes it to local consumers. As a service it's just bare
@@ -93,6 +151,6 @@ config file — the service loads them from /etc/syscert/secrets. Look up the
 variables your provider needs at: https://go-acme.github.io/lego/dns/
 
 Run 'syscert <command> --help' for a command's own flags.
-Docs: https://github.com/tfindley/syscert
-`)
+Docs: %s
+`, repoURL)
 }

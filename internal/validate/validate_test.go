@@ -47,7 +47,7 @@ func TestAllowsIPSANWithDNSChallenge(t *testing.T) {
 	// IP SAN + dns-01 is NOT an error: the challenge auto-switches to http-01
 	// (config.EffectiveChallenge / ADR-0015), so the validator must not reject it.
 	c := baseConfig()
-	c.ACME.CA = "vault"
+	c.ACME.CA = "custom"
 	c.ACME.DirectoryURL = "https://vault.example.com/v1/pki/acme/directory"
 	c.Cert.IPSANs = []string{"10.0.0.5"}
 	c.ACME.Challenge = "dns-01"
@@ -58,7 +58,7 @@ func TestAllowsIPSANWithDNSChallenge(t *testing.T) {
 
 func TestAcceptsIPSANWithHTTPChallenge(t *testing.T) {
 	c := baseConfig()
-	c.ACME.CA = "vault"
+	c.ACME.CA = "custom"
 	c.ACME.DirectoryURL = "https://vault.example.com/v1/pki/acme/directory"
 	c.Cert.IPSANs = []string{"10.0.0.5"}
 	c.ACME.Challenge = "http-01"
@@ -160,9 +160,18 @@ func TestAcceptsKnownLogFormats(t *testing.T) {
 
 func TestRequiresDirectoryURLForInternalCA(t *testing.T) {
 	c := baseConfig()
-	c.ACME.CA = "vault"
+	c.ACME.CA = "custom"
 	c.ACME.DirectoryURL = ""
 	if ps := Config(c); !hasProblem(ps, "directory_url") {
-		t.Fatalf("vault without directory_url: want a 'directory_url' problem, got %+v", ps)
+		t.Fatalf("custom without directory_url: want a 'directory_url' problem, got %+v", ps)
+	}
+}
+
+func TestRejectsUnknownCA(t *testing.T) {
+	// vault/stepca were collapsed into "custom"; a stale value must be rejected.
+	c := baseConfig()
+	c.ACME.CA = "vault"
+	if ps := Config(c); !hasProblem(ps, "unknown ca") {
+		t.Fatalf("ca=%q should be rejected (letsencrypt|custom), got %+v", c.ACME.CA, ps)
 	}
 }

@@ -58,9 +58,9 @@ func TestDirectoryURLExplicitWins(t *testing.T) {
 }
 
 func TestDirectoryURLInternalCAUsesConfigured(t *testing.T) {
-	c := &config.Config{ACME: config.ACMEConfig{CA: "vault", DirectoryURL: "https://vault/v1/pki/acme/directory"}}
+	c := &config.Config{ACME: config.ACMEConfig{CA: "custom", DirectoryURL: "https://vault/v1/pki/acme/directory"}}
 	if got := DirectoryURL(c, true); got != "https://vault/v1/pki/acme/directory" {
-		t.Errorf("vault directory = %q", got)
+		t.Errorf("custom directory = %q", got)
 	}
 }
 

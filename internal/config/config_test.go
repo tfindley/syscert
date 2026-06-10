@@ -56,7 +56,7 @@ ip_sans  = ["10.0.0.5"]
 key_type = "rsa2048"
 
 [acme]
-ca        = "vault"
+ca        = "custom"
 challenge = "http-01"
 email     = "admin@example.com"
 
