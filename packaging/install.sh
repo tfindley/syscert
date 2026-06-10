@@ -136,6 +136,8 @@ challenge = "dns-01"
 
 [acme.dns]
 provider = "gandiv5"               # any lego DNS provider; creds go in the secrets file
+# propagation_check = "authoritative"   # all (default) | authoritative | off — use "authoritative"
+                                        # if the host's resolver is split-horizon/VPN/slow
 
 [store]
 path = "/var/lib/syscert"

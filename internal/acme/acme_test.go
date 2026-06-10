@@ -64,6 +64,15 @@ func TestDirectoryURLInternalCAUsesConfigured(t *testing.T) {
 	}
 }
 
+func TestDNSPropagationOpts(t *testing.T) {
+	cases := map[string]int{"": 0, "all": 0, "authoritative": 1, "off": 2}
+	for mode, want := range cases {
+		if got := len(dnsPropagationOpts(mode)); got != want {
+			t.Errorf("dnsPropagationOpts(%q) = %d opts, want %d", mode, got, want)
+		}
+	}
+}
+
 func TestIdentifiers(t *testing.T) {
 	c := &config.Config{Cert: config.CertConfig{
 		SANs:   []string{"alt.example.com", "host.example.com"}, // dup of subject

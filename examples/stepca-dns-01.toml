@@ -25,6 +25,8 @@ challenge     = "dns-01"
 
 [acme.dns]
 provider = "cloudflare"           # creds via env: CLOUDFLARE_DNS_API_TOKEN
+# propagation_check = "authoritative"   # if your local resolver is split-horizon/VPN/slow
+                                        # (all | authoritative | off)
 
 [store]
 path = "/var/lib/syscert"

@@ -63,6 +63,14 @@ challenge = "dns-01"              # dns-01 (default) | http-01 | tls-alpn-01 | d
 provider = "cloudflare"           # any lego DNS-provider id (cloudflare, gandiv5, route53, …)
 # Credentials are NOT here — set the provider's env vars (see the header link).
 
+# How thoroughly to confirm the TXT record before notifying the CA:
+#   all (default)  — must be visible on the local resolver AND the authoritative NS
+#   authoritative  — verify only on the CA's authoritative NS; skip the local
+#                    recursive-resolver check. Use this when the host's resolver
+#                    is split-horizon / on a VPN / slow to see public DNS changes.
+#   off            — skip the local pre-check; let the CA validate directly.
+# propagation_check = "all"
+
 
 # ── Canonical store ──────────────────────────────────────────────────────────
 # Source-of-truth cert material + ACME account state. Owned by the syscert user;

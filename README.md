@@ -392,10 +392,12 @@ Used only when `challenge` is `dns-01` or `dns-persist-01`.
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `provider` | string | `""` | Any [lego DNS-provider id](https://go-acme.github.io/lego/dns/) (e.g. `cloudflare`, `gandiv5`, `route53`). |
+| `propagation_check` | string | `all` | How the TXT record is confirmed before notifying the CA. `all` — must be visible on the **local resolver and** the authoritative NS (lego default). `authoritative` — verify **only** on the CA's authoritative nameservers; skips the local recursive-resolver check (use when the host's resolver is split-horizon / on a VPN / slow to see public changes). `off` — skip the local pre-check entirely. |
 
 ```toml
 [acme.dns]
-provider = "gandiv5"
+provider          = "gandiv5"
+propagation_check = "authoritative"   # only if your local resolver doesn't see public DNS promptly
 ```
 
 **Credentials are supplied via the environment (or a restricted secrets file), never in the config.**
@@ -537,3 +539,21 @@ level = "info"
 ```
 
 Validate it with `syscert dry-run --config ./syscert.toml`.
+
+---
+
+## License
+
+AGPL
+
+---
+
+## Author Information
+
+### Tristan Findley
+
+Find out more at [tfindley.co.uk](https://tfindley.co.uk).
+
+If you're a fan of my work and would like to show your support:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/tfindley)

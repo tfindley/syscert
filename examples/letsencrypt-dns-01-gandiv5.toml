@@ -19,6 +19,8 @@ challenge = "dns-01"
 
 [acme.dns]
 provider = "gandiv5"            # creds via env: GANDIV5_PERSONAL_ACCESS_TOKEN
+# propagation_check = "authoritative"   # if your local resolver is split-horizon/VPN/slow
+                                        # (all | authoritative | off)
 
 [store]
 path = "/var/lib/syscert"

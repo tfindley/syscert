@@ -16,15 +16,16 @@ const (
 
 // Params is the fully-resolved input to an issuance attempt.
 type Params struct {
-	DirectoryURL string
-	Email        string
-	KeyType      string
-	Challenge    string
-	DNSProvider  string
-	Profile      string
-	CABundle     string
-	AccountDir   string // base dir for the persistent ACME account; "" = ephemeral
-	Identifiers  []string
+	DirectoryURL        string
+	Email               string
+	KeyType             string
+	Challenge           string
+	DNSProvider         string
+	DNSPropagationCheck string // "" / "all" | "authoritative" | "off"
+	Profile             string
+	CABundle            string
+	AccountDir          string // base dir for the persistent ACME account; "" = ephemeral
+	Identifiers         []string
 }
 
 // Result reports the outcome of an issuance attempt. The PEM fields carry the
@@ -88,15 +89,16 @@ func Identifiers(cfg *config.Config, subject string) []string {
 // ("" for an ephemeral account, e.g. dry-run).
 func params(cfg *config.Config, subject string, staging bool, accountDir string) Params {
 	return Params{
-		DirectoryURL: DirectoryURL(cfg, staging),
-		Email:        cfg.ACME.Email,
-		KeyType:      cfg.Cert.KeyType,
-		Challenge:    cfg.EffectiveChallenge(),
-		DNSProvider:  cfg.ACME.DNS.Provider,
-		Profile:      cfg.ACME.Profile,
-		CABundle:     cfg.ACME.CABundle,
-		AccountDir:   accountDir,
-		Identifiers:  Identifiers(cfg, subject),
+		DirectoryURL:        DirectoryURL(cfg, staging),
+		Email:               cfg.ACME.Email,
+		KeyType:             cfg.Cert.KeyType,
+		Challenge:           cfg.EffectiveChallenge(),
+		DNSProvider:         cfg.ACME.DNS.Provider,
+		DNSPropagationCheck: cfg.ACME.DNS.PropagationCheck,
+		Profile:             cfg.ACME.Profile,
+		CABundle:            cfg.ACME.CABundle,
+		AccountDir:          accountDir,
+		Identifiers:         Identifiers(cfg, subject),
 	}
 }
 

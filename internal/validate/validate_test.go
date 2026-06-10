@@ -175,3 +175,18 @@ func TestRejectsUnknownCA(t *testing.T) {
 		t.Fatalf("ca=%q should be rejected (letsencrypt|custom), got %+v", c.ACME.CA, ps)
 	}
 }
+
+func TestPropagationCheck(t *testing.T) {
+	for _, v := range []string{"", "all", "authoritative", "off"} {
+		c := baseConfig()
+		c.ACME.DNS.PropagationCheck = v
+		if ps := Config(c); hasProblem(ps, "propagation_check") {
+			t.Errorf("propagation_check=%q should be valid, got %+v", v, ps)
+		}
+	}
+	c := baseConfig()
+	c.ACME.DNS.PropagationCheck = "sometimes"
+	if ps := Config(c); !hasProblem(ps, "propagation_check") {
+		t.Errorf("propagation_check=%q should be rejected, got %+v", c.ACME.DNS.PropagationCheck, ps)
+	}
+}

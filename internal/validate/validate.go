@@ -21,13 +21,14 @@ type Problem struct {
 }
 
 var (
-	validCAs        = map[string]bool{"letsencrypt": true, "custom": true}
-	validChallenges = map[string]bool{"dns-01": true, "http-01": true, "tls-alpn-01": true, "dns-persist-01": true}
-	validKeyTypes   = map[string]bool{"ec256": true, "ec384": true, "rsa2048": true, "rsa4096": true}
-	validArtifacts  = map[string]bool{"cert": true, "privkey": true, "chain": true, "fullchain": true, "bundle": true}
-	keyBearing      = map[string]bool{"privkey": true, "bundle": true}
-	validBundleTok  = map[string]bool{"cert": true, "chain": true, "root": true, "key": true}
-	validLogFormats = map[string]bool{"": true, "text": true, "json": true} // "" => default (text)
+	validCAs               = map[string]bool{"letsencrypt": true, "custom": true}
+	validChallenges        = map[string]bool{"dns-01": true, "http-01": true, "tls-alpn-01": true, "dns-persist-01": true}
+	validKeyTypes          = map[string]bool{"ec256": true, "ec384": true, "rsa2048": true, "rsa4096": true}
+	validArtifacts         = map[string]bool{"cert": true, "privkey": true, "chain": true, "fullchain": true, "bundle": true}
+	keyBearing             = map[string]bool{"privkey": true, "bundle": true}
+	validBundleTok         = map[string]bool{"cert": true, "chain": true, "root": true, "key": true}
+	validLogFormats        = map[string]bool{"": true, "text": true, "json": true}                      // "" => default (text)
+	validPropagationChecks = map[string]bool{"": true, "all": true, "authoritative": true, "off": true} // "" => all
 )
 
 // Config checks the configuration and returns any problems (empty == valid).
@@ -51,6 +52,9 @@ func Config(cfg *config.Config) []Problem {
 		if _, err := os.Stat(cfg.ACME.CABundle); err != nil {
 			add("acme.ca_bundle", fmt.Sprintf("cannot read ca_bundle file %q: %v", cfg.ACME.CABundle, err))
 		}
+	}
+	if !validPropagationChecks[cfg.ACME.DNS.PropagationCheck] {
+		add("acme.dns.propagation_check", fmt.Sprintf("unknown propagation_check %q (all|authoritative|off)", cfg.ACME.DNS.PropagationCheck))
 	}
 
 	if !validLogFormats[cfg.Logging.Format] {

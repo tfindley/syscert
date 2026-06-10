@@ -13,6 +13,7 @@ import (
 	"github.com/go-acme/lego/v5/acme"
 	"github.com/go-acme/lego/v5/certcrypto"
 	"github.com/go-acme/lego/v5/certificate"
+	"github.com/go-acme/lego/v5/challenge/dns01"
 	"github.com/go-acme/lego/v5/challenge/http01"
 	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
 	"github.com/go-acme/lego/v5/lego"
@@ -135,6 +136,25 @@ func accountSigner(p Params) (crypto.Signer, error) {
 	return accountKey(p.AccountDir, p.DirectoryURL)
 }
 
+// dnsPropagationOpts maps the configured propagation-check mode to lego's DNS-01
+// options. lego's default requires the record to be visible on both the local
+// recursive resolver and the CA's authoritative nameservers; "authoritative"
+// drops the fragile recursive check (split-horizon / VPN / stale local resolver)
+// while still verifying on the authoritative NS, and "off" skips the local check.
+func dnsPropagationOpts(mode string) []dns01.ChallengeOption {
+	switch mode {
+	case "authoritative":
+		return []dns01.ChallengeOption{dns01.DisableRecursiveNSsPropagationRequirement()}
+	case "off":
+		return []dns01.ChallengeOption{
+			dns01.DisableRecursiveNSsPropagationRequirement(),
+			dns01.DisableAuthoritativeNssPropagationRequirement(),
+		}
+	default: // "" / "all"
+		return nil
+	}
+}
+
 // setSolver configures the challenge solver for the requested challenge type.
 func setSolver(client *lego.Client, p Params) error {
 	switch p.Challenge {
@@ -143,7 +163,7 @@ func setSolver(client *lego.Client, p Params) error {
 		if err != nil {
 			return fmt.Errorf("dns provider %q: %w", p.DNSProvider, err)
 		}
-		return client.Challenge.SetDNS01Provider(provider)
+		return client.Challenge.SetDNS01Provider(provider, dnsPropagationOpts(p.DNSPropagationCheck)...)
 	case "http-01":
 		return client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", "80"))
 	case "tls-alpn-01":

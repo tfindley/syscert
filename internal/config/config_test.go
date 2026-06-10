@@ -62,6 +62,7 @@ email     = "admin@example.com"
 
 [acme.dns]
 provider = "cloudflare"
+propagation_check = "authoritative"
 
 [store]
 path = "/srv/syscert"
@@ -98,6 +99,9 @@ mode     = "0600"
 	}
 	if cfg.ACME.DNS.Provider != "cloudflare" {
 		t.Errorf("ACME.DNS.Provider = %q", cfg.ACME.DNS.Provider)
+	}
+	if cfg.ACME.DNS.PropagationCheck != "authoritative" {
+		t.Errorf("ACME.DNS.PropagationCheck = %q, want authoritative", cfg.ACME.DNS.PropagationCheck)
 	}
 	if cfg.Store.Path != "/srv/syscert" {
 		t.Errorf("Store.Path = %q (explicit value should win over default)", cfg.Store.Path)

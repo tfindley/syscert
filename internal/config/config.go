@@ -37,6 +37,12 @@ type ACMEConfig struct {
 // ACMEDNSConfig holds DNS-challenge settings (credentials come from secrets, not here).
 type ACMEDNSConfig struct {
 	Provider string `toml:"provider"`
+	// PropagationCheck controls lego's DNS-01 propagation pre-check before it
+	// notifies the CA: "all" (default — recursive + authoritative nameservers),
+	// "authoritative" (skip the local recursive-resolver check; verify only on the
+	// CA's authoritative NS — use this when the host's resolver is split-horizon /
+	// VPN / slow), or "off" (skip the local check entirely).
+	PropagationCheck string `toml:"propagation_check"`
 }
 
 // StoreConfig is the canonical store location.
