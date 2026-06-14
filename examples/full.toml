@@ -71,6 +71,15 @@ provider = "cloudflare"           # any lego DNS-provider id (cloudflare, gandiv
 #   off            — skip the local pre-check; let the CA validate directly.
 # propagation_check = "all"
 
+# External Account Binding — required by some CAs (Vault eab_policy, step-ca
+# requireEAB, ZeroSSL/Google/SSL.com) to register the ACME account. Setting kid
+# enables it. The HMAC key is a secret: export SYSCERT_EAB_HMAC=<base64url-key>
+# (in /etc/syscert/secrets) — never put it here.
+#   Vault:   vault write -f pki/acme/new-eab           → id (=kid) + key (=HMAC)
+#   step-ca: step ca acme eab add <provisioner> <ref>  → key id + HMAC
+# [acme.eab]
+# kid = "kid-from-your-ca"
+
 
 # ── Canonical store ──────────────────────────────────────────────────────────
 # Source-of-truth cert material + ACME account state. Owned by the syscert user;

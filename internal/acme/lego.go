@@ -119,12 +119,40 @@ func newClientAndAccount(ctx context.Context, p Params) (*lego.Client, error) {
 
 	// newAccount is idempotent for an existing key, so a persistent account is
 	// reused (and re-establishes the account URL needed for orders/revocation).
-	reg, err := client.Registration.Register(ctx, registration.RegisterOptions{TermsOfServiceAgreed: true})
+	// With EAB the CA validates the HMAC only when first creating the account.
+	eab, useEAB, err := eabOptions(p)
+	if err != nil {
+		return nil, err
+	}
+	var reg *acme.ExtendedAccount
+	if useEAB {
+		reg, err = client.Registration.RegisterWithExternalAccountBinding(ctx, eab)
+	} else {
+		reg, err = client.Registration.Register(ctx, registration.RegisterOptions{TermsOfServiceAgreed: true})
+	}
 	if err != nil {
 		return nil, fmt.Errorf("register account: %w", err)
 	}
 	user.reg = reg
 	return client, nil
+}
+
+// eabOptions decides whether to use External Account Binding. EAB is on when
+// p.EABKid is set; it then requires the HMAC key (p.EABHMAC, from SYSCERT_EAB_HMAC)
+// and errors clearly when it's missing — caught before any network call.
+func eabOptions(p Params) (opts registration.RegisterEABOptions, useEAB bool, err error) {
+	if p.EABKid == "" {
+		return registration.RegisterEABOptions{}, false, nil
+	}
+	if p.EABHMAC == "" {
+		return registration.RegisterEABOptions{}, false,
+			fmt.Errorf("acme.eab.kid is set but %s is empty (export the EAB HMAC key)", envEABHMAC)
+	}
+	return registration.RegisterEABOptions{
+		TermsOfServiceAgreed: true,
+		Kid:                  p.EABKid,
+		HmacEncoded:          p.EABHMAC,
+	}, true, nil
 }
 
 // accountSigner returns the persistent per-CA account key, or an ephemeral one

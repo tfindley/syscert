@@ -73,6 +73,34 @@ func TestDNSPropagationOpts(t *testing.T) {
 	}
 }
 
+func TestEABOptions(t *testing.T) {
+	if _, useEAB, err := eabOptions(Params{}); useEAB || err != nil {
+		t.Errorf("no kid: useEAB=%v err=%v, want false/nil", useEAB, err)
+	}
+	if _, _, err := eabOptions(Params{EABKid: "k"}); err == nil {
+		t.Error("kid without hmac: want error, got nil")
+	}
+	opts, useEAB, err := eabOptions(Params{EABKid: "k", EABHMAC: "h"})
+	if err != nil || !useEAB {
+		t.Fatalf("kid+hmac: useEAB=%v err=%v", useEAB, err)
+	}
+	if opts.Kid != "k" || opts.HmacEncoded != "h" || !opts.TermsOfServiceAgreed {
+		t.Errorf("opts = %+v, want Kid=k HmacEncoded=h TOS=true", opts)
+	}
+}
+
+func TestParamsReadsEAB(t *testing.T) {
+	t.Setenv(envEABHMAC, "secret-hmac")
+	cfg := &config.Config{ACME: config.ACMEConfig{EAB: config.ACMEEABConfig{Kid: "my-kid"}}}
+	p := params(cfg, "host.example.com", false, "")
+	if p.EABKid != "my-kid" {
+		t.Errorf("EABKid = %q, want my-kid", p.EABKid)
+	}
+	if p.EABHMAC != "secret-hmac" {
+		t.Errorf("EABHMAC = %q, want the env value", p.EABHMAC)
+	}
+}
+
 func TestIdentifiers(t *testing.T) {
 	c := &config.Config{Cert: config.CertConfig{
 		SANs:   []string{"alt.example.com", "host.example.com"}, // dup of subject

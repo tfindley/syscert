@@ -32,6 +32,14 @@ type ACMEConfig struct {
 	Profile      string        `toml:"profile"`
 	CABundle     string        `toml:"ca_bundle"`
 	DNS          ACMEDNSConfig `toml:"dns"`
+	EAB          ACMEEABConfig `toml:"eab"`
+}
+
+// ACMEEABConfig holds External Account Binding settings. The Kid (key identifier)
+// lives here; the HMAC key is a secret supplied via the SYSCERT_EAB_HMAC env var,
+// never in this file. Setting Kid enables EAB at account registration.
+type ACMEEABConfig struct {
+	Kid string `toml:"kid"`
 }
 
 // ACMEDNSConfig holds DNS-challenge settings (credentials come from secrets, not here).

@@ -4,10 +4,15 @@ package acme
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 
 	"github.com/tfindley/syscert/internal/config"
 )
+
+// envEABHMAC is the env var carrying the External Account Binding HMAC key
+// (base64url, as issued by the CA). It's a secret — never read from TOML.
+const envEABHMAC = "SYSCERT_EAB_HMAC"
 
 const (
 	leProductionURL = "https://acme-v02.api.letsencrypt.org/directory"
@@ -24,6 +29,8 @@ type Params struct {
 	DNSPropagationCheck string // "" / "all" | "authoritative" | "off"
 	Profile             string
 	CABundle            string
+	EABKid              string // External Account Binding key id ("" = no EAB)
+	EABHMAC             string // EAB HMAC key (base64url); from env, never logged
 	AccountDir          string // base dir for the persistent ACME account; "" = ephemeral
 	Identifiers         []string
 }
@@ -97,6 +104,8 @@ func params(cfg *config.Config, subject string, staging bool, accountDir string)
 		DNSPropagationCheck: cfg.ACME.DNS.PropagationCheck,
 		Profile:             cfg.ACME.Profile,
 		CABundle:            cfg.ACME.CABundle,
+		EABKid:              cfg.ACME.EAB.Kid,
+		EABHMAC:             os.Getenv(envEABHMAC),
 		AccountDir:          accountDir,
 		Identifiers:         Identifiers(cfg, subject),
 	}

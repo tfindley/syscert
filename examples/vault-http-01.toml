@@ -23,6 +23,11 @@ challenge     = "http-01"          # Vault: http-01 or tls-alpn-01 (NOT dns-01)
 # add it host-wide. See ADR-0035.
 # ca_bundle   = "/etc/syscert/vault-ca.pem"
 
+# If Vault's eab_policy requires External Account Binding, mint a token
+# (vault write -f pki/acme/new-eab) and set the kid here + the HMAC in the env:
+# [acme.eab]
+# kid = "id-from-vault"            # + export SYSCERT_EAB_HMAC=<key-from-vault>
+
 [store]
 path = "/var/lib/syscert"
 

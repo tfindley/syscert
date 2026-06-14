@@ -5,7 +5,8 @@
 # be publicly reachable on :443.
 #
 # Binding :443 as the unprivileged syscert user needs CAP_NET_BIND_SERVICE —
-# add it to the systemd unit's AmbientCapabilities/CapabilityBoundingSet.
+# add it to the systemd unit's AmbientCapabilities/CapabilityBoundingSet. Also
+# open the firewall (RHEL: firewall-cmd --add-service=https --permanent && --reload).
 # Every option, annotated: examples/full.toml
 
 [cert]

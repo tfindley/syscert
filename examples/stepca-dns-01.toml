@@ -23,6 +23,11 @@ challenge     = "dns-01"
 # (SysCert warns), then `sudo syscert trust install` to trust it host-wide.
 # ca_bundle   = "/etc/syscert/step-ca-root.pem"
 
+# If the provisioner has requireEAB, mint a key (step ca acme eab add <prov> <ref>)
+# and set the kid here + the HMAC in the env:
+# [acme.eab]
+# kid = "id-from-step"            # + export SYSCERT_EAB_HMAC=<key-from-step>
+
 [acme.dns]
 provider = "cloudflare"           # creds via env: CLOUDFLARE_DNS_API_TOKEN
 # propagation_check = "authoritative"   # if your local resolver is split-horizon/VPN/slow

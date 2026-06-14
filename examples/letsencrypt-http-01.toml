@@ -4,7 +4,8 @@
 # verify a token. The host must be publicly reachable on port 80.
 #
 # Binding :80 as the unprivileged syscert user needs CAP_NET_BIND_SERVICE — add
-# it to the systemd unit's AmbientCapabilities/CapabilityBoundingSet.
+# it to the systemd unit's AmbientCapabilities/CapabilityBoundingSet. Also open
+# the firewall (RHEL: firewall-cmd --add-service=http --permanent && --reload).
 # Every option, annotated: examples/full.toml
 
 [cert]
