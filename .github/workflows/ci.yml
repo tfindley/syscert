@@ -3,8 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore: ["web/**"]
   pull_request:
     branches: [main]
+    paths-ignore: ["web/**"]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -60,3 +62,28 @@ jobs:
           name: coverage
           path: coverage.out
           retention-days: 14
+
+  security:
+    name: govulncheck + gosec
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Known-vulnerability scan against the Go vuln DB (low-noise, gating).
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      # Static security analysis. The same scans scripts/prerelease.sh runs locally.
+      - name: gosec
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -quiet ./...

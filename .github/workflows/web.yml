@@ -1,0 +1,80 @@
+name: Web
+
+# Build the website container and push it to GHCR whenever the site changes.
+# Hosting is self-managed: the Hetzner box pulls ghcr.io/<owner>/syscert-web
+# and runs it behind Traefik (see web/docker-compose.yml).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "docs/**" # canonical docs vendored into the site
+      - "CHANGELOG.md" # rendered at /changelog
+      - "packaging/net-install.sh" # vendored to /install.sh
+      - ".github/workflows/web.yml"
+  # Rebuild once a release is published so the site picks up the new version +
+  # checksums (sha256sums.txt only exists after release.yml finishes building).
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    name: Build & push image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Docker build (context ./web) can't reach ../docs, so the canonical
+      # docs/CHANGELOG/installer are vendored into web/ as committed copies. Fail
+      # if those copies are stale (someone edited a canonical file without
+      # re-running the vendor / npm build).
+      - name: Verify vendored docs are in sync
+        run: node web/scripts/vendor.mjs --check
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Independent site semver, sourced from web/package.json (bump it for
+      # site changes — separate from the tool's vX.Y.Z). The site shows which
+      # tool release it documents via its build-time fetch, so they stay in
+      # line by content without sharing a number.
+      - name: Site version
+        id: site
+        run: echo "version=$(node -p "require('./web/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/syscert-web
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+            type=raw,value=site-v${{ steps.site.outputs.version }}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
