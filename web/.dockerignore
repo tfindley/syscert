@@ -5,7 +5,6 @@ dist
 .github
 .superpowers
 docs
-scripts
 *.log
 Dockerfile
 .dockerignore
