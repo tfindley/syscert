@@ -1,0 +1,39 @@
+---
+const groups = [
+  { label: "Certificate authorities", items: ["Let's Encrypt", "HashiCorp Vault", "Smallstep step-ca", "any ACME CA"] },
+  { label: "Consumers", items: ["nginx", "HAProxy", "Cockpit", "PostgreSQL", "Redis", "syslog / metrics"] },
+  { label: "Operating systems", items: ["Debian", "Ubuntu", "RHEL family", "Rocky", "Alma", "Fedora"] },
+  { label: "Architectures", items: ["linux/amd64", "linux/arm64"] },
+];
+---
+<section class="sec" id="compatibility">
+  <div class="shell">
+    <div class="sec-head">
+      <p class="label-mono sec-eyebrow">// plays with what you already run</p>
+      <h2 class="sec-title">Compatibility.</h2>
+    </div>
+    <div class="compat">
+      {groups.map((g) => (
+        <div class="compat-row">
+          <div class="compat-label">{g.label}</div>
+          <div class="compat-chips">
+            {g.items.map((it) => <span class="chip">{it}</span>)}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .compat { display: grid; gap: 2px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .compat-row { display: grid; grid-template-columns: 230px 1fr; gap: 24px; align-items: center; padding: 22px 26px; background: var(--surface); }
+  .compat-row > * { min-width: 0; }
+  .compat-label { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.04em; color: var(--faint); text-transform: uppercase; }
+  .compat-chips { display: flex; flex-wrap: wrap; gap: 9px; }
+  .chip { font-family: var(--font-mono); font-size: 13px; padding: 6px 13px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); }
+  .chip:hover { border-color: color-mix(in oklab, var(--cyan) 45%, var(--line)); color: var(--cyan); }
+  @media (max-width: 720px) {
+    .compat-row { grid-template-columns: 1fr; gap: 14px; }
+  }
+</style>

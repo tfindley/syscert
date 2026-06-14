@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://syscert.tfindley.dev/sitemap-index.xml

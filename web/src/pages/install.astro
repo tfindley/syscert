@@ -1,0 +1,142 @@
+---
+import Base from "../layouts/Base.astro";
+import CopyCommand from "../components/CopyCommand.astro";
+import { INSTALL_CMD, LINKS, SITE } from "../consts";
+import { getRelease } from "../lib/release";
+
+const release = await getRelease();
+---
+<Base
+  title="Install syscert"
+  description="Install syscert on any Linux + systemd host (amd64/arm64): the one-line installer, inspect-first, checksum-verified binaries, or build from source."
+  path="/install/"
+>
+  <section class="sec install-hero">
+    <div class="shell ins-shell">
+      <p class="label-mono">// install · linux + systemd</p>
+      <h1 class="ins-h1">Install <span class="grad-ink">syscert</span></h1>
+      <p class="ins-lede">
+        One static binary and a systemd timer. Pick the path you trust — the fast one-liner, or
+        verify every byte first.
+      </p>
+      <div class="ins-cmd"><CopyCommand command={INSTALL_CMD} size="lg" /></div>
+      <p class="ins-meta">
+        <span class="badge-status2"><span class="badge-pip2"></span>{SITE.status}</span>
+        Runs as root to create the service user, units &amp; timer. amd64 · arm64.
+      </p>
+    </div>
+  </section>
+
+  <section class="sec ins-blocks">
+    <div class="shell">
+      <article class="card ins-block" id="inspect">
+        <div class="ins-num">A</div>
+        <div class="ins-content">
+          <h2 class="ins-h2">Inspect before you pipe</h2>
+          <p class="ins-p">It's a security tool — read the script, then run it. Nothing to hide.</p>
+          <pre class="code ins-code"><span class="c-cmt"># read it first</span>
+curl -fsSL https://syscert.tfindley.dev/install.sh | less
+
+<span class="c-cmt"># …or download, review, then run</span>
+curl -fsSL https://syscert.tfindley.dev/install.sh -o install.sh
+less install.sh
+sudo sh install.sh</pre>
+        </div>
+      </article>
+
+      <article class="card ins-block">
+        <div class="ins-num">B</div>
+        <div class="ins-content">
+          <h2 class="ins-h2">Download a release binary &amp; verify</h2>
+          <p class="ins-p">Pre-built static binaries on every release, checked against published sums.</p>
+          <pre class="code ins-code"><span class="c-cmt"># amd64 — for arm64 use syscert-linux-arm64</span>
+curl -fsSL https://github.com/tfindley/syscert/releases/latest/download/syscert-linux-amd64 -o syscert
+curl -fsSL https://github.com/tfindley/syscert/releases/latest/download/sha256sums.txt -o sha256sums.txt
+sha256sum --check --ignore-missing sha256sums.txt   <span class="c-cmt"># syscert: OK</span>
+chmod +x syscert
+sudo packaging/install.sh ./syscert</pre>
+          {release.sha256 && (
+            <div class="ins-sums">
+              <p class="ins-sums-h">
+                <span class="ins-sums-tag">sha256</span>
+                <span>latest <strong>{release.version}</strong> — verify your download against:</span>
+              </p>
+              <dl class="ins-sums-list">
+                {release.sha256.amd64 && (
+                  <div><dt>amd64</dt><dd>{release.sha256.amd64}</dd></div>
+                )}
+                {release.sha256.arm64 && (
+                  <div><dt>arm64</dt><dd>{release.sha256.arm64}</dd></div>
+                )}
+              </dl>
+              <a class="ins-sums-link" href={`${LINKS.releases}/latest/download/sha256sums.txt`} target="_blank" rel="noopener">sha256sums.txt ↗</a>
+            </div>
+          )}
+        </div>
+      </article>
+
+      <article class="card ins-block">
+        <div class="ins-num">C</div>
+        <div class="ins-content">
+          <h2 class="ins-h2">Build from source</h2>
+          <p class="ins-p">Requires Go ≥ 1.26. The packaging files come with the clone.</p>
+          <pre class="code ins-code">git clone https://github.com/tfindley/syscert.git
+cd syscert
+go build -o syscert ./cmd/syscert
+sudo packaging/install.sh ./syscert</pre>
+        </div>
+      </article>
+
+      <article class="card ins-block ins-uninstall">
+        <div class="ins-num">↺</div>
+        <div class="ins-content">
+          <h2 class="ins-h2">Uninstall</h2>
+          <pre class="code ins-code">sudo packaging/install.sh --uninstall            <span class="c-cmt"># remove units + binary, keep data</span>
+sudo packaging/install.sh --uninstall --purge    <span class="c-cmt"># also remove /var/lib/syscert, /etc/syscert</span></pre>
+        </div>
+      </article>
+
+      <p class="ins-foot">
+        Supported &amp; tested on Debian/Ubuntu and the RHEL family; other systemd hosts may work.
+        Full details in the <a href="/docs/quick-start/">Quick start</a> ·
+        <a href={LINKS.releases} target="_blank" rel="noopener">all releases ↗</a>.
+      </p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .install-hero { padding-top: 64px; padding-bottom: 24px; }
+  .ins-shell { max-width: 760px; }
+  .ins-h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -0.035em; margin: 16px 0 14px; }
+  .ins-lede { color: var(--muted); font-size: 17px; max-width: 56ch; margin: 0 0 26px; }
+  .ins-cmd { max-width: 640px; margin-bottom: 16px; }
+  .ins-meta { font-family: var(--font-mono); font-size: 12.5px; color: var(--faint); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .badge-status2 { display: inline-flex; align-items: center; gap: 7px; color: var(--amber, #f5b14c); }
+  .badge-pip2 { width: 7px; height: 7px; border-radius: 99px; background: var(--amber, #f5b14c); box-shadow: 0 0 8px 1px color-mix(in oklab, #f5b14c 60%, transparent); }
+
+  .ins-blocks { padding-top: 12px; }
+  .ins-block { display: grid; grid-template-columns: 52px 1fr; gap: 22px; padding: 26px 28px; margin-bottom: 16px; }
+  .ins-content { min-width: 0; }   /* let .ins-code scroll instead of widening the card */
+  .ins-num { font-family: var(--font-display); font-weight: 800; font-size: 16px; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 11px; color: var(--cyan); background: color-mix(in oklab, var(--cyan) 9%, transparent); border: 1px solid color-mix(in oklab, var(--cyan) 24%, var(--line)); }
+  .ins-uninstall .ins-num { color: var(--muted); background: var(--surface-2); border-color: var(--line); }
+  .ins-h2 { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: -0.02em; margin: 4px 0 8px; }
+  .ins-p { color: var(--muted); font-size: 14.5px; margin: 0 0 16px; }
+  .ins-code { margin: 0; padding: 16px 18px; background: var(--bg-deep); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+
+  /* live release checksums (fetched at build) */
+  .ins-sums { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in oklab, var(--green) 4%, var(--surface)); }
+  .ins-sums-h { margin: 0 0 10px; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .ins-sums-h strong { color: var(--ink); font-weight: 600; }
+  .ins-sums-tag { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--green); border: 1px solid color-mix(in oklab, var(--green) 35%, var(--line)); border-radius: 5px; padding: 1px 6px; }
+  .ins-sums-list { margin: 0; display: grid; gap: 6px; }
+  .ins-sums-list > div { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: baseline; }
+  .ins-sums-list dt { font-family: var(--font-mono); font-size: 12px; color: var(--faint); }
+  .ins-sums-list dd { margin: 0; font-family: var(--font-mono); font-size: 12px; color: var(--ink); word-break: break-all; }
+  .ins-sums-link { display: inline-block; margin-top: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--cyan); }
+  .ins-foot { color: var(--muted); font-size: 14px; margin-top: 24px; }
+  .ins-foot a { color: var(--cyan); }
+  @media (max-width: 640px) {
+    .ins-block { grid-template-columns: 1fr; gap: 16px; }
+  }
+</style>

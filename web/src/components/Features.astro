@@ -1,0 +1,54 @@
+---
+const commands = [
+  { cmd: "syscert ensure", def: true, d: "The default. Issue if missing, renew if due, then distribute." },
+  { cmd: "syscert issue", d: "Force a fresh certificate now." },
+  { cmd: "syscert renew", d: "Renew if inside the renewal window." },
+  { cmd: "syscert distribute", d: "Copy artifacts to their consumer paths." },
+  { cmd: "syscert dry-run", d: "Show exactly what would happen — change nothing." },
+  { cmd: "syscert void", d: "Revoke the current certificate." },
+  { cmd: "syscert destroy", d: "Revoke and remove local state." },
+  { cmd: "syscert trust install", d: "Add the CA to the system trust store (and remove)." },
+];
+---
+<section class="sec" id="features">
+  <div class="shell">
+    <div class="sec-head">
+      <p class="label-mono sec-eyebrow">// one binary, the whole lifecycle</p>
+      <h2 class="sec-title">A command for every stage.</h2>
+    </div>
+
+    <div class="terminal feat-term">
+      <div class="terminal-bar">
+        <span class="dot" style="background:#f87171"></span>
+        <span class="dot" style="background:#f5b14c"></span>
+        <span class="dot" style="background:#34d399"></span>
+        <span class="cfg-path">syscert --help</span>
+      </div>
+      <ul class="feat-list">
+        {commands.map((c) => (
+          <li class="feat-row">
+            <code class="feat-cmd">
+              <span class="feat-prompt">$</span> {c.cmd}
+              {c.def && <span class="feat-default">default</span>}
+            </code>
+            <span class="feat-d">{c.d}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .feat-list { list-style: none; margin: 0; padding: 6px 0; }
+  .feat-row { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: baseline; padding: 13px 22px; border-top: 1px solid var(--line-soft); }
+  .feat-row > * { min-width: 0; }
+  .feat-row:first-child { border-top: 0; }
+  .feat-cmd { font-family: var(--font-mono); font-size: 14px; color: var(--ink); display: flex; align-items: center; gap: 10px; }
+  .feat-prompt { color: var(--green); }
+  .feat-default { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); border: 1px solid color-mix(in oklab, var(--cyan) 35%, var(--line)); border-radius: 5px; padding: 1px 6px; }
+  .feat-d { color: var(--muted); font-size: 14px; }
+  @media (max-width: 720px) {
+    .feat-row { grid-template-columns: 1fr; gap: 6px; }
+  }
+</style>

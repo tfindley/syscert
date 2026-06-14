@@ -1,0 +1,33 @@
+# Deploy on the Hetzner box, behind your existing Traefik.
+#
+#   docker compose pull && docker compose up -d
+#
+# Adjust two things to match YOUR Traefik:
+#   • the external network name (here: "traefik")
+#   • the certresolver name (here: "letsencrypt")
+#
+# To build locally instead of pulling GHCR, swap `image:` for `build: .`.
+
+services:
+  syscert-web:
+    image: ghcr.io/tfindley/syscert-web:latest
+    container_name: syscert-web
+    restart: unless-stopped
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # router (HTTPS) — Traefik does TLS via its own ACME
+      - "traefik.http.routers.syscert-web.rule=Host(`syscert.tfindley.dev`)"
+      - "traefik.http.routers.syscert-web.entrypoints=websecure"
+      - "traefik.http.routers.syscert-web.tls=true"
+      - "traefik.http.routers.syscert-web.tls.certresolver=letsencrypt"
+      # service → container port
+      - "traefik.http.services.syscert-web.loadbalancer.server.port=80"
+      # optional: pull newer images automatically if you run watchtower
+      - "com.centurylinklabs.watchtower.enable=true"
+
+networks:
+  traefik:
+    external: true

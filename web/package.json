@@ -1,0 +1,26 @@
+{
+  "name": "syscert-web",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "predev": "node scripts/vendor.mjs",
+    "dev": "astro dev",
+    "prebuild": "node scripts/vendor.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
+    "@tailwindcss/vite": "^4.3.1",
+    "astro": "^6.4.6",
+    "tailwindcss": "^4.3.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  },
+  "overrides": {
+    "vite": "^7"
+  }
+}

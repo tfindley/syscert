@@ -1,0 +1,33 @@
+---
+import CopyCommand from "./CopyCommand.astro";
+import { INSTALL_CMD, LINKS } from "../consts";
+---
+<section class="sec final" id="get-started">
+  <div class="shell final-inner">
+    <p class="fingerprint final-fp" aria-hidden="true">
+      4f21c9e0 7abd3911 5c84a26f d8903eb7 1855c02a 9d4e7f6b 0c1a83d5 e29f47aa
+    </p>
+    <h2 class="final-title">Give every host its own TLS.</h2>
+    <p class="final-sub">One command. Then never think about certificate renewal again.</p>
+
+    <div class="final-cmd">
+      <CopyCommand command={INSTALL_CMD} size="lg" />
+    </div>
+
+    <div class="final-cta">
+      <a href={LINKS.github} target="_blank" rel="noopener" class="btn btn-primary">★ Star on GitHub</a>
+      <a href="/docs/quick-start/" class="btn">Read the docs</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .final { padding-block: 96px; text-align: center; position: relative; overflow: hidden; }
+  .final::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(640px 280px at 50% 0%, color-mix(in oklab, var(--cyan) 12%, transparent), transparent 70%); }
+  .final-inner { max-width: 680px; margin-inline: auto; position: relative; }
+  .final-fp { position: absolute; top: -34px; left: 50%; translate: -50% 0; white-space: nowrap; opacity: 0.4; }
+  .final-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.9rem, 4.4vw, 2.9rem); line-height: 1.06; letter-spacing: -0.035em; margin: 0 0 14px; }
+  .final-sub { color: var(--muted); font-size: 17px; margin: 0 0 30px; }
+  .final-cmd { max-width: 560px; margin: 0 auto 24px; text-align: left; }
+  .final-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+</style>

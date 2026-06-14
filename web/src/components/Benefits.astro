@@ -1,0 +1,42 @@
+---
+const I = (p: string) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+
+const benefits = [
+  { t: "No cron, no scripts", d: "A systemd timer keeps every cert fresh forever. Nothing to schedule, nothing to maintain.", svg: I('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>') },
+  { t: "Least-privilege by design", d: "Runs as its own hardened, unprivileged service user. It touches certs — nothing else.", svg: I('<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9.5 12l1.8 1.8L15 10"/>') },
+  { t: "Exact owner, mode & SELinux", d: "Each consumer gets its artifact with the ownership, permissions and SELinux context it needs.", svg: I('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h5"/><circle cx="16.5" cy="14.5" r="1.5"/>') },
+  { t: "certbot-compatible output", d: "Writes cert.pem · privkey.pem · chain.pem · fullchain.pem, plus an all-in-one bundle.pem.", svg: I('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13l2 2 4-4"/>') },
+  { t: "mTLS between services", d: "Run it on both ends against an internal CA — each side gets its own cert and verifies the other.", svg: I('<path d="M7 7h10l-3-3M17 17H7l3 3"/><circle cx="12" cy="12" r="2"/>') },
+  { t: "Multi-CA, your choice", d: "Public Let's Encrypt, or an internal HashiCorp Vault / Smallstep step-ca over ACME.", svg: I('<path d="M3 21h18M5 21V9l7-4 7 4v12M9 21v-6h6v6"/>') },
+];
+---
+<section class="sec" id="benefits">
+  <div class="shell">
+    <div class="sec-head">
+      <p class="label-mono sec-eyebrow">// what you actually get</p>
+      <h2 class="sec-title">Built like infrastructure, not a script.</h2>
+    </div>
+    <div class="ben-grid">
+      {benefits.map((b) => (
+        <article class="card ben">
+          <span class="ben-ico" set:html={b.svg} />
+          <h3 class="ben-t">{b.t}</h3>
+          <p class="ben-d">{b.d}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .ben-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .ben { padding: 26px 24px 28px; transition: border-color 0.18s, transform 0.18s; }
+  .ben:hover { border-color: color-mix(in oklab, var(--cyan) 40%, var(--line)); transform: translateY(-3px); }
+  .ben-ico { display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 11px; color: var(--cyan); background: color-mix(in oklab, var(--cyan) 9%, transparent); border: 1px solid color-mix(in oklab, var(--cyan) 22%, var(--line)); margin-bottom: 18px; }
+  .ben-ico :global(svg) { width: 21px; height: 21px; }
+  .ben-t { font-family: var(--font-display); font-size: 15.5px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 9px; }
+  .ben-d { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0; }
+  @media (max-width: 900px) { .ben-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .ben-grid { grid-template-columns: 1fr; } }
+</style>

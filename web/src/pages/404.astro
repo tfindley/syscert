@@ -1,0 +1,37 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="404 — not found" description="That page could not be found." path="/404">
+  <section class="sec nf">
+    <div class="shell nf-inner">
+      <div class="terminal nf-term">
+        <div class="terminal-bar">
+          <span class="dot" style="background:#f87171"></span>
+          <span class="dot" style="background:#f5b14c"></span>
+          <span class="dot" style="background:#34d399"></span>
+          <span class="cfg-path">syscert ensure</span>
+        </div>
+        <pre class="code nf-pre"><span class="c-str">$</span> syscert ensure --path "<span class="c-key">{Astro.url.pathname}</span>"
+<span class="nf-err">error:</span> no certificate here — <span class="c-cmt">HTTP 404</span>
+==&gt; the page you asked for doesn't exist (yet).<span class="cursor"></span></pre>
+      </div>
+      <h1 class="nf-h1">Nothing valid at this path.</h1>
+      <p class="nf-sub">The link may be stale, or the docs aren't published yet.</p>
+      <div class="nf-cta">
+        <a href="/" class="btn btn-primary">Back home</a>
+        <a href="/install/" class="btn">Install syscert</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .nf { padding-block: 90px; }
+  .nf-inner { max-width: 620px; }
+  .nf-term { margin-bottom: 30px; }
+  .nf-pre { margin: 0; padding: 18px 20px; }
+  .nf-err { color: var(--red, #f87171); }
+  .nf-h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.6rem, 4vw, 2.3rem); letter-spacing: -0.03em; margin: 0 0 10px; }
+  .nf-sub { color: var(--muted); font-size: 16px; margin: 0 0 24px; }
+  .nf-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+</style>

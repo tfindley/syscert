@@ -1,0 +1,91 @@
+---
+const steps = [
+  { n: "1", t: "Install", d: "One static binary + a systemd timer. Download or build, then run install.sh." },
+  { n: "2", t: "Edit two files", d: "Your subject & CA in syscert.toml; DNS/CA credentials in the secrets env file." },
+  { n: "3", t: "Done", d: "The timer issues, renews and distributes — forever. No cron, no babysitting." },
+];
+---
+<section class="sec" id="how">
+  <div class="shell">
+    <div class="sec-head">
+      <p class="label-mono sec-eyebrow">// ~5 minutes, start to finish</p>
+      <h2 class="sec-title">Three steps, then forget about it.</h2>
+    </div>
+
+    <ol class="how-steps">
+      {steps.map((s) => (
+        <li class="card how-step">
+          <span class="how-n">{s.n}</span>
+          <h3 class="how-t">{s.t}</h3>
+          <p class="how-d">{s.d}</p>
+        </li>
+      ))}
+    </ol>
+
+    <div class="how-config">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot" style="background:#f87171"></span>
+          <span class="dot" style="background:#f5b14c"></span>
+          <span class="dot" style="background:#34d399"></span>
+          <span class="cfg-path">/etc/syscert/syscert.toml</span>
+        </div>
+        <pre class="code cfg"><span class="c-sec">[cert]</span>
+<span class="c-key">hostname</span> = <span class="c-str">"host.example.com"</span>
+<span class="c-key">sans</span>     = [<span class="c-str">"api.example.com"</span>]
+
+<span class="c-sec">[acme]</span>
+<span class="c-key">ca</span>        = <span class="c-str">"letsencrypt"</span>
+<span class="c-key">email</span>     = <span class="c-str">"you@example.com"</span>
+<span class="c-key">challenge</span> = <span class="c-str">"dns-01"</span>
+
+<span class="c-sec">[acme.dns]</span>
+<span class="c-key">provider</span> = <span class="c-str">"cloudflare"</span>
+
+<span class="c-sec">[[distribute]]</span>  <span class="c-cmt"># deliver to nginx</span>
+<span class="c-key">artifact</span> = <span class="c-str">"fullchain"</span>
+<span class="c-key">path</span>     = <span class="c-str">"/etc/nginx/tls/fullchain.pem"</span>
+<span class="c-key">owner</span>    = <span class="c-str">"root"</span>
+<span class="c-key">group</span>    = <span class="c-str">"nginx"</span>
+<span class="c-key">mode</span>     = <span class="c-str">"0644"</span></pre>
+      </div>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot" style="background:#f87171"></span>
+          <span class="dot" style="background:#f5b14c"></span>
+          <span class="dot" style="background:#34d399"></span>
+          <span class="cfg-path">/etc/syscert/secrets <span class="cfg-mode">0640</span></span>
+        </div>
+        <pre class="code cfg"><span class="c-cmt"># credentials stay out of the .toml; the service</span>
+<span class="c-cmt"># loads this file as its environment.</span>
+<span class="c-key">CLOUDFLARE_DNS_API_TOKEN</span>=<span class="c-str">••••••••••••••••</span></pre>
+        <div class="cfg-note">
+          <span class="ok">✓</span> Then the timer takes over — <code>syscert ensure</code> runs on a
+          schedule and keeps every artifact fresh.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .how-steps { list-style: none; margin: 0 0 22px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: s; }
+  .how-step { padding: 24px 24px 26px; position: relative; overflow: hidden; }
+  .how-n { font-family: var(--font-display); font-weight: 800; font-size: 14px; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--green); background: color-mix(in oklab, var(--green) 12%, transparent); border: 1px solid color-mix(in oklab, var(--green) 30%, var(--line)); margin-bottom: 16px; }
+  .how-t { font-family: var(--font-display); font-size: 17px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .how-d { color: var(--muted); font-size: 14px; margin: 0; }
+
+  .how-config { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 16px; align-items: start; }
+  .how-steps > *, .how-config > * { min-width: 0; }   /* let .cfg blocks scroll, not overflow */
+  .cfg-path { font-family: var(--font-mono); font-size: 12px; color: var(--faint); margin-left: 8px; }
+  .cfg-mode { color: var(--amber, #f5b14c); border: 1px solid color-mix(in oklab, #f5b14c 30%, var(--line)); border-radius: 5px; padding: 0 5px; font-size: 10.5px; margin-left: 6px; }
+  .cfg { margin: 0; padding: 18px 20px; overflow-x: auto; }
+  .cfg-note { padding: 16px 20px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 13.5px; }
+  .cfg-note code { font-family: var(--font-mono); color: var(--ink); font-size: 0.9em; }
+
+  @media (max-width: 860px) {
+    .how-steps { grid-template-columns: 1fr; }
+    .how-config { grid-template-columns: 1fr; }
+  }
+</style>

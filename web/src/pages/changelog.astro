@@ -1,0 +1,15 @@
+---
+import DocsLayout from "../layouts/DocsLayout.astro";
+// Rendered from the canonical CHANGELOG.md, vendored to src/generated/ at build
+// (with the editing preamble stripped — see scripts/vendor.mjs).
+import { Content } from "../generated/changelog.md";
+---
+
+<DocsLayout
+  title="Changelog"
+  description="Release history for syscert — notable changes per version, following Keep a Changelog and Semantic Versioning."
+  eyebrow="// release history"
+  lede="Notable changes per release, newest first. Follows Keep a Changelog and Semantic Versioning."
+>
+  <Content />
+</DocsLayout>

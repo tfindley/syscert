@@ -1,0 +1,112 @@
+---
+import CopyCommand from "./CopyCommand.astro";
+import { INSTALL_CMD, LINKS, SITE } from "../consts";
+import { getRelease, shortSha } from "../lib/release";
+
+const release = await getRelease();
+---
+<section class="hero">
+  <div class="shell hero-grid">
+    <div class="hero-left">
+      <div class="hero-badges reveal" style="animation-delay:40ms">
+        <span class="badge badge-status"><span class="badge-pip"></span>{SITE.status}</span>
+        <a href={LINKS.releases} target="_blank" rel="noopener" class="badge badge-ver">
+          Latest: {release.version} <span class="badge-arrow">→</span>
+        </a>
+      </div>
+
+      <h1 class="hero-h1 reveal" style="animation-delay:90ms">
+        Set-and-forget TLS<br /><span class="grad-ink">for every machine.</span>
+      </h1>
+
+      <p class="hero-sub reveal" style="animation-delay:150ms">
+        One static binary and a <code>systemd</code> timer. Every Linux host gets its own
+        auto-renewing certificate — from <strong>Let's Encrypt</strong>, <strong>Vault</strong>, or
+        <strong>step-ca</strong> — delivered to nginx, HAProxy, Cockpit &amp; co. with the exact
+        owner, mode, and SELinux context each needs.
+      </p>
+
+      <div class="reveal" style="animation-delay:210ms">
+        <CopyCommand command={INSTALL_CMD} size="lg" cursor={true} />
+      </div>
+
+      <div class="hero-cta reveal" style="animation-delay:270ms">
+        <a href="/install/" class="btn btn-primary">Other install options</a>
+        <a href="/docs/quick-start/" class="btn">Read the docs</a>
+      </div>
+
+      <p class="hero-trust reveal" style="animation-delay:330ms">
+        <a href="/install/#inspect">Inspect the script first ↗</a>
+        <span class="sep">·</span> verify <code>sha256sums.txt</code>
+        <span class="sep">·</span> no host <code>certbot</code> required
+      </p>
+    </div>
+
+    <!-- Live-terminal motif -->
+    <div class="hero-right reveal" style="animation-delay:240ms" aria-hidden="true">
+      <div class="terminal hero-term">
+        <div class="terminal-bar">
+          <span class="dot" style="background:#f87171"></span>
+          <span class="dot" style="background:#f5b14c"></span>
+          <span class="dot" style="background:#34d399"></span>
+          <span class="term-title">syscert@centauri</span>
+          <span class="term-lock">🔒 valid</span>
+        </div>
+        <div class="term-body code">
+          <div><span class="c-cmt">#</span> the default action — issue, renew, distribute</div>
+          <div><span class="c-str">$</span> syscert ensure</div>
+          <div class="term-out">==&gt; host    <span class="c-key">centauri.example.com</span></div>
+          <div class="term-out">==&gt; ca      <span class="c-key">letsencrypt</span> · challenge <span class="c-key">dns-01</span></div>
+          <div class="term-out">==&gt; issue   leaf + chain + bundle <span class="ok">✓</span></div>
+          <div class="term-out">==&gt; deploy  nginx · haproxy · cockpit <span class="ok">✓</span></div>
+          <div class="term-out">==&gt; renew   <span class="ok">valid 90d</span> · auto-renew in 60d</div>
+          <div class="term-out">==&gt; timer   armed · next check 12h<span class="cursor"></span></div>
+        </div>
+      </div>
+      {release.sha256?.amd64 && (
+        <p class="fingerprint hero-fp">release {release.version} &nbsp;sha256:{shortSha(release.sha256.amd64)}</p>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero { padding-top: 70px; padding-bottom: 40px; position: relative; }
+  .hero-grid { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 56px; align-items: center; }
+  /* grid items must be allowed to shrink below content width, or wide
+     children (the copy command, the terminal) blow past the viewport on mobile */
+  .hero-left, .hero-right { min-width: 0; }
+  .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 12px; padding: 5px 11px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+  .badge-status { color: var(--amber, #f5b14c); border-color: color-mix(in oklab, #f5b14c 30%, var(--line)); }
+  .badge-pip { width: 7px; height: 7px; border-radius: 99px; background: var(--amber, #f5b14c); box-shadow: 0 0 8px 1px color-mix(in oklab, #f5b14c 60%, transparent); }
+  .badge-ver { color: var(--ink); transition: border-color 0.16s; }
+  .badge-ver:hover { border-color: color-mix(in oklab, var(--cyan) 50%, var(--line)); color: var(--cyan); }
+  .badge-arrow { color: var(--cyan); }
+
+  .hero-h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.3rem, 5.2vw, 3.75rem); line-height: 1.04; letter-spacing: -0.035em; margin: 0 0 22px; }
+  .hero-sub { color: var(--muted); font-size: 17px; line-height: 1.62; max-width: 52ch; margin: 0 0 28px; }
+  .hero-sub code { font-family: var(--font-mono); font-size: 0.9em; color: var(--ink); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; }
+  .hero-sub strong { color: var(--ink); font-weight: 600; }
+
+  .hero-cta { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+  .hero-trust { margin-top: 20px; font-family: var(--font-mono); font-size: 12.5px; color: var(--faint); }
+  .hero-trust a { color: var(--cyan); }
+  .hero-trust code { color: var(--muted); }
+  .hero-trust .sep { margin: 0 8px; opacity: 0.5; }
+
+  .hero-term { font-size: 13px; }
+  .term-title { font-family: var(--font-mono); font-size: 12px; color: var(--faint); margin-left: 8px; }
+  .term-lock { margin-left: auto; font-family: var(--font-mono); font-size: 11.5px; color: var(--green); }
+  .term-body { padding: 18px 18px 20px; display: grid; gap: 6px; }
+  .term-out { color: var(--muted); }
+  .term-out .c-key { color: var(--cyan); }
+  .ok { color: var(--green); }
+  .hero-fp { margin-top: 14px; text-align: right; opacity: 0.7; }
+
+  @media (max-width: 940px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .hero-right { order: 2; }
+    .hero-fp { text-align: left; }
+  }
+</style>

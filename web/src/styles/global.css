@@ -1,0 +1,312 @@
+@import "tailwindcss";
+
+/* ───────────────────────── Design tokens ───────────────────────── */
+@theme {
+  --font-display: "Martian Mono", ui-monospace, "Cascadia Code", monospace;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* dark (default) palette — "Certificate Authority Terminal" */
+  --color-bg: #0a0e14;
+  --color-bg-deep: #06090f;
+  --color-surface: #0e141c;
+  --color-surface-2: #131b25;
+  --color-line: #1d2733;
+  --color-line-soft: #161e28;
+  --color-ink: #e7eef5;
+  --color-muted: #9aa7b4;
+  --color-faint: #5d6b78;
+  --color-cyan: #22d3ee;
+  --color-green: #34d399;
+  --color-amber: #f5b14c;
+  --color-red: #f87171;
+
+  --radius: 12px;
+  --maxw: 1120px;
+}
+
+/* ───────────────────────── Theme variables ──────────────────────── */
+:root {
+  color-scheme: dark;
+  --bg: var(--color-bg);
+  --bg-deep: var(--color-bg-deep);
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-2);
+  --line: var(--color-line);
+  --line-soft: var(--color-line-soft);
+  --ink: var(--color-ink);
+  --muted: var(--color-muted);
+  --faint: var(--color-faint);
+  --cyan: var(--color-cyan);
+  --green: var(--color-green);
+  --grid: #ffffff0a;
+  --glow-a: #22d3ee1f;
+  --glow-b: #34d39914;
+  --card-grad: linear-gradient(180deg, #ffffff05, #ffffff00);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f8fa;
+  --bg-deep: #eef1f5;
+  --surface: #ffffff;
+  --surface-2: #f1f4f8;
+  --line: #dbe1e8;
+  --line-soft: #e7ecf1;
+  --ink: #0c1622;
+  --muted: #51606f;
+  --faint: #8a98a6;
+  --cyan: #0e92ad;
+  --green: #0c8a5f;
+  --grid: #0c16220a;
+  --glow-a: #22d3ee1a;
+  --glow-b: #34d39912;
+  --card-grad: linear-gradient(180deg, #0c16220a, #0c162200);
+}
+
+/* ───────────────────────── Base ──────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Atmospheric layers: glow + blueprint grid + grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(1100px 560px at 78% -8%, var(--glow-a), transparent 60%),
+    radial-gradient(820px 520px at 8% 4%, var(--glow-b), transparent 55%),
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 64px 64px;
+  pointer-events: none;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.035;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection { background: color-mix(in oklab, var(--cyan) 30%, transparent); color: var(--ink); }
+
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; border: 3px solid var(--bg-deep); }
+::-webkit-scrollbar-thumb:hover { background: var(--faint); }
+
+a { color: inherit; text-decoration: none; }
+
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+
+/* ───────────────────────── Helpers ──────────────────────────────── */
+.shell { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: 24px; }
+
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.hairline { border-top: 1px solid var(--line-soft); }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  background-image: var(--card-grad);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* Terminal window */
+.terminal {
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 30px 80px -40px #000000cc, inset 0 1px 0 #ffffff0a;
+  overflow: hidden;
+}
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #ffffff08, transparent);
+}
+.dot { width: 11px; height: 11px; border-radius: 99px; display: inline-block; }
+
+/* Blinking cursor */
+.cursor {
+  display: inline-block;
+  width: 9px;
+  height: 1.05em;
+  margin-left: 2px;
+  translate: 0 2px;
+  background: var(--green);
+  animation: blink 1.15s steps(1) infinite;
+}
+@keyframes blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+
+/* Auto-renew pulse ring */
+.pulse-ring { position: relative; }
+.pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 99px;
+  border: 1px solid var(--green);
+  opacity: 0;
+  animation: pulse 2.6s ease-out infinite;
+}
+@keyframes pulse {
+  0% { opacity: 0.7; transform: scale(0.85); }
+  70% { opacity: 0; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* Fingerprint hex motif */
+.fingerprint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--faint);
+  word-break: break-all;
+  user-select: none;
+}
+
+/* Staggered reveal on load */
+.reveal { opacity: 0; transform: translateY(14px); animation: reveal 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+@keyframes reveal { to { opacity: 1; transform: none; } }
+
+/* Gradient text accent */
+.grad-ink {
+  background: linear-gradient(120deg, var(--green), var(--cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Pretty TOML/code colors inside .code */
+.code { font-family: var(--font-mono); font-size: 13.5px; line-height: 1.7; }
+.code .c-key { color: var(--cyan); }
+.code .c-str { color: var(--green); }
+.code .c-cmt { color: var(--faint); font-style: italic; }
+.code .c-sec { color: var(--color-amber); }
+
+/* Button */
+.btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-family: var(--font-mono); font-size: 13.5px; font-weight: 500;
+  padding: 11px 18px; border-radius: 10px;
+  border: 1px solid var(--line); color: var(--ink);
+  background: var(--surface);
+  transition: border-color 0.18s, transform 0.18s, background 0.18s;
+}
+.btn:hover { border-color: color-mix(in oklab, var(--cyan) 55%, var(--line)); transform: translateY(-1px); }
+.btn-primary {
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--green), var(--cyan));
+  color: #04110d; font-weight: 600;
+}
+.btn-primary:hover { filter: brightness(1.06); }
+
+/* ───────────────────────── Section scaffolding ──────────────────── */
+.sec { padding-block: 72px; position: relative; }
+.sec-head { max-width: 62ch; margin-bottom: 42px; }
+.sec-eyebrow { margin: 0 0 16px; }
+.sec-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 3.2vw, 2.35rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin: 0 0 14px;
+}
+.sec-lede { color: var(--muted); font-size: 16.5px; line-height: 1.62; margin: 0; }
+.grid { display: grid; gap: 16px; }
+
+/* divider with centred tick */
+.tick-rule { height: 1px; background: var(--line-soft); position: relative; }
+.tick-rule::after { content: ""; position: absolute; left: 50%; top: -3px; width: 7px; height: 7px; translate: -50% 0; rotate: 45deg; background: var(--bg); border: 1px solid var(--line); }
+
+/* ───────────────────────── Doc prose (Markdown) ──────────────────── */
+/* Used by the docs collection (DocsLayout) and the /changelog page. */
+.doc-prose { min-width: 0; max-width: 76ch; font-size: 16px; line-height: 1.7; color: var(--ink); }
+.doc-prose > :first-child { margin-top: 0; }
+.doc-prose h2 {
+  font-family: var(--font-display); font-weight: 700; font-size: 1.45rem;
+  letter-spacing: -0.025em; line-height: 1.2; margin: 52px 0 16px; scroll-margin-top: 86px;
+}
+.doc-prose h3 {
+  font-family: var(--font-display); font-weight: 600; font-size: 1.12rem;
+  letter-spacing: -0.02em; margin: 34px 0 12px; scroll-margin-top: 86px;
+}
+.doc-prose h2 + h3 { margin-top: 18px; }
+.doc-prose p { color: var(--muted); margin: 0 0 16px; }
+.doc-prose strong { color: var(--ink); font-weight: 600; }
+.doc-prose a {
+  color: var(--cyan); text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--cyan) 40%, transparent); text-underline-offset: 3px;
+}
+.doc-prose a:hover { text-decoration-color: var(--cyan); }
+.doc-prose ul, .doc-prose ol { color: var(--muted); margin: 0 0 16px; padding-left: 22px; }
+.doc-prose li { margin: 6px 0; }
+.doc-prose li::marker { color: var(--faint); }
+.doc-prose hr { border: 0; border-top: 1px solid var(--line-soft); margin: 44px 0; }
+
+/* inline code — wraps so long tokens don't overflow on mobile */
+.doc-prose :not(pre) > code {
+  font-family: var(--font-mono); font-size: 0.86em; padding: 2px 6px; border-radius: 6px;
+  background: color-mix(in oklab, var(--cyan) 8%, var(--surface-2)); border: 1px solid var(--line);
+  color: var(--ink); overflow-wrap: break-word;
+}
+/* code blocks */
+.doc-prose pre {
+  font-family: var(--font-mono); font-size: 13.5px; line-height: 1.7; margin: 0 0 20px;
+  padding: 16px 18px; background: var(--bg-deep); border: 1px solid var(--line);
+  border-radius: 10px; overflow-x: auto;
+}
+.doc-prose pre code { background: none; border: 0; padding: 0; font-size: inherit; white-space: pre; }
+
+/* blockquote = callout/note */
+.doc-prose blockquote {
+  margin: 0 0 20px; padding: 14px 18px; border: 1px solid var(--line);
+  border-left: 3px solid var(--cyan); border-radius: 10px;
+  background: color-mix(in oklab, var(--cyan) 5%, var(--surface));
+}
+.doc-prose blockquote p { margin: 0; color: var(--muted); font-size: 14.5px; }
+.doc-prose blockquote p + p { margin-top: 8px; }
+
+/* tables */
+.doc-prose table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 0 0 20px; display: block; overflow-x: auto; }
+.doc-prose th, .doc-prose td { text-align: left; padding: 9px 14px; border: 1px solid var(--line); vertical-align: top; }
+.doc-prose th {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--faint); background: var(--surface-2); white-space: nowrap;
+}
+.doc-prose td { color: var(--muted); }

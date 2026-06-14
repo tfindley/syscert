@@ -1,0 +1,39 @@
+---
+import { NAV, LINKS } from "../consts";
+import ThemeToggle from "./ThemeToggle.astro";
+---
+<header class="nav">
+  <div class="shell nav-inner">
+    <a href="/" class="brand" aria-label="syscert — home">
+      <span class="brand-dot pulse-ring"></span><span class="brand-name">syscert</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      {NAV.map((i) => <a href={i.href}>{i.label}</a>)}
+    </nav>
+    <div class="nav-right">
+      <a href={LINKS.github} class="nav-gh" target="_blank" rel="noopener">GitHub ↗</a>
+      <ThemeToggle />
+    </div>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(12px) saturate(1.1);
+    background: color-mix(in oklab, var(--bg) 76%, transparent);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 62px; gap: 18px; }
+  .brand { display: inline-flex; align-items: center; gap: 11px; font-family: var(--font-display); font-weight: 700; letter-spacing: -0.03em; font-size: 16px; }
+  .brand-dot { width: 9px; height: 9px; border-radius: 99px; background: var(--cyan); box-shadow: 0 0 12px 1px color-mix(in oklab, var(--cyan) 60%, transparent); }
+  .nav-links { display: flex; align-items: center; gap: 26px; font-family: var(--font-mono); font-size: 13.5px; color: var(--muted); }
+  .nav-links a { transition: color 0.16s; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-right { display: flex; align-items: center; gap: 14px; }
+  .nav-gh { font-family: var(--font-mono); font-size: 13.5px; color: var(--ink); }
+  .nav-gh:hover { color: var(--cyan); }
+  @media (max-width: 720px) {
+    .nav-links { display: none; }
+  }
+</style>
