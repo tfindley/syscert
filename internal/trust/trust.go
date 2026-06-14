@@ -31,7 +31,7 @@ func New() (*Manager, error) {
 	return &Manager{
 		AnchorDir: dir,
 		RunUpdate: func() error {
-			if out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput(); err != nil { //nosec G204 -- cmd is the OS-detected trust-store update command, not user input
+			if out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput(); err != nil { // #nosec G204 -- cmd is the OS-detected trust-store update command, not user input
 				return fmt.Errorf("%s: %w: %s", strings.Join(cmd, " "), err, out)
 			}
 			return nil
@@ -43,7 +43,7 @@ func New() (*Manager, error) {
 // trust store. Idempotent (overwrites an existing anchor of the same name).
 func (m *Manager) Install(name string, caPEM []byte) error {
 	path := filepath.Join(m.AnchorDir, anchorPrefix+name+".crt")
-	if err := os.WriteFile(path, caPEM, 0o644); err != nil { //nosec G306 -- CA anchors are public certs; must be world-readable in the trust store
+	if err := os.WriteFile(path, caPEM, 0o644); err != nil { // #nosec G306 -- CA anchors are public certs; must be world-readable in the trust store
 		return fmt.Errorf("write anchor %s: %w", path, err)
 	}
 	return m.RunUpdate()

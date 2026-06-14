@@ -143,5 +143,5 @@ func Wipe(dir string) (int, error) {
 
 // ReadCurrentCert reads the stored leaf certificate (cert.pem) from dir.
 func ReadCurrentCert(dir string) ([]byte, error) {
-	return os.ReadFile(filepath.Join(dir, certFile)) //nosec G304 -- syscert-owned store path from config, not user input
+	return os.ReadFile(filepath.Join(dir, certFile)) // #nosec G304 -- syscert-owned store path from config, not user input
 }
