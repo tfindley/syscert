@@ -10,7 +10,7 @@ import (
 // them. Used to trust an internal CA for the ACME connection only (ADR-0035),
 // without touching the system trust store.
 func loadCABundle(path string) (*x509.CertPool, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nosec G304 -- operator-configured acme.ca_bundle path
 	if err != nil {
 		return nil, fmt.Errorf("read ca_bundle %s: %w", path, err)
 	}

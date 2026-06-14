@@ -24,7 +24,7 @@ func accountKey(base, directoryURL string) (crypto.Signer, error) {
 	}
 	path := filepath.Join(dir, "account.key")
 
-	if data, err := os.ReadFile(path); err == nil {
+	if data, err := os.ReadFile(path); err == nil { //nosec G304 -- account-key path under the syscert-owned store, not user input
 		block, _ := pem.Decode(data)
 		if block == nil {
 			return nil, fmt.Errorf("account key %s is not PEM", path)

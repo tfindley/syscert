@@ -66,7 +66,7 @@ func cmdTrustInstall(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	caPEM, err := os.ReadFile(source)
+	caPEM, err := os.ReadFile(source) //nosec G304 -- operator-provided --ca-file / acme.ca_bundle
 	if err != nil {
 		fmt.Fprintf(stderr, "trust install: read %s: %v\n", source, err)
 		return 1

@@ -20,7 +20,7 @@ func Write(path string, data []byte, mode os.FileMode, prepare func(tmpPath stri
 	defer os.Remove(tmpName) // harmless no-op once renamed
 
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return err
 	}
 	if err := tmp.Close(); err != nil {

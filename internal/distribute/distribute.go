@@ -137,7 +137,7 @@ func selinuxEnabled() bool {
 
 // relabel sets the SELinux type on path. Only invoked on SELinux hosts.
 func relabel(path, context string) error {
-	return exec.Command("chcon", "-t", context, path).Run()
+	return exec.Command("chcon", "-t", context, path).Run() //nosec G204 -- fixed chcon with operator-configured selinux_context + distribute path
 }
 
 func lookupUID(name string) (int, error) {
