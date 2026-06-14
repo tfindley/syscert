@@ -86,16 +86,19 @@ install_syscert() {
     restorecon -R "$STORE_DIR" "$CONF_DIR" || warn "restorecon failed (continuing)"
   fi
 
-  log "Enabling syscert.timer"
+  # Enable (not --now): don't run against the unconfigured starter config. The
+  # operator starts the timer after editing the config (step 4 below).
+  log "Enabling syscert.timer (not started — start it after configuring)"
   systemctl daemon-reload
-  systemctl enable --now syscert.timer
+  systemctl enable syscert.timer
 
   cat <<EOF
 
-SysCert installed. Next steps:
+SysCert installed. The timer is enabled but NOT started yet. Next steps:
   1. Edit ${CONF_FILE}        (subject, CA, challenge, distribute targets)
   2. Add credentials to ${SECRETS_FILE}   (e.g. GANDIV5_PERSONAL_ACCESS_TOKEN=...)
   3. Test once:   sudo -u ${SVC_USER} ${BIN_DEST} --config ${CONF_FILE} --staging
+  4. Start it:    sudo systemctl start syscert.timer
   Timer status:   systemctl list-timers syscert.timer
 EOF
 }
@@ -163,6 +166,10 @@ write_secrets_template() {
 # Examples:
 # GANDIV5_PERSONAL_ACCESS_TOKEN=replace-me
 # CLOUDFLARE_DNS_API_TOKEN=replace-me
+#
+# External Account Binding HMAC key (base64url), if your CA requires EAB and you
+# set [acme.eab] kid in the config:
+# SYSCERT_EAB_HMAC=replace-me
 EOF
   chown root:"$SVC_GROUP" "$SECRETS_FILE"
   chmod 0640 "$SECRETS_FILE"

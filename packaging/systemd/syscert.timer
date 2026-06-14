@@ -1,5 +1,6 @@
 # Runs syscert (ensure: issue/renew as needed, then distribute) on a schedule.
-# Enable with: systemctl enable --now syscert.timer
+# Enable with: systemctl enable syscert.timer
+# Then, once the config is in place: systemctl start syscert.timer
 
 [Unit]
 Description=Run SysCert daily to keep the system certificate fresh

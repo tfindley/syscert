@@ -53,4 +53,5 @@ AmbientCapabilities=CAP_CHOWN
 CapabilityBoundingSet=CAP_CHOWN
 
 # No [Install] section: this oneshot is triggered by syscert.timer, not enabled
-# directly. Enable the timer (`systemctl enable --now syscert.timer`).
+# directly. Enable the timer (`systemctl enable syscert.timer`), then start it
+# once the config is in place (`systemctl start syscert.timer`).
