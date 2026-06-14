@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 
@@ -11,8 +10,7 @@ import (
 // cmdDistribute re-copies the already-stored artifacts to the configured
 // targets, without re-issuing — useful after editing distribution targets.
 func cmdDistribute(args []string, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("distribute", flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs := newFlagSet("distribute", stderr)
 	cfgPath := configFlag(fs)
 	if err := fs.Parse(args); err != nil {
 		return 2

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -13,8 +12,12 @@ import (
 
 // cmdTrust manages the internal-CA chain in the system trust store (root-only).
 func cmdTrust(args []string, stdout, stderr io.Writer) int {
+	usage := "usage: syscert trust install|remove [flags]\n" +
+		"  install   add the internal CA to the system trust store (root)\n" +
+		"  remove    remove SysCert-managed CA anchors (root)\n" +
+		"Run 'syscert trust install --help' for its flags.\n"
 	if len(args) == 0 {
-		fmt.Fprintln(stderr, "usage: syscert trust install|remove [--config <path>] [--ca-file <path>]")
+		fmt.Fprint(stderr, usage)
 		return 2
 	}
 	sub, rest := args[0], args[1:]
@@ -23,6 +26,9 @@ func cmdTrust(args []string, stdout, stderr io.Writer) int {
 		return cmdTrustInstall(rest, stdout, stderr)
 	case "remove":
 		return cmdTrustRemove(rest, stdout, stderr)
+	case "-h", "--help", "help":
+		fmt.Fprint(stdout, usage)
+		return 0
 	default:
 		fmt.Fprintf(stderr, "syscert trust: unknown subcommand %q (want install|remove)\n", sub)
 		return 2
@@ -30,8 +36,7 @@ func cmdTrust(args []string, stdout, stderr io.Writer) int {
 }
 
 func cmdTrustInstall(args []string, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("trust install", flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs := newFlagSet("trust install", stderr)
 	cfgPath := configFlag(fs)
 	caFile := fs.String("ca-file", "", "PEM of the CA to trust (overrides acme.ca_bundle)")
 	if err := fs.Parse(args); err != nil {
@@ -86,8 +91,7 @@ func cmdTrustInstall(args []string, stdout, stderr io.Writer) int {
 }
 
 func cmdTrustRemove(args []string, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("trust remove", flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs := newFlagSet("trust remove", stderr)
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}

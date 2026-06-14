@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 
@@ -12,8 +11,7 @@ import (
 // store. It does NOT distribute — run `syscert distribute` (or bare `syscert`)
 // to push to consumers. With --staging it uses the CA's staging directory.
 func cmdIssue(args []string, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("issue", flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs := newFlagSet("issue", stderr)
 	cfgPath := configFlag(fs)
 	staging := fs.Bool("staging", false, "use the CA staging directory (Let's Encrypt) — for testing")
 	if err := fs.Parse(args); err != nil {

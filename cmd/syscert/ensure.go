@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"time"
@@ -15,8 +14,7 @@ import (
 // if it's within the renewal window, then always distribute. This is the
 // command a systemd timer runs periodically (idempotent).
 func cmdEnsure(args []string, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("syscert", flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs := newFlagSet("syscert", stderr)
 	cfgPath := configFlag(fs)
 	staging := fs.Bool("staging", false, "use the CA staging directory (Let's Encrypt) — for testing")
 	if err := fs.Parse(args); err != nil {

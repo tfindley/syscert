@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"time"
@@ -13,8 +12,7 @@ import (
 // cmdRenew renews the certificate only if it is within its renewal window (or
 // --force). Like issue, it writes to the store but does NOT distribute.
 func cmdRenew(args []string, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("renew", flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs := newFlagSet("renew", stderr)
 	cfgPath := configFlag(fs)
 	staging := fs.Bool("staging", false, "use the CA staging directory (Let's Encrypt) — for testing")
 	force := fs.Bool("force", false, "renew even if the current cert is not yet due")

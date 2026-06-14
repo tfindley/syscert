@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -16,8 +15,7 @@ import (
 // can be re-provisioned (e.g. switching CA). It does NOT revoke the current cert
 // (run `void` for that) and does NOT reissue. Interactive unless --force.
 func cmdDestroy(args []string, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("destroy", flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs := newFlagSet("destroy", stderr)
 	cfgPath := configFlag(fs)
 	force := fs.Bool("force", false, "skip the interactive confirmation(s)")
 	if err := fs.Parse(args); err != nil {

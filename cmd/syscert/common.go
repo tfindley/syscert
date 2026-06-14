@@ -25,6 +25,31 @@ const defaultConfigPath = "/etc/syscert/syscert.toml"
 // envConfig names the env var that sets the default config path (overridden by --config).
 const envConfig = "SYSCERT_CONFIG"
 
+// newFlagSet creates a command's flag set with output routed to w and a usage
+// printer that renders flags with the conventional double dash. (Go's flag
+// package prints a single dash, which mismatches how SysCert documents its
+// flags — e.g. `--config`.)
+func newFlagSet(name string, w io.Writer) *flag.FlagSet {
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+	fs.SetOutput(w)
+	fs.Usage = func() {
+		fmt.Fprintf(w, "usage: syscert %s [flags]\n", name)
+		fs.VisitAll(func(f *flag.Flag) {
+			placeholder, usage := flag.UnquoteUsage(f)
+			arg := "--" + f.Name
+			if placeholder != "" {
+				arg += " " + placeholder
+			}
+			def := ""
+			if f.DefValue != "" && f.DefValue != "false" {
+				def = fmt.Sprintf(" (default %q)", f.DefValue)
+			}
+			fmt.Fprintf(w, "  %-22s %s%s\n", arg, usage, def)
+		})
+	}
+	return fs
+}
+
 // configFlag registers --config on fs. Its default comes from SYSCERT_CONFIG when
 // set, otherwise defaultConfigPath; an explicit --config overrides both
 // (flag > env > built-in default).

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,8 +15,7 @@ import (
 // cmdVoid revokes the current certificate, then reissues and distributes a fresh
 // one. Interactive by default; --force skips the confirmation.
 func cmdVoid(args []string, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("void", flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs := newFlagSet("void", stderr)
 	cfgPath := configFlag(fs)
 	staging := fs.Bool("staging", false, "use the CA staging directory (Let's Encrypt) — for testing")
 	force := fs.Bool("force", false, "skip the interactive confirmation")

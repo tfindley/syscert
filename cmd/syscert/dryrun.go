@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io"
 
@@ -13,8 +12,7 @@ import (
 // order + challenge against the CA without persisting anything (like
 // `certbot --dry-run`).
 func cmdDryRun(args []string, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("dry-run", flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs := newFlagSet("dry-run", stderr)
 	cfgPath := configFlag(fs)
 	configOnly := fs.Bool("config-only", false, "validate config + resolve subject only; skip the ACME round-trip")
 	if err := fs.Parse(args); err != nil {
