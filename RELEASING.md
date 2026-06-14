@@ -55,8 +55,11 @@ Types: `feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore`
 `revert`. A `!` (or a `BREAKING CHANGE:` footer) marks a breaking change.
 
 This drives both the version bump (`feat`→minor, `fix`→patch, breaking→major) and
-the generated changelog. Enable the local check once:
+the generated changelog. The check is wired through the repo's
+[pre-commit](https://pre-commit.com/) framework (it reuses `.githooks/commit-msg`)
+— enable it once per clone:
 
 ```sh
-git config core.hooksPath .githooks
+pre-commit install                          # gitleaks (pre-commit stage)
+pre-commit install --hook-type commit-msg   # Conventional Commits check
 ```

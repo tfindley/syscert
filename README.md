@@ -106,8 +106,9 @@ Per certificate, SysCert writes five certbot-compatible PEMs — `cert.pem`, `pr
 ## Contributing
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and releases follow
-[Semantic Versioning](https://semver.org/) — see [RELEASING.md](RELEASING.md). Enable the local
-commit-message check once with `git config core.hooksPath .githooks`.
+[Semantic Versioning](https://semver.org/) — see [RELEASING.md](RELEASING.md). The repo uses
+[pre-commit](https://pre-commit.com/); enable the hooks once with `pre-commit install` and
+`pre-commit install --hook-type commit-msg`.
 
 ## License
 
