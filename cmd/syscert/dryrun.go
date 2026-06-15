@@ -14,9 +14,13 @@ import (
 func cmdDryRun(args []string, stdout, stderr io.Writer) int {
 	fs := newFlagSet("dry-run", stderr)
 	cfgPath := configFlag(fs)
+	envPaths := envFileFlag(fs)
 	configOnly := fs.Bool("config-only", false, "validate config + resolve subject only; skip the ACME round-trip")
 	if err := fs.Parse(args); err != nil {
 		return 2
+	}
+	if code := loadEnvFiles(*envPaths, stderr); code != 0 {
+		return code
 	}
 
 	// --- Stage 1: config test (always) ---

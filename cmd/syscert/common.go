@@ -13,6 +13,7 @@ import (
 	legolog "github.com/go-acme/lego/v5/log"
 	"github.com/tfindley/syscert/internal/acme"
 	"github.com/tfindley/syscert/internal/config"
+	"github.com/tfindley/syscert/internal/envfile"
 	"github.com/tfindley/syscert/internal/logging"
 	"github.com/tfindley/syscert/internal/resolve"
 	"github.com/tfindley/syscert/internal/store"
@@ -59,6 +60,38 @@ func configFlag(fs *flag.FlagSet) *string {
 		def = p
 	}
 	return fs.String("config", def, "path to syscert.toml (env: SYSCERT_CONFIG)")
+}
+
+// envFiles is the repeatable value behind --env-file.
+type envFiles []string
+
+func (e *envFiles) String() string { return strings.Join(*e, ",") }
+func (e *envFiles) Set(v string) error {
+	*e = append(*e, v)
+	return nil
+}
+
+// envFileFlag registers --env-file on fs. It may be given more than once; later
+// files override earlier ones, and the existing environment always wins.
+func envFileFlag(fs *flag.FlagSet) *envFiles {
+	var ef envFiles
+	fs.Var(&ef, "env-file", "load DNS/CA credentials from a systemd EnvironmentFile (repeatable; the environment wins)")
+	return &ef
+}
+
+// loadEnvFiles applies any --env-file paths to the process environment before
+// the ACME flow reads credentials from it. On failure it reports to w and
+// returns a non-zero exit code; with no paths it is a no-op. Secret values are
+// never written to w.
+func loadEnvFiles(paths []string, w io.Writer) int {
+	if len(paths) == 0 {
+		return 0
+	}
+	if _, err := envfile.Load(paths); err != nil {
+		fmt.Fprintf(w, "syscert: --env-file: %v\n", err)
+		return 2
+	}
+	return 0
 }
 
 // loadConfig loads the config and installs the structured logger from it, so

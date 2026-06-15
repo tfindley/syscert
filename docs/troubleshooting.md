@@ -80,6 +80,10 @@ Validate offline with `syscert dry-run --config-only` (no network). The full
 `issue`/`renew`/`void`/bare `syscert` to route Let's Encrypt to staging during a
 real run.
 
+Running by hand (not via the systemd unit)? The unit loads DNS/CA credentials from
+`/etc/syscert/secrets`; a manual run won't, so either export them or pass
+`--env-file /etc/syscert/secrets` (repeatable; the existing environment wins).
+
 ## IP-SAN and Vault gotchas
 
 - **Private IP + public CA is rejected.** A private (RFC 1918) IP SAN requires an

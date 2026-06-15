@@ -13,9 +13,13 @@ import (
 func cmdIssue(args []string, stdout, stderr io.Writer) int {
 	fs := newFlagSet("issue", stderr)
 	cfgPath := configFlag(fs)
+	envPaths := envFileFlag(fs)
 	staging := fs.Bool("staging", false, "use the CA staging directory (Let's Encrypt) — for testing")
 	if err := fs.Parse(args); err != nil {
 		return 2
+	}
+	if code := loadEnvFiles(*envPaths, stderr); code != 0 {
+		return code
 	}
 
 	cfg, subject, problems, err := loadAndCheck(*cfgPath)

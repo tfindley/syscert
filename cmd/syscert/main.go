@@ -142,12 +142,15 @@ Commands:
 Common flags:
   --config <path>   Config file. Default /etc/syscert/syscert.toml; or set
                     SYSCERT_CONFIG. An explicit --config wins over the env var.
+  --env-file <path> Load DNS/CA credentials from a systemd EnvironmentFile before
+                    issuing (repeatable; the environment wins). For manual runs.
   --staging         Use the CA's staging environment (issue/renew/void/ensure).
   --force           Skip the interactive confirmation (renew/void/destroy).
   --config-only     dry-run only: check config, skip the live ACME test.
 
 Credentials (DNS-provider / CA tokens) come from the environment, never the
-config file — the service loads them from /etc/syscert/secrets. Look up the
+config file — the service loads them from /etc/syscert/secrets. For a manual run,
+point --env-file at that same file instead of exporting each variable. Look up the
 variables your provider needs at: https://go-acme.github.io/lego/dns/
 
 Run 'syscert <command> --help' for a command's own flags.
