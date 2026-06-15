@@ -53,16 +53,16 @@ key_type = "ec256"
 
 ### Which directory_url for your CA
 
-| CA | `ca` | `directory_url` |
-|---|---|---|
-| Let's Encrypt | `letsencrypt` | *leave empty* → production. Set staging `https://acme-staging-v02.api.letsencrypt.org/directory` while testing. |
-| HashiCorp Vault PKI | `custom` | `https://<vault>:8200/v1/<mount>/acme/directory`. Requires ACME enabled on the mount. |
-| Smallstep step-ca | `custom` | `https://<ca-host>:9000/acme/<provisioner>/directory`. |
-| Any other ACME server | `custom` | its RFC 8555 directory URL. |
+| CA                    | `ca`          | `directory_url`                                                                                                 |
+| --------------------- | ------------- | --------------------------------------------------------------------------------------------------------------- |
+| Let's Encrypt         | `letsencrypt` | *leave empty* → production. Set staging `https://acme-staging-v02.api.letsencrypt.org/directory` while testing. |
+| HashiCorp Vault PKI   | `custom`      | `https://<vault>:8200/v1/<mount>/acme/directory`. Requires ACME enabled on the mount.                           |
+| Smallstep step-ca     | `custom`      | `https://<ca-host>:9000/acme/<provisioner>/directory`.                                                          |
+| Any other ACME server | `custom`      | its RFC 8555 directory URL.                                                                                     |
 
-> **Challenge support differs by CA.** Vault PKI ACME supports `http-01` and
-> `tls-alpn-01` only — *not* `dns-01`. step-ca supports all three. Let's Encrypt
-> supports `dns-01`, `http-01`, `tls-alpn-01`.
+> **All three CAs support `dns-01`, `http-01`, and `tls-alpn-01`.** Vault's PKI
+> ACME exposes `dns-01` in current versions (older releases had `http-01` /
+> `tls-alpn-01` only — confirm your Vault version).
 
 ```toml
 # Let's Encrypt (production) via DNS-01
