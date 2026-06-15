@@ -50,8 +50,8 @@ enabling (not starting) the timer. Then edit two files and you're done:
 sudoedit /etc/syscert/syscert.toml      # subject, CA, challenge, distribute targets
 sudoedit /etc/syscert/secrets           # e.g. CLOUDFLARE_DNS_API_TOKEN=...  (never in the .toml)
 
-sudo -u syscert syscert dry-run --config-only   # validate offline
-sudo -u syscert syscert --staging               # real run against Let's Encrypt staging
+sudo -u syscert syscert dry-run --config-only                       # validate offline
+sudo -u syscert syscert --staging --env-file /etc/syscert/secrets   # real run; --env-file loads creds
 # happy? drop --staging, then: sudo systemctl start syscert.timer
 ```
 
@@ -77,7 +77,9 @@ also remove certs/keys/config). Details in [Advanced install](docs/advanced-inst
 | `syscert destroy [--force]` | Wipe the stored cert + ACME account (provider switch). Does not revoke or reissue. |
 
 `--config` defaults to `/etc/syscert/syscert.toml` (or `$SYSCERT_CONFIG`). Secrets (DNS/CA tokens)
-always come from the **environment**, never the TOML, and are never logged.
+always come from the **environment**, never the TOML, and are never logged. The systemd service
+loads them from `/etc/syscert/secrets`; for a manual run, pass `--env-file /etc/syscert/secrets`
+instead of exporting each one.
 
 ## Documentation
 

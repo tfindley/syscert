@@ -100,7 +100,10 @@ needed for Let's Encrypt. Details in
 Private keys live in the store at `0600` (owned by the `syscert` user) and are
 delivered with the tight mode each consumer specifies. A fresh keypair is generated
 on every renewal by default (`reuse_key` opts out). Provider/CA credentials are read
-from the environment — never the TOML — and are never logged.
+from the environment — never the TOML — and are never logged. The systemd service
+loads them from `/etc/syscert/secrets`; for a manual run, pass `--env-file
+/etc/syscert/secrets` (repeatable; the existing environment wins) rather than
+exporting each variable.
 
 ### Does it run as root?
 

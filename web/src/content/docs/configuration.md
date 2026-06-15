@@ -93,7 +93,9 @@ Credentials are supplied via the environment (or a restricted secrets file),
 `CLOUDFLARE_DNS_API_TOKEN` (cloudflare), `GANDIV5_PERSONAL_ACCESS_TOKEN` (Gandi
 LiveDNS), or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION`
 (route53). See the [lego provider docs](https://go-acme.github.io/lego/dns/) for
-the exact names.
+the exact names. The systemd unit loads these from `/etc/syscert/secrets`; for a
+manual run, pass `--env-file /etc/syscert/secrets` (repeatable; the existing
+environment wins) instead of exporting each one.
 
 ```toml
 [acme.dns]
