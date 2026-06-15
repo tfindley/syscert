@@ -68,10 +68,22 @@ timer, and relabels for SELinux where active.
 
 ## Uninstall
 
+Installed with the one-liner? Remove it the same way — no clone needed:
+
+```sh
+curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall          # keep data
+curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall --purge  # + data, config, user
+```
+
+From a source checkout, use the script directly:
+
 ```sh
 sudo packaging/install.sh --uninstall            # remove units + binary, keep data
 sudo packaging/install.sh --uninstall --purge    # also remove /var/lib/syscert, /etc/syscert, user
 ```
+
+`--purge` is irreversible, so it asks you to confirm on the terminal; set
+`SYSCERT_ASSUME_YES=1` to skip the prompt (e.g. in automation).
 
 ## The user, service, and timer
 

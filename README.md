@@ -59,6 +59,10 @@ The full walkthrough — complete minimal config and what each step prints — i
 [Quick start guide](docs/quick-start.md). To inspect the script, verify checksums by hand, build from
 source, or install manually, see [Advanced install](docs/advanced-install.md).
 
+Uninstall the same way, no clone needed —
+`curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall` (add `--purge` to
+also remove certs/keys/config). Details in [Advanced install](docs/advanced-install.md#uninstall).
+
 ## Commands
 
 | Command | Purpose |
