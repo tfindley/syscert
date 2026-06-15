@@ -1,5 +1,9 @@
 # SysCert
 
+[![CI](https://github.com/tfindley/syscert/actions/workflows/ci.yml/badge.svg)](https://github.com/tfindley/syscert/actions/workflows/ci.yml)
+[![Release](https://github.com/tfindley/syscert/actions/workflows/release.yml/badge.svg)](https://github.com/tfindley/syscert/actions/workflows/release.yml)
+[![Web](https://github.com/tfindley/syscert/actions/workflows/web.yml/badge.svg)](https://github.com/tfindley/syscert/actions/workflows/web.yml)
+
 **Set-and-forget TLS for every machine.** SysCert is a small, least-privilege Linux service that
 gives a host its own TLS certificate — from **Let's Encrypt** or an internal **HashiCorp Vault** /
 **Smallstep `step-ca`** — keeps it renewed, and delivers it to local consumers (nginx, HAProxy,
@@ -16,19 +20,6 @@ It speaks ACME via [lego](https://go-acme.github.io/lego/) and writes certbot-co
 > [releases page](https://github.com/tfindley/syscert/releases). Not built yet: the Ansible role
 > (see the [roadmap](docs/roadmap.md)).
 
-## Documentation
-
-Full, canonical docs live in [`docs/`](docs/) and render on the website at
-**<https://syscert.tfindley.dev/docs/>**:
-
-- [Quick start](docs/quick-start.md) — install → edit two files → done
-- [Configuration reference](docs/configuration.md) — every `syscert.toml` option
-- [Sample configurations](docs/examples.md) — a starter per CA + challenge
-- [Advanced install](docs/advanced-install.md) — verify checksums, build from source, manual systemd
-- [Distributing certs](docs/distributing.md) — artifacts, ownership/mode/SELinux, no reload hooks
-- [Troubleshooting](docs/troubleshooting.md) · [FAQ](docs/faq.md) · [Roadmap](docs/roadmap.md)
-- [Changelog](CHANGELOG.md)
-
 ## Why
 
 You terminate public TLS at the edge (HAProxy, a load balancer). But the hop from there to your
@@ -42,7 +33,7 @@ automatically:
 - **Admin UIs & data stores** — Cockpit, Postgres, Redis, internal APIs, metrics over TLS.
 - **Any host that should just have a valid, auto-renewing cert** without someone owning the renewal.
 
-## Install
+## Quick start
 
 **Supported targets:** Debian/Ubuntu and the RHEL family (others may work but aren't tested), amd64
 and arm64. One static binary and a systemd timer:
@@ -53,24 +44,24 @@ curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 
 This downloads the matching release binary, **verifies its checksum**, and runs the installer —
 creating the `syscert` user, `/var/lib/syscert`, starter config + secrets, the systemd units, and
-enabling (not starting) the timer. Prefer to inspect the script, verify by hand, build from source,
-or install manually? See [Advanced install](docs/advanced-install.md).
-
-## Quick start
-
-After install, edit two files and you're done:
+enabling (not starting) the timer. Then edit two files and you're done:
 
 ```sh
 sudoedit /etc/syscert/syscert.toml      # subject, CA, challenge, distribute targets
 sudoedit /etc/syscert/secrets           # e.g. CLOUDFLARE_DNS_API_TOKEN=...  (never in the .toml)
 
-sudo -u syscert syscert dry-run --config-only   # validate offline
-sudo -u syscert syscert --staging               # real run against Let's Encrypt staging
+sudo -u syscert syscert dry-run --config-only                       # validate offline
+sudo -u syscert syscert --staging --env-file /etc/syscert/secrets   # real run; --env-file loads creds
 # happy? drop --staging, then: sudo systemctl start syscert.timer
 ```
 
-The full walkthrough — including a complete minimal config — is in the
-[Quick start](docs/quick-start.md).
+The full walkthrough — complete minimal config and what each step prints — is in the
+[Quick start guide](docs/quick-start.md). To inspect the script, verify checksums by hand, build from
+source, or install manually, see [Advanced install](docs/advanced-install.md).
+
+Uninstall the same way, no clone needed —
+`curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall` (add `--purge` to
+also remove certs/keys/config). Details in [Advanced install](docs/advanced-install.md#uninstall).
 
 ## Commands
 
@@ -85,23 +76,24 @@ The full walkthrough — including a complete minimal config — is in the
 | `syscert void [--force]` | Revoke the current cert, then reissue + distribute. |
 | `syscert destroy [--force]` | Wipe the stored cert + ACME account (provider switch). Does not revoke or reissue. |
 
-`--config` defaults to `/etc/syscert/syscert.toml` (or `$SYSCERT_CONFIG`).
+`--config` defaults to `/etc/syscert/syscert.toml` (or `$SYSCERT_CONFIG`). Secrets (DNS/CA tokens)
+always come from the **environment**, never the TOML, and are never logged. The systemd service
+loads them from `/etc/syscert/secrets`; for a manual run, pass `--env-file /etc/syscert/secrets`
+instead of exporting each one.
 
-## Configuration
+## Documentation
 
-TOML at `/etc/syscert/syscert.toml`. Secrets (DNS/CA tokens) come from the **environment**, never
-the config, and are never logged. Supported CAs are `letsencrypt` (public) and `custom` (internal/
-other — Vault, step-ca, … via `directory_url`).
+Full, canonical docs live in [`docs/`](docs/) and render on the website at
+**<https://syscert.tfindley.dev/docs/>**:
 
-See the [Configuration reference](docs/configuration.md) for every option, and
-[`examples/`](examples/) (annotated [`full.toml`](examples/full.toml) + focused starters) or
-[Sample configurations](docs/examples.md) for ready-to-edit configs.
-
-## Output files
-
-Per certificate, SysCert writes five certbot-compatible PEMs — `cert.pem`, `privkey.pem`,
-`chain.pem`, `fullchain.pem` — plus a configurable all-in-one `bundle.pem`. Details and delivery in
-[Distributing certs](docs/distributing.md).
+- [Quick start](docs/quick-start.md) — install → edit two files → done
+- [Configuration reference](docs/configuration.md) — every `syscert.toml` option
+- [Sample configurations](docs/examples.md) — a starter per CA + challenge, plus annotated
+  [`examples/full.toml`](examples/full.toml)
+- [Advanced install](docs/advanced-install.md) — verify checksums, build from source, manual systemd
+- [Distributing certs](docs/distributing.md) — artifacts, ownership/mode/SELinux, no reload hooks
+- [Troubleshooting](docs/troubleshooting.md) · [FAQ](docs/faq.md) · [Roadmap](docs/roadmap.md) ·
+  [Changelog](CHANGELOG.md)
 
 ## Contributing
 
@@ -118,3 +110,5 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and 
 
 [Tristan Findley](https://tfindley.co.uk). If you'd like to support the project:
 [☕ Ko-fi](https://ko-fi.com/tfindley).
+</content>
+</invoke>

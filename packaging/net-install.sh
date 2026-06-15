@@ -19,6 +19,11 @@
 # No telemetry, no background process, nothing left behind but what install.sh writes.
 # Everything is fetched to a temp dir that is removed on exit.
 #
+# Uninstall (no clone needed):
+#   curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall
+#   …add --purge to also remove /var/lib/syscert, /etc/syscert, and the user.
+#   --purge asks you to confirm on the terminal; SYSCERT_ASSUME_YES=1 skips it.
+#
 # Pin a specific version:   SYSCERT_VERSION=v0.1.0 curl -fsSL …/install.sh | sudo sh
 # ─────────────────────────────────────────────────────────────────────────────
 set -eu
@@ -27,6 +32,9 @@ readonly REPO="tfindley/syscert"
 readonly GH="https://github.com"
 readonly RAW="https://raw.githubusercontent.com"
 readonly API="https://api.github.com"
+
+ACTION="install"
+PURGE=""
 
 log()  { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
@@ -57,15 +65,21 @@ detect_platform() {
   esac
 }
 
-check_tools() {
+check_download_tool() {
   if   have curl; then DL="curl"
   elif have wget; then DL="wget"
   else die "need curl or wget to download SysCert"
   fi
+}
+
+check_checksum_tool() {
   if   have sha256sum; then SHA="sha256sum"
   elif have shasum;    then SHA="shasum -a 256"
   else die "need sha256sum or shasum to verify the download"
   fi
+}
+
+require_runtime() {
   have bash      || die "need bash — the system installer (packaging/install.sh) requires it"
   have systemctl || die "systemctl not found — SysCert targets systemd hosts"
 }
@@ -107,10 +121,11 @@ resolve_version() {
   esac
 }
 
-main() {
-  ensure_root "$@"
+do_install() {
   detect_platform
-  check_tools
+  check_download_tool
+  check_checksum_tool
+  require_runtime
   resolve_version
 
   TMP="$(mktemp -d "${TMPDIR:-/tmp}/syscert-install.XXXXXX")"
@@ -144,6 +159,63 @@ main() {
 
   printf '\n'
   log "Done. Quick start → https://syscert.tfindley.dev/docs/quick-start/"
+}
+
+# do_uninstall delegates to the same packaging/install.sh the install path uses,
+# so there's a single source of truth for what gets removed (and for the --purge
+# confirmation). The uninstall logic is version-independent, so the installer is
+# fetched from SYSCERT_VERSION when pinned, otherwise from main.
+do_uninstall() {
+  check_download_tool
+  require_runtime
+
+  ref="${SYSCERT_VERSION:-main}"
+  TMP="$(mktemp -d "${TMPDIR:-/tmp}/syscert-uninstall.XXXXXX")"
+  trap 'rm -rf "$TMP"' EXIT INT TERM
+
+  log "Fetching the system uninstaller ($ref)"
+  dl_to "$RAW/$REPO/$ref/packaging/install.sh" "$TMP/install.sh" \
+    || die "failed to fetch packaging/install.sh from $ref"
+
+  log "Running the system uninstaller${PURGE:+ (with --purge)}"
+  bash "$TMP/install.sh" --uninstall $PURGE
+}
+
+usage() {
+  cat <<'EOF'
+SysCert network installer / uninstaller.
+
+  ... | sudo sh                               install (latest release)
+  ... | sudo sh -s -- --uninstall             remove units + binary (keep data)
+  ... | sudo sh -s -- --uninstall --purge     also remove data, config, and the user
+
+Env: SYSCERT_VERSION=vX.Y.Z pins the release; SYSCERT_ASSUME_YES=1 skips the
+--purge confirmation.
+EOF
+}
+
+parse_args() {
+  for arg in "$@"; do
+    case "$arg" in
+      --uninstall) ACTION="uninstall" ;;
+      --purge)     PURGE="--purge" ;;
+      -h | --help) usage; exit 0 ;;
+      *)           die "unknown argument '$arg' — usage: [--uninstall [--purge]]" ;;
+    esac
+  done
+  if [ -n "$PURGE" ] && [ "$ACTION" != "uninstall" ]; then
+    die "--purge requires --uninstall"
+  fi
+}
+
+main() {
+  parse_args "$@"
+  ensure_root "$@" # single root-check seam; may re-exec via sudo, forwarding args
+  if [ "$ACTION" = "uninstall" ]; then
+    do_uninstall
+  else
+    do_install
+  fi
 }
 
 main "$@"

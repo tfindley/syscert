@@ -75,7 +75,7 @@ Check the config offline first, then do a real run against Let's Encrypt staging
 
 ```sh
 sudo -u syscert syscert dry-run --config-only   # offline checks, no network
-sudo -u syscert syscert --staging               # real issue + distribute, LE staging
+sudo -u syscert syscert --staging --env-file /etc/syscert/secrets   # real run; --env-file loads your creds
 ```
 
 A passing offline check prints the resolved subject, CA, and challenge:

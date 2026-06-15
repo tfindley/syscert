@@ -91,8 +91,13 @@ sudo packaging/install.sh ./syscert</pre>
         <div class="ins-num">↺</div>
         <div class="ins-content">
           <h2 class="ins-h2">Uninstall</h2>
-          <pre class="code ins-code">sudo packaging/install.sh --uninstall            <span class="c-cmt"># remove units + binary, keep data</span>
-sudo packaging/install.sh --uninstall --purge    <span class="c-cmt"># also remove /var/lib/syscert, /etc/syscert</span></pre>
+          <p class="ins-p">Installed with the one-liner? Remove it the same way — no clone needed:</p>
+          <pre class="code ins-code">curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall          <span class="c-cmt"># keep data</span>
+curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall --purge  <span class="c-cmt"># + data, config, user</span></pre>
+          <p class="ins-p">From a source checkout, use the script directly:</p>
+          <pre class="code ins-code">sudo packaging/install.sh --uninstall          <span class="c-cmt"># keep data</span>
+sudo packaging/install.sh --uninstall --purge  <span class="c-cmt"># + data, config, user</span></pre>
+          <p class="ins-p"><code>--purge</code> is irreversible, so it asks you to confirm; set <code>SYSCERT_ASSUME_YES=1</code> to skip the prompt.</p>
         </div>
       </article>
 

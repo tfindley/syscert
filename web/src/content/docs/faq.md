@@ -36,9 +36,9 @@ Smallstep step-ca. See [Configuration](/docs/configuration/#which-directory_url-
 ### Which challenge types work?
 
 `dns-01` (default, needs no inbound ports), `http-01` and `tls-alpn-01` (CA must
-reach :80/:443), and opt-in `dns-persist-01`. **Vault has no dns-01**
-(http-01/tls-alpn-01 only); step-ca and Let's Encrypt support all three. Setting
-`ip_sans` auto-switches to http-01/tls-alpn-01 (RFC 8738).
+reach :80/:443), and opt-in `dns-persist-01`. Vault, step-ca, and Let's Encrypt
+all support `dns-01`/`http-01`/`tls-alpn-01`. Setting `ip_sans` auto-switches to
+http-01/tls-alpn-01 (RFC 8738).
 
 ### What is EAB and do I need it?
 
@@ -100,7 +100,10 @@ needed for Let's Encrypt. Details in
 Private keys live in the store at `0600` (owned by the `syscert` user) and are
 delivered with the tight mode each consumer specifies. A fresh keypair is generated
 on every renewal by default (`reuse_key` opts out). Provider/CA credentials are read
-from the environment — never the TOML — and are never logged.
+from the environment — never the TOML — and are never logged. The systemd service
+loads them from `/etc/syscert/secrets`; for a manual run, pass `--env-file
+/etc/syscert/secrets` (repeatable; the existing environment wins) rather than
+exporting each variable.
 
 ### Does it run as root?
 

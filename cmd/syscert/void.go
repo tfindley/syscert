@@ -17,10 +17,14 @@ import (
 func cmdVoid(args []string, stdout, stderr io.Writer) int {
 	fs := newFlagSet("void", stderr)
 	cfgPath := configFlag(fs)
+	envPaths := envFileFlag(fs)
 	staging := fs.Bool("staging", false, "use the CA staging directory (Let's Encrypt) — for testing")
 	force := fs.Bool("force", false, "skip the interactive confirmation")
 	if err := fs.Parse(args); err != nil {
 		return 2
+	}
+	if code := loadEnvFiles(*envPaths, stderr); code != 0 {
+		return code
 	}
 
 	cfg, subject, problems, err := loadAndCheck(*cfgPath)

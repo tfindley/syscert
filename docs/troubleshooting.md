@@ -80,14 +80,18 @@ Validate offline with `syscert dry-run --config-only` (no network). The full
 `issue`/`renew`/`void`/bare `syscert` to route Let's Encrypt to staging during a
 real run.
 
+Running by hand (not via the systemd unit)? The unit loads DNS/CA credentials from
+`/etc/syscert/secrets`; a manual run won't, so either export them or pass
+`--env-file /etc/syscert/secrets` (repeatable; the existing environment wins).
+
 ## IP-SAN and Vault gotchas
 
 - **Private IP + public CA is rejected.** A private (RFC 1918) IP SAN requires an
   internal CA; public-CA IP certs need a public IP and `acme.profile = "shortlived"`.
 - **IP SANs force http-01/tls-alpn-01** (RFC 8738 forbids dns-01 for IPs), so the CA
   must reach the host on :80/:443 — open the firewall.
-- **Vault has no dns-01.** Use `http-01` or `tls-alpn-01`. Vault also has a known
-  IPv6 ACME-challenge issue — prefer IPv4 in the directory URL and IP SANs for now.
+- **Vault's ACME has a known IPv6 challenge issue** — prefer IPv4 in the directory
+  URL and IP SANs for now.
 
 ## Reset, revoke, or switch providers
 

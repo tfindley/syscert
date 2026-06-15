@@ -6,6 +6,7 @@
 #   sudo packaging/install.sh [PATH_TO_BINARY]   install (binary defaults to ../syscert)
 #   sudo packaging/install.sh --uninstall        remove units + binary (keeps data)
 #   sudo packaging/install.sh --uninstall --purge also remove /var/lib/syscert, /etc/syscert, user
+#   --purge prompts for confirmation on the terminal; SYSCERT_ASSUME_YES=1 skips it.
 #
 set -euo pipefail
 
@@ -103,8 +104,43 @@ SysCert installed. The timer is enabled but NOT started yet. Next steps:
 EOF
 }
 
+# assume_yes reports whether SYSCERT_ASSUME_YES authorises a non-interactive purge.
+assume_yes() {
+  case "${SYSCERT_ASSUME_YES:-}" in
+    1 | y | Y | yes | YES | true | TRUE) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# confirm_purge requires explicit confirmation before the irreversible purge. It
+# reads from the controlling terminal (/dev/tty), so it works even when stdin is a
+# pipe (curl ... | sh). SYSCERT_ASSUME_YES=1 skips the prompt; with no terminal and
+# no override it aborts rather than guess. Call this BEFORE removing anything.
+confirm_purge() {
+  assume_yes && return 0
+  # Open the controlling terminal on fd 3. The group keeps the 2>/dev/null from
+  # both leaking the open error and permanently clobbering the shell's stderr.
+  if ! { exec 3<>/dev/tty; } 2>/dev/null; then
+    die "--purge permanently deletes ${STORE_DIR} (keys + certs), ${CONF_DIR} (config + secrets), and the ${SVC_USER} user, but there is no terminal to confirm on — re-run with SYSCERT_ASSUME_YES=1 to proceed non-interactively"
+  fi
+  {
+    printf '\033[1;33mWARNING:\033[0m --purge will PERMANENTLY delete:\n'
+    printf '    %s   (private keys + certificates)\n' "$STORE_DIR"
+    printf '    %s        (config + secrets)\n' "$CONF_DIR"
+    printf '    the %s system user and group\n' "$SVC_USER"
+    printf "Type 'yes' to continue: "
+  } >&3
+  local reply=""
+  IFS= read -r reply <&3 || die "could not read confirmation"
+  exec 3>&-
+  [ "$reply" = "yes" ] || die "aborted — nothing was changed"
+}
+
 uninstall_syscert() {
   local purge="${1:-no}"
+  if [ "$purge" = "purge" ]; then
+    confirm_purge
+  fi
   log "Disabling syscert.timer"
   systemctl disable --now syscert.timer 2>/dev/null || true
 
