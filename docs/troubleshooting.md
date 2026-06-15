@@ -86,8 +86,8 @@ real run.
   internal CA; public-CA IP certs need a public IP and `acme.profile = "shortlived"`.
 - **IP SANs force http-01/tls-alpn-01** (RFC 8738 forbids dns-01 for IPs), so the CA
   must reach the host on :80/:443 — open the firewall.
-- **Vault has no dns-01.** Use `http-01` or `tls-alpn-01`. Vault also has a known
-  IPv6 ACME-challenge issue — prefer IPv4 in the directory URL and IP SANs for now.
+- **Vault's ACME has a known IPv6 challenge issue** — prefer IPv4 in the directory
+  URL and IP SANs for now.
 
 ## Reset, revoke, or switch providers
 

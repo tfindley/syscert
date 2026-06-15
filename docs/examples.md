@@ -122,13 +122,14 @@ key_type = "ec256"
 ca            = "custom"
 directory_url = "https://vault.example.com:8200/v1/pki/acme/directory"
 email         = "ops@example.com"
-challenge     = "http-01"          # Vault: http-01 or tls-alpn-01 (NOT dns-01)
+challenge     = "http-01"          # Vault also supports dns-01 / tls-alpn-01
 
 # bootstrap trust if the host doesn't trust Vault's CA yet, then `trust install`:
 # ca_bundle   = "/etc/syscert/vault-ca.pem"
 ```
 
-- **Vault PKI ACME has no `dns-01`** — use `http-01` or `tls-alpn-01`.
+- **Vault supports all three challenges** — this one uses http-01 (Vault reaches
+  the host on :80); for dns-01 see the next example.
 - Use **IPv4** in the directory URL (Vault has an IPv6-ACME quirk). The mount needs
   ACME enabled (`vault write pki/config/acme enabled=true` + a `pki/config/cluster`).
 - If the host doesn't trust Vault's CA yet, set `ca_bundle` to bootstrap the ACME
@@ -136,6 +137,41 @@ challenge     = "http-01"          # Vault: http-01 or tls-alpn-01 (NOT dns-01)
   [Troubleshooting](/docs/troubleshooting/#x509-unknown-authority-against-an-internal-ca).
 - If Vault requires EAB, set `[acme.eab].kid` + `SYSCERT_EAB_HMAC` in the env.
 - File: [`vault-http-01.toml`](https://github.com/tfindley/syscert/blob/main/examples/vault-http-01.toml)
+
+## HashiCorp Vault · DNS-01
+
+Same internal CA, validated by a **DNS TXT record** instead — so **no inbound
+ports**. This example also shows a **role-scoped** directory and **EAB**.
+
+```toml
+[cert]
+hostname = "web01.internal.lan"
+key_type = "ec256"
+
+[acme]
+ca            = "custom"
+# role-scoped: issuance follows the "web" role's policy
+directory_url = "https://vault.example.com:8200/v1/pki/roles/web/acme/directory"
+email         = "ops@example.com"
+challenge     = "dns-01"
+
+[acme.dns]
+provider = "cloudflare"            # creds via env: CLOUDFLARE_DNS_API_TOKEN
+
+[acme.eab]
+kid = "kid-from-vault"             # + SYSCERT_EAB_HMAC in the env
+```
+
+- **Validation flips direction:** with dns-01, **Vault's own resolver** queries
+  `_acme-challenge.<fqdn>` — so the TXT your DNS provider publishes must be visible
+  to Vault (mind split-horizon / internal DNS).
+- **Role-scoped directory** (`.../roles/web/acme/directory`) ties issuance to the
+  `web` role; the mount-wide form is `.../pki/acme/directory`.
+- **EAB:** mint with `vault write -f pki/roles/web/acme/new-eab` — `id` is the
+  `kid`, `key` is `SYSCERT_EAB_HMAC`. Omit `[acme.eab]` if the mount's `eab_policy`
+  doesn't require it.
+- Requires a Vault version whose PKI ACME exposes `dns-01`.
+- File: [`vault-dns-01.toml`](https://github.com/tfindley/syscert/blob/main/examples/vault-dns-01.toml)
 
 ## Smallstep step-ca · DNS-01
 

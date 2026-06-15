@@ -1,0 +1,55 @@
+# HashiCorp Vault (internal CA) via DNS-01 — role "web", EAB enabled.
+# ------------------------------------------------------------------------------
+# Internal cert from Vault's PKI ACME endpoint. ca = "custom" + directory_url.
+#
+# Vault's PKI ACME validates dns-01 (TXT _acme-challenge.<fqdn>) as well as
+# http-01 / tls-alpn-01. dns-01 needs NO inbound ports — but Vault's OWN resolver
+# must be able to see the TXT record your DNS provider publishes.
+# Every option, annotated: examples/full.toml
+
+[cert]
+hostname = "web01.internal.lan"   # change me (or remove to use the system FQDN)
+key_type = "ec256"
+
+[acme]
+ca            = "custom"
+# Role-scoped ACME directory → issuance follows the "web" role's policy. The mount
+# needs ACME enabled and allowed_roles covering "web"; the role's allowed_domains
+# must permit the subject above. (Mount-wide form: .../v1/pki/acme/directory)
+directory_url = "https://vault.example.com:8200/v1/pki/roles/web/acme/directory"
+email         = "ops@example.com"
+challenge     = "dns-01"
+
+# If the host doesn't trust Vault's CA yet, trust it for the ACME CONNECTION
+# only to bootstrap (SysCert warns); then `sudo syscert trust install`. ADR-0035.
+# ca_bundle   = "/etc/syscert/vault-ca.pem"
+
+[acme.dns]
+provider = "cloudflare"           # any lego DNS provider; creds in the secrets file
+# propagation_check = "authoritative"   # if the host's resolver differs from Vault's
+
+# EAB: setting kid enables it. Mint a token at the role-scoped path:
+#   vault write -f pki/roles/web/acme/new-eab   → `id` is the kid, `key` the HMAC.
+[acme.eab]
+kid = "kid-from-vault"            # + export SYSCERT_EAB_HMAC=<key-from-vault>
+
+[store]
+path = "/var/lib/syscert"
+
+[[distribute]]
+artifact = "fullchain"
+path     = "/etc/nginx/tls/fullchain.pem"
+owner    = "root"
+group    = "root"
+mode     = "0644"
+
+[[distribute]]
+artifact = "privkey"
+path     = "/etc/nginx/tls/privkey.pem"
+owner    = "root"
+group    = "root"
+mode     = "0600"
+
+[logging]
+level  = "info"
+format = "text"

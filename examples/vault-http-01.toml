@@ -2,7 +2,8 @@
 # ------------------------------------------------------------------------------
 # Internal cert from Vault's PKI ACME endpoint. ca = "custom" + directory_url.
 #
-# NOTE: Vault PKI ACME supports http-01 and tls-alpn-01 ONLY — it has no dns-01.
+# NOTE: this example uses http-01; Vault PKI ACME also supports dns-01 and
+# tls-alpn-01 (see vault-dns-01.toml).
 # Use IPv4 in the directory URL (Vault has an IPv6-ACME quirk). The PKI mount
 # needs ACME enabled (`vault write pki/config/acme enabled=true` + a
 # `pki/config/cluster path=...`).
@@ -16,7 +17,7 @@ key_type = "ec256"
 ca            = "custom"
 directory_url = "https://vault.example.com:8200/v1/pki/acme/directory"
 email         = "ops@example.com"
-challenge     = "http-01"          # Vault: http-01 or tls-alpn-01 (NOT dns-01)
+challenge     = "http-01"          # Vault also supports dns-01 / tls-alpn-01
 
 # If the host doesn't trust Vault's CA yet, trust it for the ACME CONNECTION
 # only to bootstrap (SysCert warns); then run `sudo syscert trust install` to
