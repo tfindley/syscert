@@ -10,6 +10,59 @@ Conventional Commits since the last tag; fill in the **Risk & Security** note
 before publishing with `scripts/release.sh`.
 
 <!-- next-release -->
+## [v0.2.0] — 2026-06-16
+
+### Features
+
+- **cli:** `--env-file <path>` loads DNS/CA credentials from a systemd
+  EnvironmentFile for a manual run, so you no longer have to export every variable
+  by hand. Repeatable; an existing environment variable always wins; secrets are
+  never logged.
+- **packaging:** the network installer now uninstalls — `curl … | sudo sh -s --
+  --uninstall` (add `--purge` to also remove the store, config, and the `syscert`
+  user), no clone needed. It delegates to `install.sh`, the single source of truth.
+- **web:** a `/healthz` endpoint plus Docker and Traefik healthchecks for the
+  website container.
+
+### Fixes
+
+- **security:** use the `#nosec` directive so gosec honours the baseline
+  suppressions.
+- **ci:** keep `web/scripts` in the Docker build context so the vendor prebuild
+  runs.
+
+### Documentation
+
+- **Vault PKI ACME supports `dns-01`** — corrected the stale "Vault has no dns-01"
+  claim across the docs and added an annotated `vault-dns-01.toml` example
+  (role-scoped directory + EAB).
+- Documented `--env-file` across the README, FAQ, configuration reference, quick
+  start, and troubleshooting; documented the uninstall paths on the install page
+  and in advanced-install.
+- Slimmed the README to a quick-start hub with CI status badges.
+
+### Risk & Security
+
+Low risk — no changes to certificate issuance, key handling, or the privilege model.
+
+- **`--purge` is now gated.** The destructive uninstall (store, config, secrets,
+  and the `syscert` user) prompts for confirmation on the controlling terminal —
+  working even under `curl … | sh`, where stdin is the pipe — and refuses to
+  proceed without a terminal unless `SYSCERT_ASSUME_YES=1` is set. This makes an
+  already-existing operation safer.
+- **`--env-file` does not widen secret exposure.** It is opt-in (nothing is read
+  without the flag), loads the same `/etc/syscert/secrets` the systemd unit already
+  uses, never overrides a variable already in the environment, and never logs
+  values (parse errors cite only the line number).
+- **Network uninstall** fetches `packaging/install.sh` over TLS from the pinned tag
+  (or `main`) and delegates to it — the same trust model as install; the release
+  binary remains checksum-verified.
+- **Known issue:** `npm audit` reports 5 high advisories in the website's
+  build-time dependencies (Astro toolchain). They affect the build, not the
+  published static site or the tool binary, and are tracked for a separate web
+  dependency bump.
+
+
 ## [v0.1.0] — 2026-06-14
 
 First feature release with full documentation, a one-line installer, and a
