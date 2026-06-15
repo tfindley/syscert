@@ -7,6 +7,7 @@ package envfile
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -88,12 +89,11 @@ func merge(preset map[string]bool, files [][]KV) []KV {
 func Load(paths []string) ([]string, error) {
 	files := make([][]KV, 0, len(paths))
 	for _, p := range paths {
-		f, err := os.Open(p)
+		data, err := os.ReadFile(p) // #nosec G304 -- operator-provided --env-file path (trusted CLI input)
 		if err != nil {
 			return nil, err
 		}
-		kvs, perr := Parse(f)
-		f.Close()
+		kvs, perr := Parse(bytes.NewReader(data))
 		if perr != nil {
 			return nil, fmt.Errorf("%s: %w", p, perr)
 		}
