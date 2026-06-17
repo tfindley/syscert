@@ -74,7 +74,8 @@ also remove certs/keys/config). Details in [Advanced install](docs/advanced-inst
 | `syscert dry-run [--config-only]` | Validate config; without `--config-only`, also run the real ACME order/challenge and discard (LE uses staging). |
 | `syscert trust install` / `trust remove` | Add/remove the internal CA in the **system** trust store (root). |
 | `syscert void [--force]` | Revoke the current cert, then reissue + distribute. |
-| `syscert destroy [--force]` | Wipe the stored cert + ACME account (provider switch). Does not revoke or reissue. |
+| `syscert destroy [--force]` | Wipe the stored cert + ACME account (provider switch). `--keep-account` drops only the cert — reissue with no new EAB token. |
+| `syscert status` | Show config + the stored cert's dates (issued/expiry/renewal), account, and distribute targets. Offline. |
 
 `--config` defaults to `/etc/syscert/syscert.toml` (or `$SYSCERT_CONFIG`). Secrets (DNS/CA tokens)
 always come from the **environment**, never the TOML, and are never logged. The systemd service

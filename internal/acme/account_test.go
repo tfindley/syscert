@@ -11,13 +11,19 @@ func TestAccountKeyPersistsAndReloads(t *testing.T) {
 	base := t.TempDir()
 	url := "https://vault.example.com/v1/pki/acme/directory"
 
-	k1, err := accountKey(base, url)
+	k1, existed1, err := accountKey(base, url)
 	if err != nil {
 		t.Fatalf("accountKey (create): %v", err)
 	}
-	k2, err := accountKey(base, url)
+	if existed1 {
+		t.Error("first accountKey: existed should be false (freshly created)")
+	}
+	k2, existed2, err := accountKey(base, url)
 	if err != nil {
 		t.Fatalf("accountKey (reload): %v", err)
+	}
+	if !existed2 {
+		t.Error("second accountKey: existed should be true (loaded from disk)")
 	}
 
 	pub1 := k1.Public().(*ecdsa.PublicKey)

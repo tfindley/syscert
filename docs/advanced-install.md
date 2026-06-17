@@ -30,7 +30,7 @@ sha256sum --check --ignore-missing sha256sums.txt
 ```
 
 Pin a specific version by swapping `latest/download` for `download/<tag>` (e.g.
-`download/v0.0.6`). See
+`download/v0.3.0`). See
 [all releases](https://github.com/tfindley/syscert/releases).
 
 ## Build from source
@@ -65,6 +65,12 @@ binary to `/usr/local/bin/syscert`, writes a starter `/etc/syscert/syscert.toml`
 a `0640` `/etc/syscert/secrets`, and an `/etc/default/syscert` for operator
 settings (never overwriting existing files), installs the units, enables the
 timer, and relabels for SELinux where active.
+
+> **`/usr/local/bin` and your PATH.** The systemd unit runs the absolute
+> `/usr/local/bin/syscert`, so the service never depends on `PATH`. For interactive use,
+> `/usr/local/bin` is sometimes missing from a `sudo` `secure_path` or a minimal/`nologin`
+> environment — if `syscert` isn't found, call `/usr/local/bin/syscert` directly or add the
+> directory to your `PATH`.
 
 ## Uninstall
 

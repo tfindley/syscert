@@ -117,7 +117,8 @@ like ZeroSSL / Google / SSL.com.
 The **HMAC key is a secret** — supply it via `SYSCERT_EAB_HMAC` (the base64url key
 the CA gave you) in `/etc/syscert/secrets`, never in the TOML and never logged. EAB
 is checked by the CA only when the account is first created; syscert reuses its
-persistent account key afterwards.
+persistent account key afterwards. Requesting one from HashiCorp Vault?
+See [EAB](/docs/eab/) — and [EAB → Vault](/docs/eab/vault/) to request one.
 
 ```toml
 [acme.eab]
@@ -129,6 +130,14 @@ kid = "kid-from-your-ca"          # + export SYSCERT_EAB_HMAC=<base64url-hmac> i
 | Key | Default | Description |
 |---|---|---|
 | `path` | `/var/lib/syscert` | Where syscert keeps the source-of-truth cert material and ACME account state. Owned by the `syscert` user; key-bearing files kept `0600`. |
+| `dir_mode` | `0700` | Octal mode for the store directory. Widen it (e.g. `0750`) together with `group` to let a group traverse the store and read the public artifacts (`cert`/`chain`/`fullchain`); **private keys stay `0600`** either way. |
+| `group` | `syscert` | Group that owns the store dir and files. Set it (with a `dir_mode` that grants group access) to let a trusted group read the store directly. |
+| `archive_keep` | `0` | Keep this many previous certificate sets. `0` overwrites in place (no history). When >0, each renewal first snapshots the current artifacts to `archive/<UTC-timestamp>/` inside the store (real files, no symlinks), pruned to the newest N. |
+
+> Prefer **[[distribute]]** for giving a specific service its cert — it copies a real file
+> with that consumer's exact owner/mode (including the key). `group`/`dir_mode` only widen
+> direct read of the *public* artifacts; they never expose private keys. Archived snapshots
+> live inside the locked store and are never distributed, so consumers are unaffected.
 
 ## `[bundle]` — all-in-one file
 

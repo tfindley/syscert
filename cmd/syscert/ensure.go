@@ -69,5 +69,8 @@ func cmdEnsure(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	fmt.Fprintf(stdout, "OK: %s ensured; distributed to %d target(s)\n", subject, len(cfg.Distribute))
+	if s := certLine(cfg, time.Now()); s != "" { // surfaces in `systemctl status syscert`
+		fmt.Fprintf(stdout, "%s\n", s)
+	}
 	return 0
 }

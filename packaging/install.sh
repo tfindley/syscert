@@ -50,6 +50,8 @@ install_syscert() {
       --no-create-home --shell "$nologin" "$SVC_USER"
   fi
 
+  # Default 0700 syscert:syscert; [store].dir_mode / [store].group widen this on each
+  # run if set (private keys stay 0600 regardless). See docs/configuration.md.
   log "Creating store ${STORE_DIR} (0700) and config dir ${CONF_DIR}"
   install -d -o "$SVC_USER" -g "$SVC_GROUP" -m 0700 "$STORE_DIR"
   install -d -o root -g root -m 0755 "$CONF_DIR"

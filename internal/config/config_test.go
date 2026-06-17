@@ -38,12 +38,51 @@ email = "admin@example.com"
 	if cfg.Store.Path != "/var/lib/syscert" {
 		t.Errorf("Store.Path default = %q, want %q", cfg.Store.Path, "/var/lib/syscert")
 	}
+	if cfg.Store.DirMode != "0700" {
+		t.Errorf("Store.DirMode default = %q, want %q", cfg.Store.DirMode, "0700")
+	}
+	if cfg.Store.ArchiveKeep != 0 {
+		t.Errorf("Store.ArchiveKeep default = %d, want 0", cfg.Store.ArchiveKeep)
+	}
 	if cfg.Logging.Level != "info" {
 		t.Errorf("Logging.Level default = %q, want %q", cfg.Logging.Level, "info")
 	}
 	wantOrder := []string{"cert", "chain", "root", "key"}
 	if got := cfg.Bundle.Order; !equalStrings(got, wantOrder) {
 		t.Errorf("Bundle.Order default = %v, want %v", got, wantOrder)
+	}
+}
+
+func TestLoadParsesStoreOptions(t *testing.T) {
+	p := writeTemp(t, `
+[acme]
+ca = "letsencrypt"
+email = "admin@example.com"
+
+[store]
+path         = "/srv/syscert"
+group        = "ssl-cert"
+dir_mode     = "0750"
+archive_keep = 5
+`)
+	cfg, err := Load(p)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Store.Group != "ssl-cert" || cfg.Store.DirMode != "0750" || cfg.Store.ArchiveKeep != 5 {
+		t.Errorf("store opts = %+v, want group=ssl-cert dir_mode=0750 archive_keep=5", cfg.Store)
+	}
+	if m := cfg.Store.ParsedDirMode(); m != 0o750 {
+		t.Errorf("ParsedDirMode = %#o, want 0750", m)
+	}
+}
+
+func TestParsedDirModeFallback(t *testing.T) {
+	if m := (StoreConfig{}).ParsedDirMode(); m != 0o700 {
+		t.Errorf("empty ParsedDirMode = %#o, want 0700", m)
+	}
+	if m := (StoreConfig{DirMode: "nonsense"}).ParsedDirMode(); m != 0o700 {
+		t.Errorf("invalid ParsedDirMode = %#o, want 0700 fallback", m)
 	}
 }
 

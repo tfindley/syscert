@@ -1,10 +1,11 @@
 import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
 
-// Docs are canonical Markdown at the repo root (docs/*.md), vendored into
-// src/content/docs/ at build by scripts/vendor.mjs (see RELEASING.md).
+// Docs are canonical Markdown at the repo root (docs/*.md and docs/examples/*.md),
+// vendored into src/content/docs/ at build by scripts/vendor.mjs (see RELEASING.md).
+// The recursive glob picks up subdir pages (e.g. examples/<slug> → /docs/examples/<slug>/).
 const docs = defineCollection({
-  loader: glob({ pattern: "*.md", base: "./src/content/docs" }),
+  loader: glob({ pattern: "**/*.md", base: "./src/content/docs" }),
   schema: z.object({
     title: z.string(),
     navLabel: z.string().optional(),
