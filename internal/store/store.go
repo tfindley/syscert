@@ -206,21 +206,28 @@ func Archive(dir string, keep int) error {
 	return pruneArchive(dir, keep)
 }
 
+// subdirs returns the names of dir's immediate subdirectories, sorted; nil when
+// dir is unreadable (e.g. not created yet). Snapshot/account names sort by age.
+func subdirs(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, e := range entries {
+		if e.IsDir() {
+			out = append(out, e.Name())
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 // pruneArchive keeps the keep newest snapshot directories under dir/archive and
 // removes the rest. Snapshot names are UTC timestamps, so lexical order is age order.
 func pruneArchive(dir string, keep int) error {
 	root := filepath.Join(dir, "archive")
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		return nil // no archive dir yet — nothing to prune
-	}
-	var snaps []string
-	for _, e := range entries {
-		if e.IsDir() {
-			snaps = append(snaps, e.Name())
-		}
-	}
-	sort.Strings(snaps)
+	snaps := subdirs(root)
 	for i := 0; i < len(snaps)-keep; i++ {
 		if err := os.RemoveAll(filepath.Join(root, snaps[i])); err != nil {
 			return fmt.Errorf("prune archive %s: %w", snaps[i], err)
@@ -278,32 +285,11 @@ func ReadCurrentCert(dir string) ([]byte, error) {
 
 // CountAccounts reports how many per-CA account directories exist under dir/accounts.
 func CountAccounts(dir string) int {
-	entries, err := os.ReadDir(filepath.Join(dir, "accounts"))
-	if err != nil {
-		return 0
-	}
-	n := 0
-	for _, e := range entries {
-		if e.IsDir() {
-			n++
-		}
-	}
-	return n
+	return len(subdirs(filepath.Join(dir, "accounts")))
 }
 
 // ListArchive returns the archive snapshot names (UTC timestamps) under dir/archive,
 // oldest first; nil when there are none.
 func ListArchive(dir string) []string {
-	entries, err := os.ReadDir(filepath.Join(dir, "archive"))
-	if err != nil {
-		return nil
-	}
-	var out []string
-	for _, e := range entries {
-		if e.IsDir() {
-			out = append(out, e.Name())
-		}
-	}
-	sort.Strings(out)
-	return out
+	return subdirs(filepath.Join(dir, "archive"))
 }

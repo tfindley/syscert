@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"os"
@@ -59,27 +58,18 @@ func writeStatus(w io.Writer, cfg *config.Config, now time.Time) {
 	}
 
 	fmt.Fprintln(w, "\ncertificate:")
-	switch certPEM, err := store.ReadCurrentCert(cfg.Store.Path); {
-	case err != nil:
+	if certPEM, err := store.ReadCurrentCert(cfg.Store.Path); err != nil {
 		fmt.Fprintf(w, "  none yet in %s\n", cfg.Store.Path)
-	default:
-		leaf, perr := parseLeaf(certPEM)
-		if perr != nil {
-			fmt.Fprintf(w, "  unreadable: %v\n", perr)
-			break
-		}
-		st, _ := renewal.Inspect(certPEM, cfg.Renewal.RenewBefore, now)
+	} else if st, leaf, ierr := renewal.Inspect(certPEM, cfg.Renewal.RenewBefore, now); ierr != nil {
+		fmt.Fprintf(w, "  unreadable: %v\n", ierr)
+	} else {
 		fmt.Fprintf(w, "  subject:    %s\n", leaf.Subject.CommonName)
 		fmt.Fprintf(w, "  SANs:       %s\n", sans(leaf))
 		fmt.Fprintf(w, "  issuer:     %s\n", leaf.Issuer.CommonName)
 		fmt.Fprintf(w, "  key:        %s\n", keyType(leaf))
 		fmt.Fprintf(w, "  issued:     %s\n", st.NotBefore.Format(time.RFC3339))
 		fmt.Fprintf(w, "  expires:    %s (in %s)\n", st.NotAfter.Format(time.RFC3339), humanDur(st.NotAfter.Sub(now)))
-		if st.Due {
-			fmt.Fprintln(w, "  renews:     due now")
-		} else {
-			fmt.Fprintf(w, "  renews:     in %s\n", humanDur(st.RenewAt.Sub(now)))
-		}
+		fmt.Fprintf(w, "  renews:     %s\n", renewsPhrase(st, now))
 	}
 
 	fmt.Fprintf(w, "\naccounts:  %d (under %s/accounts)\n", store.CountAccounts(cfg.Store.Path), cfg.Store.Path)
@@ -106,24 +96,20 @@ func certLine(cfg *config.Config, now time.Time) string {
 	if err != nil {
 		return ""
 	}
-	st, err := renewal.Inspect(certPEM, cfg.Renewal.RenewBefore, now)
+	st, _, err := renewal.Inspect(certPEM, cfg.Renewal.RenewBefore, now)
 	if err != nil {
 		return ""
 	}
-	renews := "due now"
-	if !st.Due {
-		renews = "in " + humanDur(st.RenewAt.Sub(now))
-	}
 	return fmt.Sprintf("cert expires %s (in %s); renews %s",
-		st.NotAfter.Format("2006-01-02"), humanDur(st.NotAfter.Sub(now)), renews)
+		st.NotAfter.Format("2006-01-02"), humanDur(st.NotAfter.Sub(now)), renewsPhrase(st, now))
 }
 
-func parseLeaf(certPEM []byte) (*x509.Certificate, error) {
-	block, _ := pem.Decode(certPEM)
-	if block == nil {
-		return nil, fmt.Errorf("no PEM certificate block")
+// renewsPhrase renders a Status's renewal timing as "due now" or "in <duration>".
+func renewsPhrase(st renewal.Status, now time.Time) string {
+	if st.Due {
+		return "due now"
 	}
-	return x509.ParseCertificate(block.Bytes)
+	return "in " + humanDur(st.RenewAt.Sub(now))
 }
 
 func sans(c *x509.Certificate) string {

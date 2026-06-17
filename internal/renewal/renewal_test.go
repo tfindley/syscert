@@ -85,7 +85,7 @@ func TestInspect(t *testing.T) {
 	na := now.Add(30 * 24 * time.Hour) // 90-day cert, 30 days left
 	cert := makeCertPEM(t, nb, na)
 
-	s, err := Inspect(cert, "10d", now) // window 10d → renewAt ≈ now+20d → not due
+	s, _, err := Inspect(cert, "10d", now) // window 10d → renewAt ≈ now+20d → not due
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestInspect(t *testing.T) {
 		t.Error("renew_before=10d with 30 days left: want due=false")
 	}
 
-	s2, _ := Inspect(cert, "40d", now) // window 40d → renewAt ≈ now−10d → due
+	s2, _, _ := Inspect(cert, "40d", now) // window 40d → renewAt ≈ now−10d → due
 	if !s2.Due {
 		t.Error("renew_before=40d with 30 days left: want due=true")
 	}
@@ -114,7 +114,7 @@ func TestInspect(t *testing.T) {
 }
 
 func TestInspectCorruptCert(t *testing.T) {
-	if _, err := Inspect([]byte("not a pem cert"), "", time.Now()); err == nil {
+	if _, _, err := Inspect([]byte("not a pem cert"), "", time.Now()); err == nil {
 		t.Error("corrupt cert: want error")
 	}
 }

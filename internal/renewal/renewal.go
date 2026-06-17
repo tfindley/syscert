@@ -19,23 +19,24 @@ type Status struct {
 }
 
 // Inspect parses the leaf certificate in certPEM and computes its renewal Status
-// at now. The renewal window is renewBefore when set, otherwise one third of the
-// certificate's total lifetime (ADR-0022).
-func Inspect(certPEM []byte, renewBefore string, now time.Time) (Status, error) {
+// at now, also returning the parsed leaf so callers needn't re-parse it. The
+// renewal window is renewBefore when set, otherwise one third of the certificate's
+// total lifetime (ADR-0022).
+func Inspect(certPEM []byte, renewBefore string, now time.Time) (Status, *x509.Certificate, error) {
 	block, _ := pem.Decode(certPEM)
 	if block == nil {
-		return Status{}, fmt.Errorf("no PEM certificate block found")
+		return Status{}, nil, fmt.Errorf("no PEM certificate block found")
 	}
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return Status{}, fmt.Errorf("parse certificate: %w", err)
+		return Status{}, nil, fmt.Errorf("parse certificate: %w", err)
 	}
 
 	window := cert.NotAfter.Sub(cert.NotBefore) / 3 // auto: ⅓ of lifetime
 	if renewBefore != "" {
 		window, err = parseWindow(renewBefore)
 		if err != nil {
-			return Status{}, err
+			return Status{}, nil, err
 		}
 	}
 	renewAt := cert.NotAfter.Add(-window)
@@ -44,13 +45,13 @@ func Inspect(certPEM []byte, renewBefore string, now time.Time) (Status, error) 
 		NotAfter:  cert.NotAfter,
 		RenewAt:   renewAt,
 		Due:       now.After(renewAt),
-	}, nil
+	}, cert, nil
 }
 
 // Due reports whether the leaf certificate in certPEM should be renewed now. A
 // cert is due once now is within the renewal window of its NotAfter (or past it).
 func Due(certPEM []byte, renewBefore string, now time.Time) (bool, error) {
-	s, err := Inspect(certPEM, renewBefore, now)
+	s, _, err := Inspect(certPEM, renewBefore, now)
 	if err != nil {
 		return false, err
 	}
