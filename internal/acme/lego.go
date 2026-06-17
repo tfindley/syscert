@@ -7,6 +7,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -90,7 +91,7 @@ func (legoObtainer) Revoke(ctx context.Context, p Params, certPEM []byte) error 
 // when p.AccountDir is set, ephemeral otherwise), optionally trusting an
 // internal CA for the connection (ca_bundle), and registers/loads the account.
 func newClientAndAccount(ctx context.Context, p Params) (*lego.Client, error) {
-	key, err := accountSigner(p)
+	key, existed, err := accountSigner(p)
 	if err != nil {
 		return nil, err
 	}
@@ -117,24 +118,45 @@ func newClientAndAccount(ctx context.Context, p Params) (*lego.Client, error) {
 		return nil, fmt.Errorf("acme client: %w", err)
 	}
 
-	// newAccount is idempotent for an existing key, so a persistent account is
-	// reused (and re-establishes the account URL needed for orders/revocation).
-	// With EAB the CA validates the HMAC only when first creating the account.
-	eab, useEAB, err := eabOptions(p)
-	if err != nil {
-		return nil, err
-	}
+	// A persisted account is reused by *resolving* it (newAccount with
+	// onlyReturnExisting) — this re-establishes the account URL for orders without
+	// re-sending EAB, so a single-use EAB token is validated only on first
+	// registration and never replayed (ADR-0042). A key written before its
+	// registration completed falls back to a fresh register.
 	var reg *acme.ExtendedAccount
-	if useEAB {
-		reg, err = client.Registration.RegisterWithExternalAccountBinding(ctx, eab)
+	if existed {
+		reg, err = client.Registration.ResolveAccountByKey(ctx)
+		if isAccountDoesNotExist(err) {
+			reg, err = registerAccount(ctx, client, p)
+		}
 	} else {
-		reg, err = client.Registration.Register(ctx, registration.RegisterOptions{TermsOfServiceAgreed: true})
+		reg, err = registerAccount(ctx, client, p)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("register account: %w", err)
 	}
 	user.reg = reg
 	return client, nil
+}
+
+// registerAccount creates the ACME account, sending External Account Binding when
+// configured. Called only on first registration (no existing account to resolve).
+func registerAccount(ctx context.Context, client *lego.Client, p Params) (*acme.ExtendedAccount, error) {
+	eab, useEAB, err := eabOptions(p)
+	if err != nil {
+		return nil, err
+	}
+	if useEAB {
+		return client.Registration.RegisterWithExternalAccountBinding(ctx, eab)
+	}
+	return client.Registration.Register(ctx, registration.RegisterOptions{TermsOfServiceAgreed: true})
+}
+
+// isAccountDoesNotExist reports whether err is the ACME "accountDoesNotExist"
+// problem — the key isn't registered with this CA yet, so we must register.
+func isAccountDoesNotExist(err error) bool {
+	var pd *acme.ProblemDetails
+	return errors.As(err, &pd) && pd.Type == acme.AccountDoesNotExistErrorType
 }
 
 // eabOptions decides whether to use External Account Binding. EAB is on when
@@ -157,9 +179,10 @@ func eabOptions(p Params) (opts registration.RegisterEABOptions, useEAB bool, er
 
 // accountSigner returns the persistent per-CA account key, or an ephemeral one
 // when no AccountDir is configured (e.g. dry-run).
-func accountSigner(p Params) (crypto.Signer, error) {
+func accountSigner(p Params) (crypto.Signer, bool, error) {
 	if p.AccountDir == "" {
-		return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		return key, false, err // ephemeral: never registered before
 	}
 	return accountKey(p.AccountDir, p.DirectoryURL)
 }
