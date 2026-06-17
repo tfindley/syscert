@@ -79,6 +79,46 @@ func TestDueCorruptCert(t *testing.T) {
 	}
 }
 
+func TestInspect(t *testing.T) {
+	now := time.Now()
+	nb := now.Add(-60 * 24 * time.Hour)
+	na := now.Add(30 * 24 * time.Hour) // 90-day cert, 30 days left
+	cert := makeCertPEM(t, nb, na)
+
+	s, err := Inspect(cert, "10d", now) // window 10d → renewAt ≈ now+20d → not due
+	if err != nil {
+		t.Fatalf("Inspect: %v", err)
+	}
+	// x509 round-trips at second precision, so allow a small skew on the dates.
+	if d := s.NotAfter.Sub(na); d < -2*time.Second || d > 2*time.Second {
+		t.Errorf("NotAfter = %v, want ≈ %v", s.NotAfter, na)
+	}
+	if d := s.NotBefore.Sub(nb); d < -2*time.Second || d > 2*time.Second {
+		t.Errorf("NotBefore = %v, want ≈ %v", s.NotBefore, nb)
+	}
+	if want := s.NotAfter.Add(-10 * 24 * time.Hour); !s.RenewAt.Equal(want) {
+		t.Errorf("RenewAt = %v, want %v (NotAfter − 10d)", s.RenewAt, want)
+	}
+	if s.Due {
+		t.Error("renew_before=10d with 30 days left: want due=false")
+	}
+
+	s2, _ := Inspect(cert, "40d", now) // window 40d → renewAt ≈ now−10d → due
+	if !s2.Due {
+		t.Error("renew_before=40d with 30 days left: want due=true")
+	}
+	// Due() must stay consistent with Inspect().Due.
+	if due, _ := Due(cert, "40d", now); due != s2.Due {
+		t.Errorf("Due()=%v != Inspect().Due=%v", due, s2.Due)
+	}
+}
+
+func TestInspectCorruptCert(t *testing.T) {
+	if _, err := Inspect([]byte("not a pem cert"), "", time.Now()); err == nil {
+		t.Error("corrupt cert: want error")
+	}
+}
+
 func TestParseWindow(t *testing.T) {
 	cases := []struct {
 		in   string

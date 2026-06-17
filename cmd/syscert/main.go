@@ -107,6 +107,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdVoid(rest, stdout, stderr)
 	case "destroy":
 		return cmdDestroy(rest, stdout, stderr)
+	case "status":
+		return cmdStatus(rest, stdout, stderr)
 	default:
 		if strings.HasPrefix(cmd, "-") {
 			return cmdEnsure(args, stdout, stderr) // bare flags → ensure with options
@@ -135,7 +137,8 @@ Commands:
   distribute   Copy the stored artifacts to the configured targets
   dry-run      Validate config and test the ACME flow; nothing is saved
   void         Revoke the current certificate, then reissue and distribute
-  destroy      Wipe the stored cert + ACME account (e.g. when switching CA)
+  destroy      Wipe the stored cert + ACME account (--keep-account drops only the cert)
+  status       Show config + stored cert (issued/expiry/renewal), account, targets
   trust        Add/remove the internal CA in the system trust store (root)
   version      Print the version
 
