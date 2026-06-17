@@ -13,8 +13,25 @@ import ThemeToggle from "./ThemeToggle.astro";
     <div class="nav-right">
       <a href={LINKS.github} class="nav-gh" target="_blank" rel="noopener">GitHub ↗</a>
       <ThemeToggle />
+      <button
+        id="nav-toggle"
+        class="nav-toggle"
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="nav-mobile"
+      >
+        <span class="nav-burger" aria-hidden="true"></span>
+      </button>
     </div>
   </div>
+
+  <nav id="nav-mobile" class="nav-mobile" aria-label="Primary" hidden>
+    <div class="shell nav-mobile-inner">
+      {NAV.map((i) => <a href={i.href}>{i.label}</a>)}
+      <a href={LINKS.github} target="_blank" rel="noopener">GitHub <span class="ext">↗</span></a>
+    </div>
+  </nav>
 </header>
 
 <style>
@@ -33,7 +50,74 @@ import ThemeToggle from "./ThemeToggle.astro";
   .nav-right { display: flex; align-items: center; gap: 14px; }
   .nav-gh { font-family: var(--font-mono); font-size: 13.5px; color: var(--ink); }
   .nav-gh:hover { color: var(--cyan); }
+
+  /* hamburger — hidden on desktop, shown ≤720px (matches ThemeToggle's button) */
+  .nav-toggle {
+    display: none; place-items: center;
+    width: 36px; height: 36px; border-radius: 9px;
+    border: 1px solid var(--line); background: var(--surface);
+    color: var(--muted); cursor: pointer;
+    transition: border-color 0.18s, color 0.18s;
+  }
+  .nav-toggle:hover { color: var(--ink); border-color: var(--faint); }
+  .nav-burger, .nav-burger::before, .nav-burger::after {
+    content: ""; display: block; width: 16px; height: 1.6px;
+    border-radius: 2px; background: currentColor;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .nav-burger { position: relative; }
+  .nav-burger::before { position: absolute; top: -5px; }
+  .nav-burger::after { position: absolute; top: 5px; }
+  .nav-toggle[aria-expanded="true"] .nav-burger { background: transparent; }
+  .nav-toggle[aria-expanded="true"] .nav-burger::before { transform: translateY(5px) rotate(45deg); }
+  .nav-toggle[aria-expanded="true"] .nav-burger::after { transform: translateY(-5px) rotate(-45deg); }
+
+  /* mobile dropdown panel */
+  .nav-mobile {
+    border-bottom: 1px solid var(--line-soft);
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    backdrop-filter: blur(12px) saturate(1.1);
+  }
+  .nav-mobile[hidden] { display: none; }
+  .nav-mobile-inner { display: flex; flex-direction: column; padding-block: 6px 14px; }
+  .nav-mobile a {
+    font-family: var(--font-mono); font-size: 15px; color: var(--muted);
+    padding: 12px 2px; border-bottom: 1px solid var(--line-soft); transition: color 0.16s;
+  }
+  .nav-mobile a:last-child { border-bottom: 0; }
+  .nav-mobile a:hover { color: var(--ink); }
+  .nav-mobile .ext { color: var(--faint); }
+
   @media (max-width: 720px) {
     .nav-links { display: none; }
+    .nav-gh { display: none; } /* lives in the mobile menu instead */
+    .nav-toggle { display: inline-grid; }
+  }
+  /* never show the mobile affordances on desktop, even if JS left them open */
+  @media (min-width: 721px) {
+    .nav-mobile, .nav-toggle { display: none !important; }
   }
 </style>
+
+<script>
+  const toggle = document.getElementById("nav-toggle");
+  const menu = document.getElementById("nav-mobile");
+  if (toggle && menu) {
+    const setOpen = (open: boolean) => {
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+      menu.toggleAttribute("hidden", !open);
+    };
+    toggle.addEventListener("click", () =>
+      setOpen(toggle.getAttribute("aria-expanded") !== "true"),
+    );
+    // close after navigating, on Escape, and when resizing up to desktop
+    menu.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => setOpen(false)));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") setOpen(false);
+    });
+    window.matchMedia("(min-width: 721px)").addEventListener("change", (e) => {
+      if (e.matches) setOpen(false);
+    });
+  }
+</script>
