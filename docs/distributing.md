@@ -72,31 +72,11 @@ selinux_context = "cert_t"
 
 ## No reload hooks — consumers reload themselves
 
-syscert writes files and **never runs commands** — it issues no reloads, restarts,
-or hooks. This keeps the least-privilege service from needing to poke at arbitrary
-daemons. Instead, have each consumer watch its cert file and reload itself. A small
-`systemd.path` unit is the clean way to do it:
-
-```ini
-# /etc/systemd/system/nginx-reload.path
-[Path]
-PathChanged=/etc/nginx/tls/fullchain.pem
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```ini
-# /etc/systemd/system/nginx-reload.service
-[Service]
-Type=oneshot
-ExecStart=/bin/systemctl reload nginx
-```
-
-Enable with `sudo systemctl enable --now nginx-reload.path`. Now whenever syscert
-re-delivers `fullchain.pem`, systemd reloads nginx — with no privileged hook inside
-syscert. Many servers (e.g. HAProxy with certificate watching, or anything behind a
-`systemd.path`) can do the same.
+syscert writes files and **never runs commands** — no reloads, restarts, or hooks.
+This keeps the least-privilege service from needing to poke at arbitrary daemons.
+Instead, each consumer watches its cert file and reloads itself; a small
+`systemd.path` unit is the clean way. See **[Reloading services](/docs/reloading/)**
+for the pattern and the reload command per service.
 
 ---
 

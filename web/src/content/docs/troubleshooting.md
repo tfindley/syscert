@@ -2,7 +2,7 @@
 title: Troubleshooting
 navLabel: Troubleshooting
 description: Fixes for the common syscert problems — no FQDN, untrusted internal CAs, distribution permissions, stale certs after renewal, timer scheduling, and how to test safely.
-order: 6
+order: 7
 eyebrow: "// docs · troubleshooting"
 lede: The failure modes you're most likely to hit, what causes them, and the fix.
 ---
@@ -60,8 +60,7 @@ must use a tight mode such as `0600`.
 
 syscert delivers files but **never reloads consumers**. The service must watch its
 cert file and reload itself — the clean way is a `systemd.path` unit. See
-[Distributing → no reload hooks](/docs/distributing/#no-reload-hooks--consumers-reload-themselves)
-for a copy-paste example.
+[Reloading services](/docs/reloading/) for the pattern and per-service reload commands.
 
 ## The timer's "next run" is in the future / nothing happened
 
@@ -98,14 +97,18 @@ Running by hand (not via the systemd unit)? The unit loads DNS/CA credentials fr
 To rotate a possibly-compromised key, or to tear down and switch CAs:
 
 ```sh
-sudo -u syscert syscert void --force      # revoke, then reissue + distribute (key compromised)
-sudo -u syscert syscert destroy --force   # wipe stored cert + ACME account (switching CA)
+sudo -u syscert syscert status                  # inspect the current cert + account state first
+sudo -u syscert syscert void --force            # revoke, then reissue + distribute (key compromised)
+sudo -u syscert syscert destroy --keep-account  # drop the cert, KEEP the account (reissue, no new EAB token)
+sudo -u syscert syscert destroy --force         # wipe stored cert + ACME account (switching CA)
 ```
 
-`void` revokes (if the CA supports it) then reissues and distributes; `destroy`
-wipes the stored cert and ACME account (and can un-trust an internal CA) but does
-**not** revoke or reissue. After a `destroy`, update the config and run
-`syscert issue` to provision from the new CA.
+`status` is read-only — config, the stored cert's issue/expiry/renewal dates, the
+account, and distribute targets. `void` revokes (if the CA supports it) then reissues.
+`destroy --keep-account` removes only the certificate (and any archived snapshots),
+so the next run reissues **reusing the existing account — no new EAB token needed**.
+Plain `destroy` also wipes the ACME account (and can un-trust an internal CA) but does
+**not** revoke or reissue; after it, update the config and run `syscert issue`.
 
 ---
 

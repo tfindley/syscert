@@ -2,7 +2,7 @@
 title: Frequently asked questions
 navLabel: FAQ
 description: FAQ about syscert — how it differs from certbot, which CAs and challenges it supports, how it delivers certs, renewal, the trust store, security, and supported platforms.
-order: 7
+order: 8
 eyebrow: "// docs · faq"
 lede: Short answers to the things people ask most. For depth, follow the links into the rest of the docs.
 ---
@@ -21,9 +21,17 @@ needs. One static binary, no daemon, no cron.
 
 syscert is independent of any host `certbot`. It speaks ACME via
 [lego](https://go-acme.github.io/lego/) (a large DNS-provider set), runs as a
-dedicated non-root user, and — crucially — **delivers** certs to non-root consumers
-with per-target ownership/mode/SELinux instead of leaving them root-only in one
-directory. It also speaks to internal CAs (Vault, step-ca), not just public ones.
+dedicated non-root user, and speaks to internal CAs (Vault, step-ca), not just
+public ones.
+
+The crucial difference is **how certs reach non-root services.** certbot keeps them
+in `/etc/letsencrypt/archive/<domain>/` at `0700 root` and symlinks `live/<domain>/`
+into it — so a non-root daemon that follows `live` lands in a root-only directory and
+**can't read its own cert** without group hacks or manual copies, and a renewal can
+silently re-break those permissions. syscert never symlinks: it keeps the store
+locked but **delivers a real file** to each consumer's own path with the exact
+owner/mode/SELinux it needs (atomic overwrite gives the stable path certbot uses
+symlinks for — without the read trap). See [Distributing](/docs/distributing/).
 
 ## CAs & challenges
 
@@ -60,8 +68,7 @@ Five certbot-compatible PEMs — `cert.pem`, `privkey.pem`, `chain.pem`,
 
 No — and syscert won't do it for you. It writes files and never runs commands. Have
 each consumer watch its cert file and reload itself; a `systemd.path` unit is the
-clean way. Example in
-[Distributing → no reload hooks](/docs/distributing/#no-reload-hooks--consumers-reload-themselves).
+clean way. See [Reloading services](/docs/reloading/).
 
 ### Can multiple services share one certificate?
 
