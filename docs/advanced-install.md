@@ -30,7 +30,7 @@ sha256sum --check --ignore-missing sha256sums.txt
 ```
 
 Pin a specific version by swapping `latest/download` for `download/<tag>` (e.g.
-`download/v0.0.6`). See
+`download/v0.3.0`). See
 [all releases](https://github.com/tfindley/syscert/releases).
 
 ## Build from source
