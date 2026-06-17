@@ -190,3 +190,29 @@ func TestPropagationCheck(t *testing.T) {
 		t.Errorf("propagation_check=%q should be rejected, got %+v", c.ACME.DNS.PropagationCheck, ps)
 	}
 }
+
+func TestRejectsNegativeArchiveKeep(t *testing.T) {
+	c := baseConfig()
+	c.Store.ArchiveKeep = -1
+	if ps := Config(c); !hasProblem(ps, "archive_keep") {
+		t.Errorf("negative store.archive_keep should be rejected, got %+v", ps)
+	}
+}
+
+func TestRejectsInvalidStoreDirMode(t *testing.T) {
+	c := baseConfig()
+	c.Store.DirMode = "not-octal"
+	if ps := Config(c); !hasProblem(ps, "dir_mode") {
+		t.Errorf("invalid store.dir_mode should be rejected, got %+v", ps)
+	}
+}
+
+func TestAcceptsValidStoreOptions(t *testing.T) {
+	c := baseConfig()
+	c.Store.DirMode = "0750"
+	c.Store.ArchiveKeep = 5
+	c.Store.Group = "ssl-cert"
+	if ps := Config(c); len(ps) != 0 {
+		t.Fatalf("valid store options produced problems: %+v", ps)
+	}
+}

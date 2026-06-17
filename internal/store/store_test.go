@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 )
 
@@ -160,7 +161,7 @@ func TestWriteAtomicWithModes(t *testing.T) {
 		{Name: "fullchain.pem", Data: []byte("public"), Mode: 0o644},
 		{Name: "privkey.pem", Data: []byte("secret"), Mode: 0o600},
 	}
-	if err := Write(dir, arts); err != nil {
+	if err := Write(dir, arts, WriteOptions{}); err != nil {
 		t.Fatalf("Write: %v", err)
 	}
 	for _, a := range arts {
@@ -182,4 +183,170 @@ func TestWriteAtomicWithModes(t *testing.T) {
 	if len(entries) != len(arts) {
 		t.Errorf("store dir has %d entries, want %d (stray temp file?)", len(entries), len(arts))
 	}
+}
+
+func TestWriteDefaultsDirModeTo0700(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "store")
+	if err := Write(dir, nil, WriteOptions{}); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	fi, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode().Perm() != 0o700 {
+		t.Errorf("default store dir mode = %#o, want 0700", fi.Mode().Perm())
+	}
+}
+
+func TestWriteAppliesDirMode(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "store")
+	arts := []Artifact{{Name: "cert.pem", Data: []byte("x"), Mode: 0o644}}
+	if err := Write(dir, arts, WriteOptions{DirMode: 0o750}); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	fi, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode().Perm() != 0o750 {
+		t.Errorf("store dir mode = %#o, want 0750", fi.Mode().Perm())
+	}
+}
+
+func TestArchiveCreatesSnapshotPreservingModes(t *testing.T) {
+	dir := t.TempDir()
+	mustWrite(t, filepath.Join(dir, "cert.pem"), "leaf", 0o644)
+	mustWrite(t, filepath.Join(dir, "privkey.pem"), "secret", 0o600)
+
+	if err := Archive(dir, 3); err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+	snaps := archiveSnaps(t, dir)
+	if len(snaps) != 1 {
+		t.Fatalf("want 1 snapshot, got %d (%v)", len(snaps), snaps)
+	}
+	snap := filepath.Join(dir, "archive", snaps[0])
+	assertFile(t, filepath.Join(snap, "cert.pem"), "leaf", 0o644)
+	assertFile(t, filepath.Join(snap, "privkey.pem"), "secret", 0o600) // key stays locked in the archive
+}
+
+func TestArchiveDisabledWhenKeepZero(t *testing.T) {
+	dir := t.TempDir()
+	mustWrite(t, filepath.Join(dir, "cert.pem"), "leaf", 0o644)
+	if err := Archive(dir, 0); err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "archive")); !os.IsNotExist(err) {
+		t.Error("archive dir should not exist when keep=0")
+	}
+}
+
+func TestArchiveNoopWithoutCurrentCert(t *testing.T) {
+	dir := t.TempDir()
+	if err := Archive(dir, 3); err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "archive")); !os.IsNotExist(err) {
+		t.Error("no archive should be created when there's no current cert")
+	}
+}
+
+func TestPruneArchiveKeepsNewest(t *testing.T) {
+	dir := t.TempDir()
+	for _, ts := range []string{"2024-01-01T00-00-00Z", "2025-01-01T00-00-00Z", "2026-01-01T00-00-00Z"} {
+		if err := os.MkdirAll(filepath.Join(dir, "archive", ts), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := pruneArchive(dir, 2); err != nil {
+		t.Fatalf("pruneArchive: %v", err)
+	}
+	got := archiveSnaps(t, dir)
+	want := []string{"2025-01-01T00-00-00Z", "2026-01-01T00-00-00Z"}
+	if len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		t.Errorf("kept %v, want %v", got, want)
+	}
+}
+
+func TestWipeCertsKeepsAccounts(t *testing.T) {
+	dir := t.TempDir()
+	for _, n := range artifactNames {
+		mustWrite(t, filepath.Join(dir, n), "x", 0o600)
+	}
+	mustWrite(t, filepath.Join(dir, "archive", "2026-01-01T00-00-00Z", "cert.pem"), "old", 0o644)
+	mustWrite(t, filepath.Join(dir, "accounts", "abc", "account.key"), "k", 0o600)
+
+	n, err := WipeCerts(dir)
+	if err != nil {
+		t.Fatalf("WipeCerts: %v", err)
+	}
+	if n != 6 { // 5 artifacts + archive/
+		t.Errorf("removed %d, want 6 (5 artifacts + archive)", n)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "cert.pem")); !os.IsNotExist(err) {
+		t.Error("cert.pem should be removed")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "archive")); !os.IsNotExist(err) {
+		t.Error("archive/ should be removed")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "accounts")); err != nil {
+		t.Error("accounts/ MUST be kept by WipeCerts")
+	}
+}
+
+func TestWipeRemovesArchive(t *testing.T) {
+	dir := t.TempDir()
+	mustWrite(t, filepath.Join(dir, "cert.pem"), "x", 0o644)
+	mustWrite(t, filepath.Join(dir, "archive", "2026-01-01T00-00-00Z", "cert.pem"), "old", 0o644)
+	if _, err := Wipe(dir); err != nil {
+		t.Fatalf("Wipe: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "archive")); !os.IsNotExist(err) {
+		t.Error("archive/ should be removed by Wipe")
+	}
+}
+
+func mustWrite(t *testing.T, path, body string, mode os.FileMode) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(body), mode); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(path, mode); err != nil { // WriteFile respects umask; force the exact mode
+		t.Fatal(err)
+	}
+}
+
+func assertFile(t *testing.T, path, body string, mode os.FileMode) {
+	t.Helper()
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	if string(got) != body {
+		t.Errorf("%s content = %q, want %q", path, got, body)
+	}
+	fi, _ := os.Stat(path)
+	if fi.Mode().Perm() != mode {
+		t.Errorf("%s mode = %#o, want %#o", path, fi.Mode().Perm(), mode)
+	}
+}
+
+func archiveSnaps(t *testing.T, dir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(filepath.Join(dir, "archive"))
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, e := range entries {
+		if e.IsDir() {
+			out = append(out, e.Name())
+		}
+	}
+	sort.Strings(out)
+	return out
 }

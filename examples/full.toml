@@ -86,6 +86,11 @@ provider = "cloudflare"           # any lego DNS-provider id (cloudflare, gandiv
 # key-bearing files are kept 0600.
 [store]
 path = "/var/lib/syscert"
+# dir_mode = "0700"        # widen (e.g. "0750") + group to let a group read the
+# group    = "syscert"     # PUBLIC artifacts directly; private keys stay 0600.
+                           # Prefer [[distribute]] to hand a service its own copy.
+# archive_keep = 0         # >0 keeps that many previous cert sets under
+                           # archive/<UTC-timestamp>/ (no symlinks); 0 = overwrite, no history.
 
 
 # ── Bundle artifact (bundle.pem) ───────────────────────────────────────────────

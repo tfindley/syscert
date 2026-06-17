@@ -1,7 +1,12 @@
 // Package config loads and represents the SysCert TOML configuration.
 package config
 
-import "github.com/BurntSushi/toml"
+import (
+	"os"
+	"strconv"
+
+	"github.com/BurntSushi/toml"
+)
 
 // Config is the top-level SysCert configuration (see docs/config-reference.md).
 type Config struct {
@@ -53,9 +58,21 @@ type ACMEDNSConfig struct {
 	PropagationCheck string `toml:"propagation_check"`
 }
 
-// StoreConfig is the canonical store location.
+// StoreConfig is the canonical store location and permissions.
 type StoreConfig struct {
-	Path string `toml:"path"`
+	Path        string `toml:"path"`
+	Group       string `toml:"group"`        // optional group granted access to the store dir; "" keeps syscert
+	DirMode     string `toml:"dir_mode"`     // octal store-dir mode; default "0700"
+	ArchiveKeep int    `toml:"archive_keep"` // previous-cert snapshots to retain; 0 disables history
+}
+
+// ParsedDirMode returns the store directory mode, defaulting to 0700 when unset or
+// unparseable (validation rejects an unparseable value before issuance).
+func (s StoreConfig) ParsedDirMode() os.FileMode {
+	if v, err := strconv.ParseUint(s.DirMode, 8, 32); err == nil {
+		return os.FileMode(v)
+	}
+	return 0o700
 }
 
 // BundleConfig controls bundle.pem composition.
@@ -128,6 +145,9 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Store.Path == "" {
 		c.Store.Path = "/var/lib/syscert" // ADR-0008
+	}
+	if c.Store.DirMode == "" {
+		c.Store.DirMode = "0700" // ADR-0041
 	}
 	if c.Logging.Level == "" {
 		c.Logging.Level = "info"

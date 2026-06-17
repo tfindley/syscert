@@ -177,7 +177,13 @@ func provision(cfg *config.Config, subject string, staging bool) ([]store.Artifa
 	if err != nil {
 		return nil, err
 	}
-	if err := store.Write(cfg.Store.Path, arts); err != nil {
+	if err := store.Archive(cfg.Store.Path, cfg.Store.ArchiveKeep); err != nil {
+		return nil, err
+	}
+	if err := store.Write(cfg.Store.Path, arts, store.WriteOptions{
+		DirMode: cfg.Store.ParsedDirMode(),
+		Group:   cfg.Store.Group,
+	}); err != nil {
 		return nil, err
 	}
 	slog.Info("certificate provisioned",

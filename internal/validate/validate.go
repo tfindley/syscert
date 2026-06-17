@@ -61,6 +61,16 @@ func Config(cfg *config.Config) []Problem {
 		add("logging.format", fmt.Sprintf("unknown format %q (text|json)", cfg.Logging.Format))
 	}
 
+	// Store: history retention and the (optional) directory mode.
+	if cfg.Store.ArchiveKeep < 0 {
+		add("store.archive_keep", "must be 0 or greater")
+	}
+	if cfg.Store.DirMode != "" {
+		if _, err := strconv.ParseUint(cfg.Store.DirMode, 8, 32); err != nil {
+			add("store.dir_mode", fmt.Sprintf("not a valid octal mode: %q", cfg.Store.DirMode))
+		}
+	}
+
 	// Challenge + key type are from fixed sets.
 	if !validChallenges[cfg.ACME.Challenge] {
 		add("acme.challenge", fmt.Sprintf("unknown challenge %q", cfg.ACME.Challenge))
