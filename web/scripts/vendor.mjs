@@ -65,20 +65,32 @@ function vendorFile({ label, src, dest, transform }) {
   console.log(`[vendor] ${label}: ${src} -> ${dest}`);
 }
 
+// Subdirs to never publish (internal engineering notes live in docs/internal).
+const DOCS_SKIP_DIRS = new Set(["internal"]);
+
 function vendorDocs({ label, src, dest }) {
   if (!existsSync(src)) {
     console.warn(`[vendor] ${label}: source missing (${src}) — keeping committed copies`);
     return;
   }
+  // Wipe and recopy so renames/removals (incl. in subdirs) never linger.
+  rmSync(dest, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
-  for (const f of readdirSync(dest)) if (f.endsWith(".md")) rmSync(join(dest, f)); // drop stale copies
   let n = 0;
-  for (const f of readdirSync(src)) {
-    if (f.endsWith(".md")) {
-      copyFileSync(join(src, f), join(dest, f));
-      n++;
+  const walk = (rel) => {
+    for (const entry of readdirSync(join(src, rel), { withFileTypes: true })) {
+      const next = rel ? join(rel, entry.name) : entry.name;
+      if (entry.isDirectory()) {
+        if (!DOCS_SKIP_DIRS.has(entry.name)) walk(next);
+      } else if (entry.name.endsWith(".md")) {
+        const out = join(dest, next);
+        mkdirSync(dirname(out), { recursive: true });
+        copyFileSync(join(src, next), out);
+        n++;
+      }
     }
-  }
+  };
+  walk("");
   console.log(`[vendor] ${label}: ${n} file(s) -> ${dest}`);
 }
 

@@ -55,6 +55,12 @@ const jsonLd = {
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
 
+    <!-- Mark JS available (before paint) so progressive enhancements like the
+         collapsible mobile docs nav can hide themselves; no-JS keeps them open. -->
+    <script is:inline>
+      document.documentElement.classList.add("js");
+    </script>
+
     <!-- No-flash theme: default dark; honor stored override, else OS preference -->
     <script is:inline>
       (function () {

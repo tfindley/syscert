@@ -12,20 +12,36 @@ interface Props {
 
 const { title, description, eyebrow = "// docs", lede } = Astro.props;
 
-// Sidebar is derived from the docs collection (sorted by frontmatter `order`),
-// so adding a docs/*.md page is all it takes to appear here.
+// Sidebar is derived from the docs collection (sorted by frontmatter `order`), so
+// adding a docs/*.md page is all it takes to appear here. Pages in a subdir (e.g.
+// examples/<slug>) nest under their parent page (examples) as a submenu.
 const docs = (await getCollection("docs")).sort(
   (a, b) => (a.data.order ?? 99) - (b.data.order ?? 99),
 );
-const items = docs.map((d) => ({
-  label: d.data.navLabel ?? d.data.title,
-  href: `/docs/${d.id}/`,
-}));
+const navLabel = (d: (typeof docs)[number]) => d.data.navLabel ?? d.data.title;
+
+const childrenOf = new Map<string, { label: string; href: string }[]>();
+for (const d of docs) {
+  const slash = d.id.indexOf("/");
+  if (slash <= 0) continue;
+  const parent = d.id.slice(0, slash);
+  const list = childrenOf.get(parent) ?? [];
+  list.push({ label: navLabel(d), href: `/docs/${d.id}/` });
+  childrenOf.set(parent, list);
+}
+const items = docs
+  .filter((d) => !d.id.includes("/"))
+  .map((d) => ({ id: d.id, label: navLabel(d), href: `/docs/${d.id}/`, children: childrenOf.get(d.id) ?? [] }));
 // Changelog isn't a docs/ page (it renders CHANGELOG.md), but belongs in the nav.
-items.push({ label: "Changelog", href: "/changelog/" });
+items.push({ id: "changelog", label: "Changelog", href: "/changelog/", children: [] });
 
 const path = Astro.url.pathname.replace(/\/$/, "");
 const isActive = (href: string) => href.replace(/\/$/, "") === path;
+// A parent page is an "ancestor" when one of its submenu pages is the active one.
+const isAncestor = (href: string) => {
+  const h = href.replace(/\/$/, "");
+  return h !== path && path.startsWith(h + "/");
+};
 const pageTitle = `${title} · syscert docs`;
 ---
 
@@ -33,20 +49,67 @@ const pageTitle = `${title} · syscert docs`;
   <div class="docs">
     <div class="shell docs-shell">
       <aside class="docs-side">
+        <button
+          id="docs-nav-toggle"
+          class="docs-nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="docs-nav-list"
+        >
+          <span class="label-mono">// documentation</span>
+          <span class="docs-nav-caret" aria-hidden="true">▾</span>
+        </button>
         <p class="label-mono docs-side-h">// documentation</p>
-        <nav aria-label="Documentation">
-          <ul>
-            {items.map((i) => (
-              <li>
+        <nav id="docs-nav-list" class="docs-nav-collapsible" aria-label="Documentation">
+          <ul class="docs-nav">
+            {items.map((i) => {
+              // Expand the group that contains the current page; collapsed otherwise.
+              const open = isActive(i.href) || isAncestor(i.href);
+              const link = (
                 <a
                   href={i.href}
-                  class={isActive(i.href) ? "is-active" : undefined}
+                  class:list={[{ "is-active": isActive(i.href), "is-ancestor": isAncestor(i.href) }]}
                   aria-current={isActive(i.href) ? "page" : undefined}
                 >
                   {i.label}
                 </a>
-              </li>
-            ))}
+              );
+              return (
+                <li>
+                  {i.children.length > 0 ? (
+                    <div class="docs-group-row">
+                      {link}
+                      <button
+                        class="docs-group-toggle"
+                        type="button"
+                        aria-expanded={open ? "true" : "false"}
+                        aria-controls={`grp-${i.id}`}
+                        aria-label={`Toggle ${i.label} pages`}
+                      >
+                        <span class="docs-group-caret" aria-hidden="true">▾</span>
+                      </button>
+                    </div>
+                  ) : (
+                    link
+                  )}
+                  {i.children.length > 0 && (
+                    <ul id={`grp-${i.id}`} class="docs-sub" hidden={!open}>
+                      {i.children.map((c) => (
+                        <li>
+                          <a
+                            href={c.href}
+                            class:list={[{ "is-active": isActive(c.href) }]}
+                            aria-current={isActive(c.href) ? "page" : undefined}
+                          >
+                            {c.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </nav>
         <div class="docs-side-foot">
@@ -78,10 +141,19 @@ const pageTitle = `${title} · syscert docs`;
 
   .docs-side { position: sticky; top: 86px; align-self: start; min-width: 0; }
   .docs-side-h { margin: 0 0 14px; color: var(--faint); }
-  .docs-side nav ul {
-    list-style: none; margin: 0; padding: 0;
-    display: grid; gap: 2px; border-left: 1px solid var(--line);
+
+  /* mobile-only toggle that collapses the whole docs nav (hidden on desktop) */
+  .docs-nav-toggle {
+    display: none; width: 100%; align-items: center; justify-content: space-between;
+    padding: 11px 14px; border: 1px solid var(--line); border-radius: 9px;
+    background: var(--surface); color: var(--muted); cursor: pointer;
   }
+  .docs-nav-toggle:hover { color: var(--ink); border-color: var(--faint); }
+  .docs-nav-toggle .label-mono { margin: 0; color: inherit; }
+  .docs-nav-caret { color: var(--faint); transition: transform 0.18s; }
+  .docs-nav-toggle[aria-expanded="true"] .docs-nav-caret { transform: rotate(180deg); }
+  .docs-side nav ul { list-style: none; margin: 0; padding: 0; }
+  .docs-nav { display: grid; gap: 2px; border-left: 1px solid var(--line); }
   .docs-side nav a {
     display: block; padding: 8px 14px; margin-left: -1px;
     border-left: 2px solid transparent;
@@ -93,6 +165,24 @@ const pageTitle = `${title} · syscert docs`;
     color: var(--cyan); border-left-color: var(--cyan);
     background: color-mix(in oklab, var(--cyan) 7%, transparent);
   }
+  .docs-side nav a.is-ancestor { color: var(--ink); }
+
+  /* a collapsible group: parent link + caret toggle on the same row */
+  .docs-group-row { display: flex; align-items: stretch; }
+  .docs-group-row > a { flex: 1 1 auto; }
+  .docs-group-toggle {
+    flex: 0 0 auto; display: grid; place-items: center; width: 34px;
+    background: none; border: 0; color: var(--faint); cursor: pointer;
+  }
+  .docs-group-toggle:hover { color: var(--ink); }
+  .docs-group-caret { font-size: 14px; line-height: 1; transition: transform 0.18s; }
+  .docs-group-toggle[aria-expanded="false"] .docs-group-caret { transform: rotate(-90deg); }
+
+  /* submenu (e.g. Sample configs → each config), indented under its parent */
+  .docs-sub { display: grid; gap: 2px; }
+  .docs-sub[hidden] { display: none; } /* must beat `.docs-sub { display: grid }` */
+  .docs-sub a { padding-left: 28px; font-size: 12.5px; color: var(--faint); }
+  .docs-sub a:hover { color: var(--ink); }
   .docs-side-foot {
     margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line-soft);
     display: grid; gap: 9px; font-family: var(--font-mono); font-size: 12.5px;
@@ -111,13 +201,43 @@ const pageTitle = `${title} · syscert docs`;
   @media (max-width: 880px) {
     .docs-shell { grid-template-columns: minmax(0, 1fr); gap: 28px; }
     .docs-side { position: static; top: auto; }
-    /* wrap the docs nav into pills so every link stays visible — no clipped scroll row */
-    .docs-side nav ul { display: flex; flex-wrap: wrap; gap: 8px; border-left: 0; }
-    .docs-side nav a { margin-left: 0; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; }
-    .docs-side nav a.is-active {
-      border-color: color-mix(in oklab, var(--cyan) 55%, var(--line));
-      color: var(--cyan); background: color-mix(in oklab, var(--cyan) 8%, transparent);
-    }
+    /* Collapse the whole docs nav behind one toggle so it never overwhelms the
+       page — independent of how many pages exist. Vertical nested list when open.
+       JS-gated (html.js): without JS the nav simply stays visible. */
+    html.js .docs-nav-toggle { display: flex; }
+    html.js .docs-side-h { display: none; }
+    html.js .docs-nav-collapsible { display: none; margin-top: 10px; }
+    html.js .docs-nav-collapsible.is-open { display: block; }
     .docs-side-foot { display: none; }
   }
 </style>
+
+<script>
+  const toggle = document.getElementById("docs-nav-toggle");
+  const menu = document.getElementById("docs-nav-list");
+  if (toggle && menu) {
+    const close = () => {
+      toggle.setAttribute("aria-expanded", "false");
+      menu.classList.remove("is-open");
+    };
+    toggle.addEventListener("click", () => {
+      const open = toggle.getAttribute("aria-expanded") !== "true";
+      toggle.setAttribute("aria-expanded", String(open));
+      menu.classList.toggle("is-open", open);
+    });
+    // collapse again after following a link
+    menu.querySelectorAll("a").forEach((a) => a.addEventListener("click", close));
+  }
+
+  // Collapsible submenu groups (e.g. Sample configs → each config). Generic: any
+  // .docs-group-toggle controls the list named by its aria-controls.
+  document.querySelectorAll(".docs-group-toggle").forEach((btn) => {
+    const sub = document.getElementById(btn.getAttribute("aria-controls") ?? "");
+    if (!sub) return;
+    btn.addEventListener("click", () => {
+      const open = btn.getAttribute("aria-expanded") !== "true";
+      btn.setAttribute("aria-expanded", String(open));
+      sub.hidden = !open;
+    });
+  });
+</script>
