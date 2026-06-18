@@ -10,6 +10,50 @@ Conventional Commits since the last tag; fill in the **Risk & Security** note
 before publishing with `scripts/release.sh`.
 
 <!-- next-release -->
+## [v0.3.1] — 2026-06-18
+
+### Fixes
+
+- **security (RHEL):** `install.sh` now relabels the installed binary to `bin_t` so
+  systemd can execute it on an SELinux-enforcing host — no permissive policy module
+  needed. (#1)
+- **security (RHEL):** the write commands (`ensure`/`issue`/`renew`/`void`/`distribute`)
+  refuse early, with an actionable message, when the store can't be safely written: as
+  root over a `syscert`-owned store (which would create root-owned files the timer can't
+  renew, #2), or as a user who doesn't own the store (replacing the raw
+  `mkdir … permission denied`, #3). Read-only commands are unaffected.
+- **security (RHEL):** the starter `syscert.toml` is installed `0640 root:syscert` (was
+  world-readable `0644`), so the internal `directory_url`, ACME email, and EAB `kid`
+  aren't readable by every local user. (#3)
+- **web:** the site bakes the correct tool version again. The version was resolved inside
+  a buildx-cached Docker layer, so a rebuild on an unchanged source commit reused a stale
+  layer and kept showing the previous release. It's now passed as a `SITE_VERSION`
+  build-arg (deterministic + cache-busting), and the site auto-rebuilds after a release
+  via a `workflow_run` chain (the `release: published` event never fired for
+  `GITHUB_TOKEN`-created releases).
+- **web:** docs menu reordered; **Advanced install** split into *Manually* / *Compile from
+  source* / *As a cron job* (for appliances without systemd, e.g. Asustor) sub-pages; the
+  sidebar submenu now indents correctly under its parent.
+
+### Risk & Security
+
+Low risk — bug fixes and hardening only; no change to certificate issuance, key handling,
+or the privilege model's defaults. A `/security-review` of `v0.3.0..HEAD` found no
+vulnerabilities.
+
+- **The store-ownership preflight is purely restrictive** — it can only refuse a write
+  (exit 1), never proceed where it previously wouldn't, and never elevates privilege. It
+  reads only the store path, owner uid, and username — no secret material.
+- **Permissions only tighten.** `syscert.toml` moves `0644 → 0640`; secrets stay `0640`,
+  private keys `0600`, and the EAB HMAC is still never logged or printed.
+- **SELinux:** the installer relabels the binary to `bin_t` (a label re-derived from
+  policy, not an arbitrary grant); no permissive module is shipped.
+- **Behaviour to note:** running a write command as a user that doesn't own the store —
+  including bare `sudo syscert` (root) over a `syscert`-owned store — now refuses with
+  guidance instead of silently mis-owning files. Run as the store owner
+  (`sudo -u syscert syscert …`); the systemd timer already does.
+
+
 ## [v0.3.0] — 2026-06-18
 
 ### Features

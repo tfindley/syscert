@@ -149,7 +149,7 @@ assets="syscert-linux-amd64 syscert-linux-arm64 sha256sums.txt"
 amiss=""
 for a in $assets; do
   grep -q "$a" .github/workflows/release.yml || amiss="$amiss $a(workflow)"
-  grep -q "$a" README.md docs/*.md 2>/dev/null || amiss="$amiss $a(docs)"
+  grep -rq "$a" README.md docs/ 2>/dev/null || amiss="$amiss $a(docs)" # -r: docs has sub-pages now
 done
 [ -z "$amiss" ] && gate PASS "asset names" || gate WARN "asset names" "mismatch:$amiss"
 
