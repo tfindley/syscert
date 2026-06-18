@@ -59,6 +59,11 @@ config, secrets, and store — not root. If you must run as root, keep the secre
 a *different* owner on a distributed copy; if it runs as the same user that consumes
 the certificate, no elevated capabilities are required.
 
+**The user running syscert must own the store.** If the store was created by one user
+and you later invoke syscert as a different user — including root over a
+non-root-owned store — syscert refuses early rather than creating files the original
+owner can't renew. Always run syscert as the same user that owns the store directory.
+
 ## No reload hooks, no journal
 
 SysCert never restarts your services — each consumer watches its own certificate file

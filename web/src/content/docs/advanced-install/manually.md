@@ -45,10 +45,14 @@ sudo packaging/install.sh ./syscert
 ```
 
 It creates the `syscert` system user and `/var/lib/syscert` (`0700`), installs the
-binary to `/usr/local/bin/syscert`, writes a starter `/etc/syscert/syscert.toml`,
-a `0640` `/etc/syscert/secrets`, and an `/etc/default/syscert` for operator
-settings (never overwriting existing files), installs the units, enables the
-timer, and relabels for SELinux where active.
+binary to `/usr/local/bin/syscert`, writes a starter `/etc/syscert/syscert.toml`
+(`0640 root:syscert` — not world-readable, since it carries the internal CA URL and
+ACME email), a `0640` `/etc/syscert/secrets`, and an `/etc/default/syscert` for
+operator settings (never overwriting existing files), installs the units, enables
+the timer, and relabels for SELinux where active — including the binary itself
+(`/usr/local/bin/syscert` is relabeled to `bin_t` so systemd can execute it on an
+enforcing host). If you place the binary yourself instead of using the installer,
+run `sudo restorecon /usr/local/bin/syscert` to get the correct label.
 
 > **`/usr/local/bin` and your PATH.** The systemd unit runs the absolute
 > `/usr/local/bin/syscert`, so the service never depends on `PATH`. For interactive use,

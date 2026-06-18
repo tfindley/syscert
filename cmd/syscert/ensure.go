@@ -34,6 +34,9 @@ func cmdEnsure(args []string, stdout, stderr io.Writer) int {
 		printProblems(stdout, problems)
 		return 1
 	}
+	if !storeAccessGuard("syscert", cfg.Store.Path, stderr) {
+		return 1
+	}
 
 	// Decide whether to obtain a (new or renewed) certificate.
 	certPEM, readErr := store.ReadCurrentCert(cfg.Store.Path)

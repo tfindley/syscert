@@ -92,6 +92,54 @@ Running by hand (not via the systemd unit)? The unit loads DNS/CA credentials fr
 - **Vault's ACME has a known IPv6 challenge issue** — prefer IPv4 in the directory
   URL and IP SANs for now.
 
+## "store is owned by …" — wrong user running syscert
+
+syscert refuses early if the running user doesn't match the store's owner, rather
+than creating files the scheduled timer can't later renew or overwrite. Two cases:
+
+- **Running as root over a `syscert`-owned store** — if the store at
+  `/var/lib/syscert` is owned by the `syscert` user and you invoke `sudo syscert
+  …`, the command fails:
+
+  > store /var/lib/syscert is owned by syscert; running as root would create files
+  > syscert can't renew — run as that user: `sudo -u syscert syscert …`
+
+  Use `sudo -u syscert syscert …` (not bare `sudo`) for all write operations.
+  The systemd timer already runs as `User=syscert`, so the service is unaffected.
+
+- **Running as an unprivileged user who doesn't own the store** — if you try to
+  run syscert as a user other than the store's owner, the command fails:
+
+  > store /var/lib/syscert is owned by syscert; run syscert as that user or root
+  > (the systemd timer does this for you)
+
+  Switch to the correct user (`sudo -u syscert syscert …`) or let the timer handle
+  it.
+
+Read-only commands (`status`, `dry-run`, `version`, `trust`) are unaffected, and a
+store that does not yet exist is not checked.
+
+## SELinux: binary not executable under systemd (RHEL enforcing)
+
+On an **enforcing RHEL / CentOS / Rocky / AlmaLinux** host, a binary installed from
+a non-standard location (e.g., `/root` or a home directory) retains the source
+label — often `admin_home_t` — and `systemd` (`init_t`) cannot execute it. The
+symptom is the timer failing with a permission denial in the audit log.
+
+`install.sh` handles this automatically: after placing the binary at
+`/usr/local/bin/syscert` it runs `restorecon -R /usr/local/bin/syscert` (alongside
+the store and config dirs), which gives the binary `bin_t` so the timer can execute
+it. No custom policy module is needed.
+
+If you placed the binary yourself without the installer, one command fixes it:
+
+```sh
+sudo restorecon /usr/local/bin/syscert
+```
+
+Verify the label afterwards with `ls -Z /usr/local/bin/syscert`; it should show
+`system_u:object_r:bin_t:s0`.
+
 ## Reset, revoke, or switch providers
 
 To rotate a possibly-compromised key, or to tear down and switch CAs:

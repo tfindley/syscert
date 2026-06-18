@@ -21,6 +21,9 @@ func cmdDistribute(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "distribute: load config: %v\n", err)
 		return 2
 	}
+	if !storeAccessGuard("distribute", cfg.Store.Path, stderr) {
+		return 1
+	}
 
 	if err := distribute.New(cfg.Store.Path).Run(cfg.Distribute); err != nil {
 		fmt.Fprintf(stderr, "distribute: %v\n", err)
