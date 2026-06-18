@@ -36,6 +36,9 @@ func cmdVoid(args []string, stdout, stderr io.Writer) int {
 		printProblems(stdout, problems)
 		return 1
 	}
+	if !storeAccessGuard("void", cfg.Store.Path, stderr) {
+		return 1
+	}
 
 	certPEM, err := store.ReadCurrentCert(cfg.Store.Path)
 	if err != nil {

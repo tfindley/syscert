@@ -31,6 +31,9 @@ func cmdIssue(args []string, stdout, stderr io.Writer) int {
 		printProblems(stdout, problems)
 		return 1
 	}
+	if !storeAccessGuard("issue", cfg.Store.Path, stderr) {
+		return 1
+	}
 
 	fmt.Fprintf(stdout, "issuing %s via %s (challenge %s)\n",
 		subject, acme.DirectoryURL(cfg, *staging), cfg.EffectiveChallenge())

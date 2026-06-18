@@ -85,8 +85,11 @@ install_syscert() {
   install -o root -g root -m 0644 "${SCRIPT_DIR}/systemd/syscert.timer"   "${UNIT_DIR}/syscert.timer"
 
   if selinux_active; then
-    log "SELinux active — relabeling ${STORE_DIR} and ${CONF_DIR}"
-    restorecon -R "$STORE_DIR" "$CONF_DIR" || warn "restorecon failed (continuing)"
+    # Relabel the binary too: installed from /root it keeps admin_home_t, which
+    # systemd (init_t) cannot execute — restorecon gives it bin_t so the timer
+    # can run it without a permissive policy module. Idempotent.
+    log "SELinux active — relabeling ${BIN_DEST}, ${STORE_DIR}, and ${CONF_DIR}"
+    restorecon -R "$BIN_DEST" "$STORE_DIR" "$CONF_DIR" || warn "restorecon failed (continuing)"
   fi
 
   # Enable (not --now): don't run against the unconfigured starter config. The
@@ -190,7 +193,11 @@ path = "/var/lib/syscert"
 # group    = "root"
 # mode     = "0644"
 EOF
-  chmod 0644 "$CONF_FILE"
+  # 0640 root:syscert, not world-readable: the config carries the internal
+  # directory_url, ACME email, and EAB kid. The unit runs as User=syscert
+  # (group syscert), so the service retains read. Mirrors the secrets file.
+  chown root:"$SVC_GROUP" "$CONF_FILE"
+  chmod 0640 "$CONF_FILE"
 }
 
 write_secrets_template() {

@@ -160,6 +160,19 @@ func noteConnectionTrust(cfg *config.Config, w io.Writer) {
 	}
 }
 
+// storeAccessGuard runs the store-ownership preflight (issues #2/#3) for the
+// write commands before they touch the store. On a problem it prints the
+// actionable message to stderr (prefixed with the command name, matching the
+// existing error style) and reports false so the caller returns exit code 1.
+// It is a no-op when the store does not exist yet or ownership matches.
+func storeAccessGuard(cmd, storePath string, stderr io.Writer) bool {
+	if err := checkStoreAccess(storePath); err != nil {
+		fmt.Fprintf(stderr, "%s: %v\n", cmd, err)
+		return false
+	}
+	return true
+}
+
 // provision runs the obtain + persist stages of the pipeline: it obtains a
 // certificate and writes the five artifacts to the store. It does NOT
 // distribute (callers decide). Shared by issue, renew, and ensure.
