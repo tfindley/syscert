@@ -2,7 +2,7 @@
 title: Troubleshooting
 navLabel: Troubleshooting
 description: Fixes for the common syscert problems — no FQDN, untrusted internal CAs, distribution permissions, stale certs after renewal, timer scheduling, and how to test safely.
-order: 7
+order: 8
 eyebrow: "// docs · troubleshooting"
 lede: The failure modes you're most likely to hit, what causes them, and the fix.
 ---

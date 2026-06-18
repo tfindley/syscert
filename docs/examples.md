@@ -2,7 +2,7 @@
 title: Sample configurations
 navLabel: Sample configs
 description: Ready-to-edit syscert.toml examples for each CA and challenge — Let's Encrypt (DNS-01, HTTP-01, TLS-ALPN-01), HashiCorp Vault, and Smallstep step-ca — each on its own page.
-order: 3
+order: 4
 eyebrow: "// docs · sample configs"
 lede: A starter for every CA and challenge. Each page shows only the part that differs — the [store], [[distribute]], and [logging] blocks are the same across all of them.
 ---

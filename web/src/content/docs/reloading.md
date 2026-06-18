@@ -2,7 +2,7 @@
 title: Reloading services on renewal
 navLabel: Reloading services
 description: SysCert never runs reload hooks — each consumer watches its cert and reloads itself. The systemd.path pattern, plus the reload command for common services.
-order: 6
+order: 7
 eyebrow: "// docs · reloading"
 lede: SysCert delivers files and gets out of the way — it never restarts your services. Here's how to have each consumer pick up a renewed certificate itself, the clean systemd way.
 ---

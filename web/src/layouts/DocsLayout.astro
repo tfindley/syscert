@@ -29,11 +29,13 @@ for (const d of docs) {
   list.push({ label: navLabel(d), href: `/docs/${d.id}/` });
   childrenOf.set(parent, list);
 }
-const items = docs
+const topLevel = docs
   .filter((d) => !d.id.includes("/"))
-  .map((d) => ({ id: d.id, label: navLabel(d), href: `/docs/${d.id}/`, children: childrenOf.get(d.id) ?? [] }));
-// Changelog isn't a docs/ page (it renders CHANGELOG.md), but belongs in the nav.
-items.push({ id: "changelog", label: "Changelog", href: "/changelog/", children: [] });
+  .map((d) => ({ id: d.id, order: d.data.order ?? 99, label: navLabel(d), href: `/docs/${d.id}/`, children: childrenOf.get(d.id) ?? [] }));
+// Changelog isn't a docs/ page (it renders CHANGELOG.md), but belongs in the nav — give
+// it an order so it slots in by position (between Roadmap and FAQ) rather than always last.
+topLevel.push({ id: "changelog", order: 10, label: "Changelog", href: "/changelog/", children: [] });
+const items = topLevel.sort((a, b) => a.order - b.order);
 
 const path = Astro.url.pathname.replace(/\/$/, "");
 const isActive = (href: string) => href.replace(/\/$/, "") === path;
@@ -178,11 +180,13 @@ const pageTitle = `${title} · syscert docs`;
   .docs-group-caret { font-size: 14px; line-height: 1; transition: transform 0.18s; }
   .docs-group-toggle[aria-expanded="false"] .docs-group-caret { transform: rotate(-90deg); }
 
-  /* submenu (e.g. Sample configs → each config), indented under its parent */
+  /* submenu (e.g. Sample configs → each config), indented under its parent. The
+     selector must out-specify `.docs-side nav a` (0-1-2) or the shared link rule's
+     `padding: 8px 14px` overrides the indent and the children sit flush with parents. */
   .docs-sub { display: grid; gap: 2px; }
   .docs-sub[hidden] { display: none; } /* must beat `.docs-sub { display: grid }` */
-  .docs-sub a { padding-left: 28px; font-size: 12.5px; color: var(--faint); }
-  .docs-sub a:hover { color: var(--ink); }
+  .docs-side nav .docs-sub a { padding-left: 30px; font-size: 12.5px; color: var(--faint); }
+  .docs-side nav .docs-sub a:hover { color: var(--ink); }
   .docs-side-foot {
     margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line-soft);
     display: grid; gap: 9px; font-family: var(--font-mono); font-size: 12.5px;
