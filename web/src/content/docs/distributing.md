@@ -2,7 +2,7 @@
 title: Distributing certificates
 navLabel: Distributing certs
 description: How syscert delivers certificates — the canonical store, the five certbot-compatible artifacts plus bundle.pem, per-target ownership/mode/SELinux, and why there are no reload hooks.
-order: 5
+order: 6
 eyebrow: "// docs · distributing"
 lede: syscert keeps one source of truth and copies the pieces each consumer needs — with the exact ownership, mode, and SELinux context — then gets out of the way.
 ---

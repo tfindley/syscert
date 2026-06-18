@@ -2,7 +2,7 @@
 title: External Account Binding (EAB)
 navLabel: EAB
 description: When SysCert needs an EAB key id + HMAC, how it consumes them, and how accounts, certificates, and tokens interact across runs.
-order: 9
+order: 5
 eyebrow: "// docs · eab"
 lede: Some CAs gate who may register an ACME account. EAB is the standard way to prove you're allowed — here's how SysCert uses it, and how it interacts with accounts, renewals, and dry-run.
 ---

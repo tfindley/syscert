@@ -10,6 +10,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# The tool release this site documents, injected by web.yml. Declared here (after
+# npm ci, so the deps layer stays cached) so the version is a real build input: the
+# `npm run build` layer's cache key changes per release, which busts buildx's gha
+# cache and forces getRelease() to re-resolve — otherwise an unchanged source commit
+# reuses a cached layer that baked the previous version. Defaults to "dev" for local builds.
+ARG SITE_VERSION=dev
+ENV SITE_VERSION=${SITE_VERSION}
+
 # build the static site
 COPY . .
 RUN npm run build

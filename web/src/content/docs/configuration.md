@@ -2,7 +2,7 @@
 title: Configuration reference
 navLabel: Configuration
 description: The full syscert.toml reference — [cert], [acme], [acme.dns], [acme.eab], [store], [bundle], [[distribute]], [renewal] and [logging], plus secrets handling and CA support.
-order: 2
+order: 3
 eyebrow: "// docs · configuration"
 lede: Everything syscert reads from syscert.toml, section by section. Secrets are the one thing that never live here.
 ---

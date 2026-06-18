@@ -49,6 +49,13 @@ async function load(): Promise<ReleaseInfo> {
 }
 
 async function resolveVersion(signal: AbortSignal): Promise<string> {
+  // Prefer a build-time injection (SITE_VERSION, set by web.yml). This is deterministic
+  // and — because it's a Docker build-arg — busts the layer cache per release, so a
+  // rebuild can't reuse a layer that baked the previous version. The live fetch below is
+  // the fallback for local builds (`npm run dev`/`build` with no SITE_VERSION).
+  const injected = process.env.SITE_VERSION;
+  if (injected && /^v[0-9]/.test(injected)) return injected;
+
   // GET /releases/latest follows a redirect to /releases/tag/vX.Y.Z.
   const res = await fetch(`${RELEASES}/latest`, { redirect: "follow", signal });
   const m = res.url.match(/\/tag\/(v[0-9][^/]*)$/);

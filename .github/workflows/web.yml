@@ -13,10 +13,14 @@ on:
       - "CHANGELOG.md" # rendered at /changelog
       - "packaging/net-install.sh" # vendored to /install.sh
       - ".github/workflows/web.yml"
-  # Rebuild once a release is published so the site picks up the new version +
-  # checksums (sha256sums.txt only exists after release.yml finishes building).
-  release:
-    types: [published]
+  # Rebuild after a release finishes so the site picks up the new version + checksums.
+  # We chain off the Release run completing (not `release: published`): the release is
+  # created with the default GITHUB_TOKEN, which deliberately does NOT emit a `release`
+  # event that triggers other workflows — but `workflow_run` does fire, and only after
+  # release.yml has built sha256sums.txt.
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
@@ -31,6 +35,8 @@ jobs:
   image:
     name: Build & push image
     runs-on: ubuntu-latest
+    # On a workflow_run trigger, only build when the Release run actually succeeded.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -59,6 +65,19 @@ jobs:
         id: site
         run: echo "version=$(node -p "require('./web/package.json').version")" >> "$GITHUB_OUTPUT"
 
+      # The tool release the site documents, injected into the build so it's a real
+      # build input (busts the layer cache per release — see web/Dockerfile). `gh release
+      # view` returns the latest published release, which on a post-Release workflow_run is
+      # the just-published tag. Empty (no releases yet) → release.ts falls back to its fetch.
+      - name: Resolve tool version
+        id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="$(gh release view --json tagName -q .tagName 2>/dev/null || true)"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "resolved tool version: ${v:-<none, release.ts will live-fetch>}"
+
       - name: Image metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -74,6 +93,8 @@ jobs:
         with:
           context: ./web
           push: true
+          build-args: |
+            SITE_VERSION=${{ steps.ver.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

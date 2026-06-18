@@ -2,7 +2,7 @@
 title: Roadmap
 navLabel: Roadmap
 description: What's shipped in syscert today, what's next, and what's planned for the 1.0 line — indicative and subject to change while pre-1.0.
-order: 10
+order: 9
 eyebrow: "// docs · roadmap"
 lede: Where syscert is and where it's going. It's pre-1.0 — this is the direction of travel, not a commitment, and it changes as we learn.
 ---
