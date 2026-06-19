@@ -310,3 +310,17 @@ a { color: inherit; text-decoration: none; }
   color: var(--faint); background: var(--surface-2); white-space: nowrap;
 }
 .doc-prose td { color: var(--muted); }
+
+/* Terminal window-dot colours + reveal stagger delays — relocated off inline
+   inline style attributes, so the site has none (Astro's CSP hashes
+   <style> blocks; style attributes can't be hashed). */
+.dot-red { background: #f87171; }
+.dot-amber { background: #f5b14c; }
+.dot-green { background: #34d399; }
+.reveal.d-40 { animation-delay: 40ms; }
+.reveal.d-90 { animation-delay: 90ms; }
+.reveal.d-150 { animation-delay: 150ms; }
+.reveal.d-210 { animation-delay: 210ms; }
+.reveal.d-240 { animation-delay: 240ms; }
+.reveal.d-270 { animation-delay: 270ms; }
+.reveal.d-330 { animation-delay: 330ms; }

@@ -38,11 +38,14 @@ See the [Security assessment](/docs/compliance/security/) for the full control s
 | Area | Choice |
 |---|---|
 | Generator | **[Astro](https://astro.build)** static site (docs are the canonical `docs/*.md`, vendored at build) |
+| Fonts | **self-hosted** (IBM Plex Sans/Mono + Martian Mono via [`@fontsource`](https://fontsource.org), latin subset) — **no third-party font origins** |
+| Content-Security-Policy | served on every page via Astro's `security.csp` — per-page auto-generated `script-src`/`style-src` hashes plus `default-src`/`font-src`/`connect-src`/`base-uri 'self'`, `img-src 'self' data:`, `object-src 'none'` (`<meta>`-delivered; `frame-ancestors` covered by the `X-Frame-Options: SAMEORIGIN` header in nginx) |
 | Runtime image | **`nginx:alpine-slim`** serving static files (TLS terminated upstream by Traefik) |
 | Registry / hosting | image published to **GHCR** (`ghcr.io/tfindley/syscert-web`), pulled by a self-managed host behind **Traefik** |
 
 The website is a *hosting artifact*, not the product — it documents the binary, which is the thing
-you install.
+you install. Self-hosted fonts and the per-page CSP keep its origin self-contained; see the
+[Security assessment](/docs/compliance/security/) for the site's full header set.
 
 ## Build, release & CI
 
