@@ -23,7 +23,11 @@ COPY . .
 RUN npm run build
 
 # ---- serve ----
-FROM nginx:alpine AS runtime
+# alpine-slim (not alpine): we only serve static files with core/standard modules
+# (see nginx.conf), so the optional dynamic modules — and their image-filter/libgd
+# dependency chain (libtiff, freetype) — are pure attack surface. -slim drops them.
+# Track the tag (not a pinned digest) so rebuilds pick up Alpine security patches.
+FROM nginx:alpine-slim AS runtime
 # drop nginx's default site, add ours
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/syscert.conf
