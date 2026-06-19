@@ -8,34 +8,34 @@ const release = await getRelease();
 <section class="hero">
   <div class="shell hero-grid">
     <div class="hero-left">
-      <div class="hero-badges reveal" style="animation-delay:40ms">
+      <div class="hero-badges reveal d-40">
         <span class="badge badge-status"><span class="badge-pip"></span>{SITE.status}</span>
         <a href={LINKS.releases} target="_blank" rel="noopener" class="badge badge-ver">
           Latest: {release.version} <span class="badge-arrow">→</span>
         </a>
       </div>
 
-      <h1 class="hero-h1 reveal" style="animation-delay:90ms">
+      <h1 class="hero-h1 reveal d-90">
         Set-and-forget TLS<br /><span class="grad-ink">for every machine.</span>
       </h1>
 
-      <p class="hero-sub reveal" style="animation-delay:150ms">
+      <p class="hero-sub reveal d-150">
         One static binary and a <code>systemd</code> timer. Every Linux host gets its own
         auto-renewing certificate — from <strong>Let's Encrypt</strong>, <strong>Vault</strong>, or
         <strong>step-ca</strong> — delivered to nginx, HAProxy, Cockpit &amp; co. with the exact
         owner, mode, and SELinux context each needs.
       </p>
 
-      <div class="reveal" style="animation-delay:210ms">
+      <div class="reveal d-210">
         <CopyCommand command={INSTALL_CMD} size="lg" cursor={true} />
       </div>
 
-      <div class="hero-cta reveal" style="animation-delay:270ms">
+      <div class="hero-cta reveal d-270">
         <a href="/install/" class="btn btn-primary">Other install options</a>
         <a href="/docs/quick-start/" class="btn">Read the docs</a>
       </div>
 
-      <p class="hero-trust reveal" style="animation-delay:330ms">
+      <p class="hero-trust reveal d-330">
         <a href="/install/#inspect">Inspect the script first ↗</a>
         <span class="sep">·</span> verify <code>sha256sums.txt</code>
         <span class="sep">·</span> no host <code>certbot</code> required
@@ -43,12 +43,12 @@ const release = await getRelease();
     </div>
 
     <!-- Live-terminal motif -->
-    <div class="hero-right reveal" style="animation-delay:240ms" aria-hidden="true">
+    <div class="hero-right reveal d-240" aria-hidden="true">
       <div class="terminal hero-term">
         <div class="terminal-bar">
-          <span class="dot" style="background:#f87171"></span>
-          <span class="dot" style="background:#f5b14c"></span>
-          <span class="dot" style="background:#34d399"></span>
+          <span class="dot dot-red"></span>
+          <span class="dot dot-amber"></span>
+          <span class="dot dot-green"></span>
           <span class="term-title">syscert@centauri</span>
           <span class="term-lock">🔒 valid</span>
         </div>
