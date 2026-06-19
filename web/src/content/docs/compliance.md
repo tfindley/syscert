@@ -15,6 +15,10 @@ compliance team needs before approving it for production.
 - **[Security assessment](/docs/compliance/security/)** — a published, tool-backed assessment of
   the Go application and the release binary, with a full **risk register**, controls-by-domain,
   findings, and control-framework mapping (OWASP ASVS, CIS, SLSA, NIST SSDF, CWE).
+- **[Tech stack](/docs/compliance/tech-stack/)** — what SysCert is built from: the static Go
+  binary and its dependencies, the runtime model, the docs site, and the build/release pipeline.
+- **[AI-assisted development](/docs/compliance/ai-assisted-development/)** — how SysCert is built
+  (AI-assisted, human-directed) and the testing, gating, and review controls behind it.
 
 ## How assurance is maintained
 
