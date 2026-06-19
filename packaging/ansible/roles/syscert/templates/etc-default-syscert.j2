@@ -1,0 +1,6 @@
+{{ ansible_managed | comment }}
+# SysCert operator settings, sourced by the systemd unit (EnvironmentFile).
+# Non-secret only — DNS/CA credentials belong in the secrets file.
+{% for key, value in syscert_environment.items() %}
+{{ key }}={{ value }}
+{% endfor %}

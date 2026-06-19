@@ -1,0 +1,45 @@
+---
+# Orchestrator — hands off to focused task files so each concern is easy to find
+# and diagnose. Everything is gated on syscert_state.
+
+- name: syscert.main - Validate the syscert configuration
+  when: syscert_state == 'present'
+  tags:
+    - syscert_assert
+  ansible.builtin.import_tasks: assert.yml
+
+- name: syscert.main - Remove syscert
+  when: syscert_state == 'absent'
+  tags:
+    - syscert_uninstall
+  ansible.builtin.import_tasks: uninstall.yml
+
+- name: syscert.main - Create the syscert user and store
+  when: syscert_state == 'present'
+  tags:
+    - syscert_user
+  ansible.builtin.import_tasks: user.yml
+
+- name: syscert.main - Install the syscert binary
+  when: syscert_state == 'present'
+  tags:
+    - syscert_binary
+  ansible.builtin.import_tasks: install.yml
+
+- name: syscert.main - Render the syscert configuration
+  when: syscert_state == 'present'
+  tags:
+    - syscert_config
+  ansible.builtin.import_tasks: config.yml
+
+- name: syscert.main - Render the syscert secrets
+  when: syscert_state == 'present'
+  tags:
+    - syscert_secrets
+  ansible.builtin.import_tasks: secrets.yml
+
+- name: syscert.main - Install and manage the syscert systemd units
+  when: syscert_state == 'present'
+  tags:
+    - syscert_service
+  ansible.builtin.import_tasks: service.yml

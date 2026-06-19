@@ -1,0 +1,15 @@
+{{ ansible_managed | comment }}
+# Runs syscert on a schedule (ensure: issue/renew as needed, then distribute).
+
+[Unit]
+Description=Run SysCert to keep the system certificate fresh
+Documentation=https://github.com/tfindley/syscert
+
+[Timer]
+OnBootSec={{ syscert_timer_on_boot_sec }}
+OnCalendar={{ syscert_timer_on_calendar }}
+RandomizedDelaySec={{ syscert_timer_randomized_delay_sec }}
+Persistent={{ 'true' if syscert_timer_persistent | bool else 'false' }}
+
+[Install]
+WantedBy=timers.target

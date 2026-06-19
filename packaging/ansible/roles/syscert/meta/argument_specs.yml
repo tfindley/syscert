@@ -1,0 +1,249 @@
+---
+# Entry-point argument validation (ansible-core auto-runs this before tasks/main.yml).
+# Types/choices/required only; defaults live in defaults/main.yml (single source of
+# truth). Conditional requirements (e.g. directory_url when ca=custom) can't be
+# expressed here — tasks/assert.yml enforces those.
+argument_specs:
+  main:
+    short_description: Install and configure the SysCert TLS certificate service.
+    description:
+      - Replicates packaging/install.sh natively for fleet installs.
+      - Variables mirror the syscert.toml schema; see defaults/main.yml.
+    author:
+      - Tristan Findley
+    options:
+      # ── install / system ──
+      syscert_install_method:
+        type: str
+        choices:
+          - download
+          - local
+        description: Obtain the binary from a GitHub release (download) or copy one from the controller (local).
+      syscert_version:
+        type: str
+        description: Release tag to install (e.g. "v0.3.1"). Required for the download method (asserted).
+      syscert_local_binary:
+        type: str
+        description: Controller path to a pre-built binary. Required for the local method (asserted).
+      syscert_download_base_url:
+        type: str
+        description: Base URL for release downloads.
+      syscert_checksum_verify:
+        type: bool
+        description: Verify the downloaded binary against the release sha256sums.txt.
+      syscert_bin_path:
+        type: path
+        description: Where the binary is installed on the host.
+      syscert_download_dir:
+        type: path
+        description: Host directory used to cache downloaded binaries.
+      syscert_user:
+        type: str
+        description: System user that owns the store and runs the service.
+      syscert_group:
+        type: str
+        description: System group for the service user.
+      syscert_manage_user:
+        type: bool
+        description: Whether the role creates the system user and group.
+      syscert_config_dir:
+        type: path
+        description: Configuration directory.
+      syscert_config_path:
+        type: path
+        description: Path to the rendered syscert.toml.
+      syscert_secrets_path:
+        type: path
+        description: Path to the rendered secrets EnvironmentFile.
+      syscert_defaults_path:
+        type: path
+        description: Path to the operator EnvironmentFile (/etc/default/syscert).
+      syscert_state:
+        type: str
+        choices:
+          - present
+          - absent
+        description: Install/configure (present) or remove (absent).
+      syscert_purge:
+        type: bool
+        description: With state=absent, also remove the store, config, secrets, and the service user.
+
+      # ── [cert] ──
+      syscert_cert_hostname:
+        type: str
+        description: Certificate subject. Empty uses the system FQDN.
+      syscert_cert_sans:
+        type: list
+        elements: str
+        description: Additional DNS SANs.
+      syscert_cert_ip_sans:
+        type: list
+        elements: str
+        description: IP SANs (forces an http-based challenge).
+      syscert_cert_key_type:
+        type: str
+        choices:
+          - ec256
+          - ec384
+          - rsa2048
+          - rsa4096
+        description: Certificate key type.
+      syscert_cert_reuse_key:
+        type: bool
+        description: Reuse the keypair across renewals.
+
+      # ── [acme] ──
+      syscert_acme_ca:
+        type: str
+        choices:
+          - letsencrypt
+          - custom
+        description: ACME CA. "custom" = Vault / step-ca / any internal ACME server.
+      syscert_acme_email:
+        type: str
+        required: true
+        description: ACME account contact email.
+      syscert_acme_directory_url:
+        type: str
+        description: ACME directory endpoint. Required when syscert_acme_ca is "custom" (asserted).
+      syscert_acme_challenge:
+        type: str
+        choices:
+          - dns-01
+          - http-01
+          - tls-alpn-01
+          - dns-persist-01
+        description: ACME challenge type.
+      syscert_acme_profile:
+        type: str
+        description: ACME profile to request (e.g. "shortlived").
+      syscert_acme_ca_bundle:
+        type: str
+        description: Host path to a CA bundle trusted for the ACME connection only.
+
+      # ── [acme.dns] ──
+      syscert_acme_dns_provider:
+        type: str
+        description: lego DNS-provider id. Required for a DNS challenge without IP SANs (asserted).
+      syscert_acme_dns_propagation_check:
+        type: str
+        choices:
+          - ""
+          - all
+          - authoritative
+          - "off"
+        description: DNS-01 propagation pre-check mode.
+
+      # ── [acme.eab] ──
+      syscert_acme_eab_kid:
+        type: str
+        description: EAB key identifier. Setting it requires SYSCERT_EAB_HMAC in syscert_secrets (asserted).
+
+      # ── [store] ──
+      syscert_store_path:
+        type: path
+        description: Canonical store directory.
+      syscert_store_group:
+        type: str
+        description: Optional group granted access to the store directory.
+      syscert_store_dir_mode:
+        type: str
+        description: Octal store-directory mode (private keys stay 0600 regardless).
+      syscert_store_archive_keep:
+        type: int
+        description: Number of previous cert sets to retain under archive/.
+
+      # ── [bundle] ──
+      syscert_bundle_order:
+        type: list
+        elements: str
+        description: Composition of bundle.pem (subset/order of cert, chain, root, key).
+
+      # ── [[distribute]] ──
+      syscert_distribute:
+        type: list
+        elements: dict
+        description: Distribution targets, each {artifact, path, owner, group, mode, selinux_context}.
+        options:
+          artifact:
+            type: str
+            required: true
+            choices:
+              - cert
+              - privkey
+              - chain
+              - fullchain
+              - bundle
+            description: Which artifact to copy.
+          path:
+            type: path
+            required: true
+            description: Destination path on the host.
+          owner:
+            type: str
+            description: Destination owner.
+          group:
+            type: str
+            description: Destination group.
+          mode:
+            type: str
+            description: Destination octal mode (key-bearing artifacts must not be world-readable).
+          selinux_context:
+            type: str
+            description: Optional SELinux type for the destination.
+
+      # ── [renewal] / [logging] ──
+      syscert_renewal_renew_before:
+        type: str
+        description: Renewal window override (e.g. "30d"); empty = auto.
+      syscert_logging_level:
+        type: str
+        choices:
+          - debug
+          - info
+          - warn
+          - error
+        description: Log level.
+      syscert_logging_format:
+        type: str
+        choices:
+          - text
+          - json
+        description: Log format.
+
+      # ── secrets / environment ──
+      syscert_secrets:
+        type: dict
+        description: Open-ended KEY/value map rendered to the secrets EnvironmentFile (never logged).
+      syscert_environment:
+        type: dict
+        description: Open-ended KEY/value map rendered to /etc/default/syscert (non-secret).
+
+      # ── timer / unit ──
+      syscert_timer_enabled:
+        type: bool
+        description: Enable the systemd timer.
+      syscert_timer_state:
+        type: str
+        choices:
+          - started
+          - stopped
+        description: Whether to start the timer after configuring.
+      syscert_timer_on_calendar:
+        type: str
+        description: Timer OnCalendar schedule.
+      syscert_timer_on_boot_sec:
+        type: str
+        description: Timer OnBootSec.
+      syscert_timer_randomized_delay_sec:
+        type: str
+        description: Timer RandomizedDelaySec (fleet jitter).
+      syscert_timer_persistent:
+        type: bool
+        description: Timer Persistent (catch up a missed run).
+      syscert_service_exec_extra_args:
+        type: str
+        description: Extra arguments appended to the service ExecStart.
+      syscert_service_ambient_capabilities:
+        type: str
+        description: Space-separated ambient capabilities; empty = auto (CAP_CHOWN [+ CAP_NET_BIND_SERVICE]).

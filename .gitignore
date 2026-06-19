@@ -29,3 +29,9 @@ secrets.toml
 # Repowise (generated local tooling; machine-specific paths)
 /.repowise/
 /.mcp.json
+
+# Python virtual environments
+.venv/
+
+# Ansible
+.ansible/

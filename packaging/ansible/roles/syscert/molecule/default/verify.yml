@@ -1,0 +1,41 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  tasks:
+    - name: Verify - Stat the installed binary
+      become: true
+      register: syscert_verify_bin
+      ansible.builtin.stat:
+        path: /usr/local/bin/syscert
+
+    - name: Verify - Stat the rendered config
+      become: true
+      register: syscert_verify_cfg
+      ansible.builtin.stat:
+        path: /etc/syscert/syscert.toml
+
+    - name: Verify - Stat the timer unit
+      become: true
+      register: syscert_verify_timer
+      ansible.builtin.stat:
+        path: /etc/systemd/system/syscert.timer
+
+    - name: Verify - Assert the install is complete and correctly permissioned
+      become: false
+      ansible.builtin.assert:
+        that:
+          - syscert_verify_bin.stat.exists
+          - syscert_verify_bin.stat.executable | default(false)
+          - syscert_verify_cfg.stat.exists
+          - syscert_verify_cfg.stat.mode == '0640'
+          - syscert_verify_timer.stat.exists
+        fail_msg: "syscert role did not produce the expected binary, config, and timer."
+        quiet: true
+
+    - name: Verify - Confirm the rendered config passes the binary's validator
+      become: true
+      become_user: syscert
+      changed_when: false
+      ansible.builtin.command:
+        cmd: /usr/local/bin/syscert dry-run --config-only --config /etc/syscert/syscert.toml

@@ -1,0 +1,108 @@
+---
+# defaults/main.yml — syscert role.
+# Every variable is prefixed `syscert_` and mirrors the syscert.toml schema
+# (see examples/full.toml). Required, no-default variables (e.g. the ACME email)
+# are intentionally NOT set here so meta/argument_specs.yml can enforce them.
+
+# ── Install / system ─────────────────────────────────────────────────────────
+# How to obtain the binary: "download" (a release from GitHub, checksum-verified)
+# or "local" (copy a binary from the controller, see syscert_local_binary).
+syscert_install_method: download
+# Release tag to install, e.g. "v0.3.1". Required when syscert_install_method is
+# "download" and syscert_state is "present" (asserted). Pin it — no implicit latest.
+# syscert_version: "v0.3.1"
+# Path to a pre-built binary on the CONTROLLER, copied to the host (local method).
+# syscert_local_binary: "files/syscert"
+# Base URL for release downloads (override for an internal mirror).
+syscert_download_base_url: "https://github.com/tfindley/syscert/releases/download"
+# Verify the downloaded binary against the release sha256sums.txt.
+syscert_checksum_verify: true
+# Where the binary is installed and where the directory cache lives on the host.
+syscert_bin_path: /usr/local/bin/syscert
+syscert_download_dir: /var/cache/syscert
+
+# Service account + paths.
+syscert_user: syscert
+syscert_group: syscert
+syscert_manage_user: true
+syscert_config_dir: /etc/syscert
+syscert_config_path: "{{ syscert_config_dir }}/syscert.toml"
+syscert_secrets_path: "{{ syscert_config_dir }}/secrets"
+syscert_defaults_path: /etc/default/syscert
+
+# Lifecycle: "present" installs/configures; "absent" uninstalls. syscert_purge
+# additionally removes the store, config, secrets, and the service user (absent only).
+syscert_state: present
+syscert_purge: false
+
+# ── [cert] ─────────────────────────────────────────────────────────────────────
+syscert_cert_hostname: ""          # "" = use the system FQDN; the binary errors if none
+syscert_cert_sans: []              # extra DNS SANs
+syscert_cert_ip_sans: []           # IP SANs (forces http-01/tls-alpn-01; private IP needs an internal CA)
+syscert_cert_key_type: ec256       # ec256 | ec384 | rsa2048 | rsa4096
+syscert_cert_reuse_key: false      # keep the keypair across renewals (only if a consumer pins the key)
+
+# ── [acme] ───────────────────────────────────────────────────────────────────────
+syscert_acme_ca: letsencrypt       # letsencrypt | custom (custom = Vault / step-ca / any internal ACME CA)
+# syscert_acme_email: "you@example.com"   # REQUIRED (no default) — ACME account contact
+syscert_acme_directory_url: ""     # REQUIRED when syscert_acme_ca is "custom"
+syscert_acme_challenge: dns-01     # dns-01 | http-01 | tls-alpn-01 | dns-persist-01
+syscert_acme_profile: ""           # e.g. "shortlived" (required for public-CA IP certs)
+syscert_acme_ca_bundle: ""         # host path to a CA bundle trusted for the ACME connection only
+
+# ── [acme.dns] ───────────────────────────────────────────────────────────────────
+syscert_acme_dns_provider: ""      # any lego DNS-provider id; REQUIRED for a DNS challenge without IP SANs
+syscert_acme_dns_propagation_check: ""   # "" (all) | all | authoritative | off
+
+# ── [acme.eab] ───────────────────────────────────────────────────────────────────
+# Setting the kid enables External Account Binding; the HMAC is a secret and MUST
+# be supplied as SYSCERT_EAB_HMAC in syscert_secrets (asserted).
+syscert_acme_eab_kid: ""
+
+# ── [store] ──────────────────────────────────────────────────────────────────────
+syscert_store_path: /var/lib/syscert
+syscert_store_group: ""            # optional group granted access to the store dir; "" keeps syscert
+syscert_store_dir_mode: "0700"     # octal store-dir mode; private keys stay 0600 regardless
+syscert_store_archive_keep: 0      # >0 keeps that many previous cert sets under archive/<UTC>/
+
+# ── [bundle] ─────────────────────────────────────────────────────────────────────
+# Composition of bundle.pem (subset/order of the tokens below).
+syscert_bundle_order:
+  - cert
+  - chain
+  - root
+  - key
+
+# ── [[distribute]] ───────────────────────────────────────────────────────────────
+# List of targets, each a mapping:
+#   {artifact: fullchain, path: /etc/nginx/tls/fullchain.pem, owner: root, group: root, mode: "0644"}
+# artifact: cert | privkey | chain | fullchain | bundle. Optional selinux_context.
+# Key-bearing artifacts (privkey, bundle) must NOT be world-readable.
+syscert_distribute: []
+
+# ── [renewal] ────────────────────────────────────────────────────────────────────
+syscert_renewal_renew_before: ""   # "" = auto window from the cert lifetime; or a duration like "30d"
+
+# ── [logging] ────────────────────────────────────────────────────────────────────
+syscert_logging_level: info        # debug | info | warn | error
+syscert_logging_format: text       # text | json
+
+# ── Secrets + operator environment ───────────────────────────────────────────────
+# Open-ended KEY: value maps. syscert_secrets renders /etc/syscert/secrets (0640,
+# no_log) — DNS-provider credentials and SYSCERT_EAB_HMAC. syscert_environment
+# renders /etc/default/syscert (non-secret operator settings, e.g. SYSCERT_CONFIG).
+syscert_secrets: {}
+syscert_environment: {}
+
+# ── Timer / unit ─────────────────────────────────────────────────────────────────
+syscert_timer_enabled: true
+syscert_timer_state: started       # started | stopped
+syscert_timer_on_calendar: daily
+syscert_timer_on_boot_sec: 5min
+syscert_timer_randomized_delay_sec: 12h
+syscert_timer_persistent: true
+# Extra args appended to ExecStart (e.g. "--staging" while testing).
+syscert_service_exec_extra_args: ""
+# Ambient capabilities for the service. "" = auto: CAP_CHOWN, plus CAP_NET_BIND_SERVICE
+# when the effective challenge serves on :80/:443 (http-01 / tls-alpn-01, or IP SANs).
+syscert_service_ambient_capabilities: ""

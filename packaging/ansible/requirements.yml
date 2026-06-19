@@ -1,0 +1,5 @@
+---
+# The syscert role uses only ansible.builtin (shipped with ansible-core ≥ 2.21),
+# so there are no external collection dependencies. This file is a placeholder for
+# anyone who vendors collections into their control node.
+collections: []

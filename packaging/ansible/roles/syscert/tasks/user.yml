@@ -1,0 +1,30 @@
+---
+- name: syscert.user - Create the syscert group
+  when: syscert_manage_user
+  become: true
+  ansible.builtin.group:
+    name: "{{ syscert_group }}"
+    system: true
+    state: present
+
+- name: syscert.user - Create the syscert system user
+  when: syscert_manage_user
+  become: true
+  ansible.builtin.user:
+    name: "{{ syscert_user }}"
+    group: "{{ syscert_group }}"
+    system: true
+    home: "{{ syscert_store_path }}"
+    create_home: false
+    shell: /usr/sbin/nologin
+    comment: SysCert TLS certificate service
+    state: present
+
+- name: syscert.user - Create the store directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ syscert_store_path }}"
+    state: directory
+    owner: "{{ syscert_user }}"
+    group: "{{ syscert_store_group | default(syscert_group, true) }}"
+    mode: "{{ syscert_store_dir_mode }}"

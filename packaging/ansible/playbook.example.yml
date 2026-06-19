@@ -1,0 +1,56 @@
+---
+# Example plays for the syscert role. Run with:
+#   ansible-playbook -i inventory.ini playbook.example.yml
+# Keep credentials in an ansible-vault file (group_vars/*/vault.yml), not inline.
+
+- name: SysCert via Let's Encrypt (DNS-01, Cloudflare)
+  hosts: public_web
+  become: true
+  roles:
+    - role: syscert
+      syscert_version: v0.3.1
+      syscert_acme_ca: letsencrypt
+      syscert_acme_email: tls@example.com
+      syscert_acme_challenge: dns-01
+      syscert_acme_dns_provider: cloudflare
+      syscert_secrets:
+        CLOUDFLARE_DNS_API_TOKEN: "{{ vault_cloudflare_dns_api_token }}"
+      syscert_distribute:
+        - artifact: fullchain
+          path: /etc/nginx/tls/fullchain.pem
+          owner: root
+          group: root
+          mode: "0644"
+        - artifact: privkey
+          path: /etc/nginx/tls/privkey.pem
+          owner: root
+          group: root
+          mode: "0600"
+
+- name: SysCert via HashiCorp Vault (DNS-01 + EAB)
+  hosts: internal
+  become: true
+  roles:
+    - role: syscert
+      syscert_version: v0.3.1
+      syscert_acme_ca: custom
+      syscert_acme_email: tls@corp.example.com
+      syscert_acme_directory_url: "https://vault.corp.example.com:8200/v1/pki_dcauth/roles/web/acme/directory"
+      syscert_acme_challenge: dns-01
+      syscert_acme_dns_provider: rfc2136
+      syscert_acme_dns_propagation_check: authoritative
+      syscert_acme_eab_kid: "{{ vault_syscert_eab_kid }}"
+      # Trust the internal CA for the ACME connection until `syscert trust install` runs.
+      syscert_acme_ca_bundle: /etc/syscert/internal-ca.pem
+      syscert_secrets:
+        SYSCERT_EAB_HMAC: "{{ vault_syscert_eab_hmac }}"
+        RFC2136_NAMESERVER: ns1.corp.example.com
+        RFC2136_TSIG_KEY: "{{ vault_rfc2136_tsig_key }}"
+        RFC2136_TSIG_SECRET: "{{ vault_rfc2136_tsig_secret }}"
+        RFC2136_TSIG_ALGORITHM: hmac-sha256
+      syscert_distribute:
+        - artifact: bundle
+          path: /etc/haproxy/tls/site.pem
+          owner: haproxy
+          group: haproxy
+          mode: "0600"

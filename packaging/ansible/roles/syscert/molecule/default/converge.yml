@@ -1,0 +1,25 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    syscert_install_method: download
+    syscert_version: v0.3.1
+    syscert_acme_email: molecule@example.com
+    syscert_acme_ca: letsencrypt
+    syscert_acme_challenge: dns-01
+    syscert_acme_dns_provider: cloudflare
+    # Don't start issuance inside the test container; just install + configure.
+    syscert_timer_state: stopped
+    syscert_secrets:
+      CLOUDFLARE_DNS_API_TOKEN: molecule-placeholder
+    syscert_distribute:
+      - artifact: fullchain
+        path: /etc/ssl/syscert/fullchain.pem
+        owner: root
+        group: root
+        mode: "0644"
+  tasks:
+    - name: Apply the syscert role
+      ansible.builtin.include_role:
+        name: syscert

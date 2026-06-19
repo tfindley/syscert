@@ -1,0 +1,38 @@
+---
+- name: syscert.install - Download the release binary
+  when: syscert_install_method == 'download'
+  block:
+    - name: syscert.install - Ensure the download cache directory exists
+      become: true
+      ansible.builtin.file:
+        path: "{{ syscert_download_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    # get_url verifies against the release sums file itself (matching the asset by
+    # the dest basename) and skips the download when the cached file already matches —
+    # no separate fetch/slurp/parse needed.
+    - name: syscert.install - Download and verify the release binary
+      become: true
+      ansible.builtin.get_url:
+        url: "{{ syscert_release_url }}"
+        dest: "{{ syscert_download_dir }}/{{ syscert_release_filename }}"
+        checksum: "{{ ('sha256:' ~ syscert_sums_url) if syscert_checksum_verify else omit }}"
+        owner: root
+        group: root
+        mode: "0755"
+
+- name: syscert.install - Install the binary
+  become: true
+  ansible.builtin.copy:
+    src: >-
+      {{ (syscert_download_dir ~ '/' ~ syscert_release_filename)
+         if syscert_install_method == 'download' else syscert_local_binary }}
+    dest: "{{ syscert_bin_path }}"
+    remote_src: "{{ syscert_install_method == 'download' }}"
+    owner: root
+    group: root
+    mode: "0755"
+    setype: "{{ 'bin_t' if (syscert_selinux_enabled | bool) else omit }}"

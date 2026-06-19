@@ -1,0 +1,83 @@
+{{ ansible_managed | comment }}
+# Rendered by the syscert Ansible role. Edit the role variables, not this file.
+
+[cert]
+{% if syscert_cert_hostname | length > 0 %}
+hostname = "{{ syscert_cert_hostname }}"
+{% endif %}
+{% if syscert_cert_sans | length > 0 %}
+sans = [{{ syscert_cert_sans | map('to_json') | join(', ') }}]
+{% endif %}
+{% if syscert_cert_ip_sans | length > 0 %}
+ip_sans = [{{ syscert_cert_ip_sans | map('to_json') | join(', ') }}]
+{% endif %}
+key_type = "{{ syscert_cert_key_type }}"
+reuse_key = {{ 'true' if syscert_cert_reuse_key | bool else 'false' }}
+
+[acme]
+ca = "{{ syscert_acme_ca }}"
+email = "{{ syscert_acme_email }}"
+challenge = "{{ syscert_acme_challenge }}"
+{% if syscert_acme_directory_url | length > 0 %}
+directory_url = "{{ syscert_acme_directory_url }}"
+{% endif %}
+{% if syscert_acme_profile | length > 0 %}
+profile = "{{ syscert_acme_profile }}"
+{% endif %}
+{% if syscert_acme_ca_bundle | length > 0 %}
+ca_bundle = "{{ syscert_acme_ca_bundle }}"
+{% endif %}
+{% if syscert_acme_dns_provider | length > 0 %}
+
+[acme.dns]
+provider = "{{ syscert_acme_dns_provider }}"
+{% if syscert_acme_dns_propagation_check | length > 0 %}
+propagation_check = "{{ syscert_acme_dns_propagation_check }}"
+{% endif %}
+{% endif %}
+{% if syscert_acme_eab_kid | length > 0 %}
+
+[acme.eab]
+kid = "{{ syscert_acme_eab_kid }}"
+{% endif %}
+
+[store]
+path = "{{ syscert_store_path }}"
+{% if syscert_store_group | length > 0 %}
+group = "{{ syscert_store_group }}"
+{% endif %}
+dir_mode = "{{ syscert_store_dir_mode }}"
+{% if syscert_store_archive_keep | int > 0 %}
+archive_keep = {{ syscert_store_archive_keep | int }}
+{% endif %}
+
+[bundle]
+order = [{{ syscert_bundle_order | map('to_json') | join(', ') }}]
+{% for target in syscert_distribute %}
+
+[[distribute]]
+artifact = "{{ target.artifact }}"
+path = "{{ target.path }}"
+{% if target.owner is defined %}
+owner = "{{ target.owner }}"
+{% endif %}
+{% if target.group is defined %}
+group = "{{ target.group }}"
+{% endif %}
+{% if target.mode is defined %}
+mode = "{{ target.mode }}"
+{% endif %}
+{% if target.selinux_context is defined %}
+selinux_context = "{{ target.selinux_context }}"
+{% endif %}
+{% endfor %}
+
+{% if syscert_renewal_renew_before | length > 0 %}
+
+[renewal]
+renew_before = "{{ syscert_renewal_renew_before }}"
+{% endif %}
+
+[logging]
+level = "{{ syscert_logging_level }}"
+format = "{{ syscert_logging_format }}"

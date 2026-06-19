@@ -1,0 +1,113 @@
+---
+# Preflight validation. argument_specs.yml covers types/choices/required; these
+# asserts cover non-empty and conditional/cross-field rules, mirroring
+# internal/validate/validate.go. All read-only → become: false.
+
+- name: syscert.assert - Assert an ACME account email is set
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_acme_email | default('') | length > 0
+    fail_msg: "syscert_acme_email is required."
+    quiet: true
+
+- name: syscert.assert - Assert a directory URL is set for a custom CA
+  when: syscert_acme_ca == 'custom'
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_acme_directory_url | length > 0
+    fail_msg: "syscert_acme_ca is 'custom', so syscert_acme_directory_url is required."
+    quiet: true
+
+- name: syscert.assert - Assert a DNS provider is set for a DNS challenge
+  when:
+    - syscert_acme_challenge in ['dns-01', 'dns-persist-01']
+    - syscert_cert_ip_sans | length == 0
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_acme_dns_provider | length > 0
+    fail_msg: >-
+      syscert_acme_challenge is DNS-based and no IP SANs are set, so
+      syscert_acme_dns_provider is required.
+    quiet: true
+
+- name: syscert.assert - Assert the EAB HMAC is supplied when an EAB kid is set
+  when: syscert_acme_eab_kid | length > 0
+  become: false
+  ansible.builtin.assert:
+    that:
+      - "'SYSCERT_EAB_HMAC' in syscert_secrets"
+    fail_msg: "syscert_acme_eab_kid is set, so syscert_secrets must include SYSCERT_EAB_HMAC."
+    quiet: true
+
+- name: syscert.assert - Assert public-CA IP certificates request the shortlived profile
+  when:
+    - syscert_cert_ip_sans | length > 0
+    - syscert_acme_ca == 'letsencrypt'
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_acme_profile == 'shortlived'
+    fail_msg: "IP SANs with the public CA (letsencrypt) require syscert_acme_profile = 'shortlived'."
+    quiet: true
+
+- name: syscert.assert - Assert the store directory mode is a 4-digit octal
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_store_dir_mode is match('^0[0-7]{3}$')
+    fail_msg: "syscert_store_dir_mode must be a 4-digit octal like 0700."
+    quiet: true
+
+- name: syscert.assert - Assert archive retention is non-negative
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_store_archive_keep | int >= 0
+    fail_msg: "syscert_store_archive_keep must be 0 or greater."
+    quiet: true
+
+- name: syscert.assert - Assert bundle order tokens are valid and unique
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_bundle_order | difference(['cert', 'chain', 'root', 'key']) | length == 0
+      - syscert_bundle_order | length == (syscert_bundle_order | unique | length)
+    fail_msg: "syscert_bundle_order must be a subset of [cert, chain, root, key] with no duplicates."
+    quiet: true
+
+- name: syscert.assert - Assert key-bearing distribute targets are not world-readable
+  become: false
+  ansible.builtin.assert:
+    that:
+      - >-
+        syscert_distribute
+        | selectattr('artifact', 'in', ['privkey', 'bundle'])
+        | selectattr('mode', 'defined')
+        | selectattr('mode', 'search', '[4-7]$')
+        | list | length == 0
+    fail_msg: "A privkey/bundle distribute target is world-readable; use a tight mode such as 0600."
+    quiet: true
+
+- name: syscert.assert - Assert a version is set for the download install method
+  when: syscert_install_method == 'download'
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_version | default('') | length > 0
+      - syscert_arch | length > 0
+    fail_msg: >-
+      syscert_install_method is 'download', so syscert_version (e.g. 'v0.3.1') is
+      required and {{ ansible_architecture }} must map to a release asset.
+    quiet: true
+
+- name: syscert.assert - Assert a local binary path is set for the local install method
+  when: syscert_install_method == 'local'
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_local_binary | default('') | length > 0
+    fail_msg: "syscert_install_method is 'local', so syscert_local_binary is required."
+    quiet: true

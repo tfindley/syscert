@@ -1,0 +1,36 @@
+---
+galaxy_info:
+  role_name: syscert
+  namespace: tfindley
+  author: Tristan Findley
+  description: >-
+    Install and configure SysCert — a least-privilege systemd service that gives a
+    host its own auto-renewing TLS certificate (Let's Encrypt, HashiCorp Vault, or
+    Smallstep step-ca) and distributes it to local consumers.
+  company: ""
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+        - "10"
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+  galaxy_tags:
+    - tls
+    - ssl
+    - acme
+    - letsencrypt
+    - certificates
+    - vault
+    - stepca
+    - systemd
+    - pki
+
+dependencies: []

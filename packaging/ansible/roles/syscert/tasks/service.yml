@@ -1,0 +1,32 @@
+---
+- name: syscert.service - Install the syscert service unit
+  become: true
+  notify: syscert.handlers - Reload systemd
+  ansible.builtin.template:
+    src: syscert.service.j2
+    dest: /etc/systemd/system/syscert.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: syscert.service - Install the syscert timer unit
+  become: true
+  notify: syscert.handlers - Reload systemd
+  ansible.builtin.template:
+    src: syscert.timer.j2
+    dest: /etc/systemd/system/syscert.timer
+    owner: root
+    group: root
+    mode: "0644"
+
+# Reload systemd now (not at play end) so the timer is enabled/started against the
+# freshly written unit files. Required here — don't tidy this into the handler alone.
+- name: syscert.service - Apply pending unit changes
+  ansible.builtin.meta: flush_handlers
+
+- name: syscert.service - Enable and set the state of the syscert timer
+  become: true
+  ansible.builtin.systemd_service:
+    name: syscert.timer
+    enabled: "{{ syscert_timer_enabled }}"
+    state: "{{ 'started' if syscert_timer_state == 'started' else 'stopped' }}"

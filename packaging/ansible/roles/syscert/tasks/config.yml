@@ -1,0 +1,35 @@
+---
+- name: syscert.config - Create the configuration directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ syscert_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: syscert.config - Render the syscert configuration
+  become: true
+  ansible.builtin.template:
+    src: syscert.toml.j2
+    dest: "{{ syscert_config_path }}"
+    owner: root
+    group: "{{ syscert_group }}"
+    mode: "0640"
+
+- name: syscert.config - Render the operator environment file
+  become: true
+  ansible.builtin.template:
+    src: etc-default-syscert.j2
+    dest: "{{ syscert_defaults_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: syscert.config - Validate the rendered configuration with syscert
+  when: not ansible_check_mode
+  become: true
+  become_user: "{{ syscert_user }}"
+  changed_when: false
+  ansible.builtin.command:
+    cmd: "{{ syscert_bin_path }} dry-run --config-only --config {{ syscert_config_path }}"

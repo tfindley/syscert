@@ -1,0 +1,13 @@
+---
+# Strictest profile — the role is expected to be fully clean.
+profile: production
+
+# The role uses a "{role}.{taskfile} - description" task-naming convention (lowercase
+# role prefix) so a task's origin is obvious in a large playbook run / when debugging.
+# That conflicts with name[casing] (which wants an uppercase first letter), so we opt
+# out of just that one rule; every other production rule is enforced.
+skip_list:
+  - name[casing]
+
+exclude_paths:
+  - .venv/

@@ -1,0 +1,26 @@
+---
+# vars/main.yml — internal, computed values (not meant to be overridden).
+# Still syscert_-prefixed to satisfy ansible-lint var-naming. Lazily evaluated,
+# so the play must gather facts (ansible_architecture, selinux, fqdn).
+
+# Map Ansible's architecture fact to the release asset suffix.
+syscert_arch_map:
+  x86_64: amd64
+  aarch64: arm64
+syscert_arch: "{{ syscert_arch_map[ansible_architecture] | default('') }}"
+syscert_release_filename: "syscert-linux-{{ syscert_arch }}"
+syscert_release_url: "{{ syscert_download_base_url }}/{{ syscert_version | default('') }}/{{ syscert_release_filename }}"
+syscert_sums_url: "{{ syscert_download_base_url }}/{{ syscert_version | default('') }}/sha256sums.txt"
+
+# True when SELinux is enforcing/permissive (so file ops set contexts and the
+# binary is pinned to bin_t).
+syscert_selinux_enabled: "{{ (ansible_facts.selinux.status | default('disabled')) == 'enabled' }}"
+
+# Effective challenge serves on :80/:443 → the service needs CAP_NET_BIND_SERVICE.
+# (IP SANs auto-switch a DNS challenge to http-01 — keep in sync with config.EffectiveChallenge.)
+syscert_serves_inbound: "{{ syscert_acme_challenge in ['http-01', 'tls-alpn-01'] or (syscert_cert_ip_sans | length > 0) }}"
+# Operator override (space-separated) wins; otherwise CAP_CHOWN, plus CAP_NET_BIND_SERVICE when inbound.
+syscert_capabilities: >-
+  {{ syscert_service_ambient_capabilities.split()
+     if (syscert_service_ambient_capabilities | length > 0)
+     else ['CAP_CHOWN'] + (['CAP_NET_BIND_SERVICE'] if syscert_serves_inbound else []) }}

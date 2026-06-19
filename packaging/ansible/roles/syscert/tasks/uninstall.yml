@@ -1,0 +1,58 @@
+---
+- name: syscert.uninstall - Stop and disable the syscert timer
+  become: true
+  failed_when: false
+  ansible.builtin.systemd_service:
+    name: syscert.timer
+    enabled: false
+    state: stopped
+
+- name: syscert.uninstall - Remove the systemd units
+  become: true
+  notify: syscert.handlers - Reload systemd
+  loop:
+    - /etc/systemd/system/syscert.timer
+    - /etc/systemd/system/syscert.service
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+
+- name: syscert.uninstall - Remove the binary
+  become: true
+  ansible.builtin.file:
+    path: "{{ syscert_bin_path }}"
+    state: absent
+
+# Reload systemd now so the daemon forgets the removed units within this run.
+- name: syscert.uninstall - Apply unit removal
+  ansible.builtin.meta: flush_handlers
+
+- name: syscert.uninstall - Purge the store, config, and operator environment
+  when: syscert_purge
+  become: true
+  loop:
+    - "{{ syscert_store_path }}"
+    - "{{ syscert_config_dir }}"
+    - "{{ syscert_defaults_path }}"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+
+- name: syscert.uninstall - Remove the syscert user
+  when:
+    - syscert_purge
+    - syscert_manage_user
+  become: true
+  ansible.builtin.user:
+    name: "{{ syscert_user }}"
+    state: absent
+    remove: false
+
+- name: syscert.uninstall - Remove the syscert group
+  when:
+    - syscert_purge
+    - syscert_manage_user
+  become: true
+  ansible.builtin.group:
+    name: "{{ syscert_group }}"
+    state: absent

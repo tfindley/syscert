@@ -1,0 +1,43 @@
+{{ ansible_managed | comment }}
+# syscert — hostname-based system TLS certificate service (oneshot, timer-driven).
+# Keep the hardening block (ADR-0028) in sync with packaging/systemd/syscert.service.
+{% set caps = syscert_capabilities | join(' ') %}
+
+[Unit]
+Description=SysCert — ensure system TLS certificate is issued, renewed, and distributed
+Documentation=https://github.com/tfindley/syscert
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User={{ syscert_user }}
+Group={{ syscert_group }}
+EnvironmentFile=-{{ syscert_defaults_path }}
+EnvironmentFile=-{{ syscert_secrets_path }}
+ExecStart={{ syscert_bin_path }}{{ (' ' ~ syscert_service_exec_extra_args) if syscert_service_exec_extra_args | length > 0 else '' }}
+
+# Hardening (ADR-0028)
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths={{ syscert_store_path }}
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# CAP_CHOWN lets distribution set target ownership; CAP_NET_BIND_SERVICE is added
+# automatically when the challenge serves on :80/:443 (http-01/tls-alpn-01 or IP SANs).
+AmbientCapabilities={{ caps }}
+CapabilityBoundingSet={{ caps }}
+
+# No [Install]: triggered by syscert.timer, not enabled directly.
