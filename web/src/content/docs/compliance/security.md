@@ -2,8 +2,8 @@
 title: Security assessment
 navLabel: Security
 description: SysCert's published security assessment and risk register — static analysis (go vet, gosec, govulncheck), binary hardening, controls by domain, findings, residual-risk register, and control-framework mapping.
-order: 9
-eyebrow: "// docs · security"
+order: 1
+eyebrow: "// docs · compliance · security"
 lede: A published, tool-backed security assessment of the SysCert Go application and release binary — with a full risk register, so you can review the posture before you deploy.
 ---
 
