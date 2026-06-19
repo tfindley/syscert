@@ -2,7 +2,7 @@
 title: Frequently asked questions
 navLabel: FAQ
 description: FAQ about syscert — how it differs from certbot, which CAs and challenges it supports, how it delivers certs, renewal, the trust store, security, and supported platforms.
-order: 11
+order: 12
 eyebrow: "// docs · faq"
 lede: Short answers to the things people ask most. For depth, follow the links into the rest of the docs.
 ---
