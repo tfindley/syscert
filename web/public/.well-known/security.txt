@@ -1,0 +1,7 @@
+# SysCert security contact (RFC 9116). Report vulnerabilities here.
+Contact: https://github.com/tfindley/syscert/security/advisories/new
+Contact: https://github.com/tfindley/syscert/issues
+Expires: 2027-06-19T00:00:00Z
+Policy: https://github.com/tfindley/syscert/blob/main/SECURITY.md
+Canonical: https://syscert.tfindley.dev/.well-known/security.txt
+Preferred-Languages: en
