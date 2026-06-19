@@ -23,6 +23,9 @@ the building blocks it automates — pick the route that fits.
   **without systemd** (e.g. Asustor ADM): schedule `syscert` from cron instead of the
   systemd timer.
 
+**Already installed?** See [Upgrading](/docs/advanced-install/upgrading/) — an in-place binary swap
+that preserves your config and certificates.
+
 ## Uninstall
 
 Installed with the one-liner? Remove it the same way — no clone needed:
