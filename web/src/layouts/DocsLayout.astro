@@ -34,7 +34,7 @@ const topLevel = docs
   .map((d) => ({ id: d.id, order: d.data.order ?? 99, label: navLabel(d), href: `/docs/${d.id}/`, children: childrenOf.get(d.id) ?? [] }));
 // Changelog isn't a docs/ page (it renders CHANGELOG.md), but belongs in the nav — give
 // it an order so it slots in by position (between Roadmap and FAQ) rather than always last.
-topLevel.push({ id: "changelog", order: 10, label: "Changelog", href: "/changelog/", children: [] });
+topLevel.push({ id: "changelog", order: 11, label: "Changelog", href: "/changelog/", children: [] });
 const items = topLevel.sort((a, b) => a.order - b.order);
 
 const path = Astro.url.pathname.replace(/\/$/, "");
