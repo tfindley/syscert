@@ -22,7 +22,7 @@ type Problem struct {
 
 var (
 	validCAs               = map[string]bool{"letsencrypt": true, "custom": true}
-	validChallenges        = map[string]bool{"dns-01": true, "http-01": true, "tls-alpn-01": true, "dns-persist-01": true}
+	validChallenges        = map[string]bool{"dns-01": true, "http-01": true, "tls-alpn-01": true}
 	validKeyTypes          = map[string]bool{"ec256": true, "ec384": true, "rsa2048": true, "rsa4096": true}
 	validArtifacts         = map[string]bool{"cert": true, "privkey": true, "chain": true, "fullchain": true, "bundle": true}
 	keyBearing             = map[string]bool{"privkey": true, "bundle": true}
@@ -71,8 +71,16 @@ func Config(cfg *config.Config) []Problem {
 		}
 	}
 
-	// Challenge + key type are from fixed sets.
-	if !validChallenges[cfg.ACME.Challenge] {
+	// Challenge + key type are from fixed sets. dns-persist-01 is recognised but
+	// not yet implemented (blocked on upstream support — lego ships no unattended
+	// persistent-DNS provider and CA support is still rolling out), so it gets a
+	// specific message rather than the generic "unknown challenge" list. Checked
+	// against the raw configured value so it fires even when ip_sans are set (it is
+	// never silently switched away).
+	switch {
+	case cfg.ACME.Challenge == "dns-persist-01":
+		add("acme.challenge", "challenge \"dns-persist-01\" is recognised but not yet implemented — it is blocked on upstream support (lego ships no unattended persistent-DNS provider, and CA support is still rolling out); use dns-01, http-01, or tls-alpn-01 (see the roadmap)")
+	case !validChallenges[cfg.ACME.Challenge]:
 		add("acme.challenge", fmt.Sprintf("unknown challenge %q", cfg.ACME.Challenge))
 	}
 	if !validKeyTypes[cfg.Cert.KeyType] {

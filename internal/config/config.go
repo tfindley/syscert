@@ -129,7 +129,7 @@ func IsInternalCA(ca string) bool { return ca != "" && !IsPublicCA(ca) }
 // (http-01 / tls-alpn-01) is kept as configured. (ADR-0015.)
 func (c *Config) EffectiveChallenge() string {
 	ch := c.ACME.Challenge
-	if len(c.Cert.IPSANs) > 0 && (ch == "dns-01" || ch == "dns-persist-01") {
+	if len(c.Cert.IPSANs) > 0 && ch == "dns-01" {
 		return "http-01"
 	}
 	return ch

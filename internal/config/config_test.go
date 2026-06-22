@@ -171,7 +171,6 @@ func TestEffectiveChallenge(t *testing.T) {
 	}{
 		{"no ip sans keeps dns-01", "dns-01", nil, "dns-01"},
 		{"ip san switches dns-01 to http-01", "dns-01", []string{"10.0.0.5"}, "http-01"},
-		{"ip san switches dns-persist-01 to http-01", "dns-persist-01", []string{"10.0.0.5"}, "http-01"},
 		{"ip san keeps tls-alpn-01", "tls-alpn-01", []string{"10.0.0.5"}, "tls-alpn-01"},
 		{"ip san keeps http-01", "http-01", []string{"10.0.0.5"}, "http-01"},
 	}

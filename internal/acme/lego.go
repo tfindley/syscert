@@ -219,8 +219,6 @@ func setSolver(client *lego.Client, p Params) error {
 		return client.Challenge.SetHTTP01Provider(http01.NewProviderServer("", "80"))
 	case "tls-alpn-01":
 		return client.Challenge.SetTLSALPN01Provider(tlsalpn01.NewProviderServer("", "443"))
-	case "dns-persist-01":
-		return fmt.Errorf("challenge %q is not wired into issuance yet", p.Challenge)
 	default:
 		return fmt.Errorf("unsupported challenge %q", p.Challenge)
 	}

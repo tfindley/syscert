@@ -45,9 +45,8 @@ email = "you@example.com"         # ACME account contact
 #   step-ca  https://ca.example.com:9000/acme/<provisioner>/directory
 # directory_url = ""
 
-challenge = "dns-01"              # dns-01 (default) | http-01 | tls-alpn-01 | dns-persist-01
+challenge = "dns-01"              # dns-01 (default) | http-01 | tls-alpn-01
                                   # Auto-switched to http-01/tls-alpn-01 when cert.ip_sans is set.
-                                  # dns-persist-01 is opt-in and capability-checked at runtime.
 
 # ACME profile to request, e.g. "shortlived" (~6-day certs; required for public-CA
 # IP certs). Validated at runtime against the directory's meta.profiles.
@@ -58,7 +57,7 @@ challenge = "dns-01"              # dns-01 (default) | http-01 | tls-alpn-01 | d
 # warns when it's set. Afterwards run `syscert trust install` for host-wide trust.
 # ca_bundle = "/etc/syscert/internal-ca.pem"
 
-# DNS settings — used when challenge = "dns-01" or "dns-persist-01".
+# DNS settings — used when challenge = "dns-01".
 [acme.dns]
 provider = "cloudflare"           # any lego DNS-provider id (cloudflare, gandiv5, route53, …)
 # Credentials are NOT here — set the provider's env vars (see the header link).

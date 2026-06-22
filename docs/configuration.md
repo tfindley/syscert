@@ -47,7 +47,7 @@ key_type = "ec256"
 | `ca` | *required* | `letsencrypt` (public CA — built-in directory URLs + `--staging`) · `custom` (any internal/other ACME CA: Vault, step-ca, … set via `directory_url`). |
 | `directory_url` | per-CA | The ACME directory endpoint URL. **Required** when `ca = "custom"`; for `letsencrypt` it defaults to production. |
 | `email` | *required* | ACME account contact address. |
-| `challenge` | `dns-01` | `dns-01` · `http-01` · `tls-alpn-01` · `dns-persist-01`. Auto-switched to http-01/tls-alpn-01 when `ip_sans` is set; `dns-persist-01` is opt-in and capability-checked at runtime. **http-01/tls-alpn-01 need the CA to reach this host on inbound :80/:443**; dns-01 needs no inbound ports. |
+| `challenge` | `dns-01` | `dns-01` · `http-01` · `tls-alpn-01`. Auto-switched to http-01/tls-alpn-01 when `ip_sans` is set. **http-01/tls-alpn-01 need the CA to reach this host on inbound :80/:443**; dns-01 needs no inbound ports. |
 | `profile` | `""` | ACME profile to request (e.g. `shortlived` → ~6-day certs, required for public-CA IP certs). Validated at runtime against the directory's `meta.profiles`. |
 | `ca_bundle` | `""` | Path to a PEM of the internal CA to trust **for the ACME connection only** (not the system store). Bootstraps issuance against a Vault/step-ca the host doesn't trust yet; syscert warns when it's set. See [Troubleshooting](/docs/troubleshooting/#x509-unknown-authority-against-an-internal-ca). |
 
@@ -81,7 +81,7 @@ challenge     = "http-01"
 
 ## `[acme.dns]` — DNS provider + credentials
 
-Used only when `challenge` is `dns-01` or `dns-persist-01`.
+Used only when `challenge` is `dns-01`.
 
 | Key | Default | Description |
 |---|---|---|
