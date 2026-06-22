@@ -43,6 +43,35 @@ func TestRejectsUnknownChallenge(t *testing.T) {
 	}
 }
 
+func TestRejectsDNSPersistChallenge(t *testing.T) {
+	// dns-persist-01 is recognised but blocked on upstream support — it must be
+	// rejected at config-validation time with a specific, friendly message on
+	// acme.challenge, not the generic "unknown challenge" list.
+	c := baseConfig()
+	c.ACME.Challenge = "dns-persist-01"
+	ps := Config(c)
+	if !hasProblem(ps, "not yet implemented") {
+		t.Fatalf("dns-persist-01: want a 'not yet implemented' problem, got %+v", ps)
+	}
+	if hasProblem(ps, "unknown challenge") {
+		t.Fatalf("dns-persist-01: should get the specific message, not the generic 'unknown challenge', got %+v", ps)
+	}
+}
+
+func TestRejectsDNSPersistChallengeEvenWithIPSANs(t *testing.T) {
+	// With ip_sans set, a dns-* challenge would normally auto-switch to http-01,
+	// but dns-persist-01 must NOT be silently switched away — the raw configured
+	// value is still rejected with the not-yet-implemented message.
+	c := baseConfig()
+	c.ACME.CA = "custom"
+	c.ACME.DirectoryURL = "https://vault.example.com/v1/pki/acme/directory"
+	c.Cert.IPSANs = []string{"10.0.0.5"}
+	c.ACME.Challenge = "dns-persist-01"
+	if ps := Config(c); !hasProblem(ps, "not yet implemented") {
+		t.Fatalf("dns-persist-01 + ip_sans: want a 'not yet implemented' problem (not switched away), got %+v", ps)
+	}
+}
+
 func TestAllowsIPSANWithDNSChallenge(t *testing.T) {
 	// IP SAN + dns-01 is NOT an error: the challenge auto-switches to http-01
 	// (config.EffectiveChallenge / ADR-0015), so the validator must not reject it.

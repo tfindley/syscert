@@ -31,10 +31,13 @@ lede: Where syscert is and where it's going. It's pre-1.0 — this is the direct
 
 - **Ansible role** — fleet installs that perform the same steps as `install.sh`,
   for managing many hosts at once.
-- **IP-SAN hardening** — smoothing the public-CA `shortlived` profile path and the
-  Vault IPv4/IPv6 specifics for certificates with IP Subject Alternative Names.
-- **`dns-persist-01`** — wired as opt-in and capability-checked; moves from
-  experimental to supported as CA availability lands.
+- **IP-SAN hardening** — the public-CA `shortlived` profile path and the Vault
+  specifics for certificates with IP Subject Alternative Names (IPv4 is the
+  supported path).
+- **Reissue on config drift** — when the certificate's configuration changes
+  (SANs, IP-SANs, key type, profile), reissue on the next scheduled run instead of
+  only at expiry. Today a changed config is applied by forcing a renewal
+  (`renew --force`); this would make the timer detect the drift and act on its own.
 
 ## Planned for 1.0
 
@@ -43,6 +46,19 @@ lede: Where syscert is and where it's going. It's pre-1.0 — this is the direct
 - **Broader distro coverage** beyond the tested Debian/Ubuntu and RHEL families.
 - **Hardening pass** — vulnerability and static-analysis gates in CI, an SBOM, and
   a documented risk review per release.
+
+## Waiting on upstream
+
+Capabilities we intend to ship but that are blocked on support landing in our
+dependencies or the CAs — listed separately from **Next** because the blocker
+isn't ours to fix:
+
+- **`dns-persist-01`** — needs (1) the lego ACME library to expose a
+  non-interactive persistent-DNS provider (current releases ship only a
+  manual/stdin one, unusable for an unattended service), and (2) CA support
+  (Let's Encrypt is still rolling it out; HashiCorp Vault's ACME doesn't offer
+  it). syscert accepts the config keyword but refuses it with a clear message
+  until both land.
 
 ## Not planned
 

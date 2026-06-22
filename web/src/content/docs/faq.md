@@ -44,8 +44,8 @@ Smallstep step-ca. See [Configuration](/docs/configuration/#which-directory_url-
 ### Which challenge types work?
 
 `dns-01` (default, needs no inbound ports), `http-01` and `tls-alpn-01` (CA must
-reach :80/:443), and opt-in `dns-persist-01`. Vault, step-ca, and Let's Encrypt
-all support `dns-01`/`http-01`/`tls-alpn-01`. Setting `ip_sans` auto-switches to
+reach :80/:443). Vault, step-ca, and Let's Encrypt all support
+`dns-01`/`http-01`/`tls-alpn-01`. Setting `ip_sans` auto-switches to
 http-01/tls-alpn-01 (RFC 8738).
 
 ### What is EAB and do I need it?
