@@ -111,5 +111,3 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and 
 
 [Tristan Findley](https://tfindley.co.uk). If you'd like to support the project:
 [☕ Ko-fi](https://ko-fi.com/tfindley).
-</content>
-</invoke>

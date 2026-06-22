@@ -1,7 +1,7 @@
 ---
 title: Install as a cron job
 navLabel: As a cron job
-description: Run syscert on appliances and NAS boxes without systemd (e.g. Asustor ADM) by scheduling `syscert ensure` from cron — with --env-file for secrets and a low-privilege user where possible.
+description: Run syscert on appliances and NAS boxes without systemd (e.g. Asustor ADM) by scheduling `syscert` from cron — with --env-file for secrets and a low-privilege user where possible.
 order: 3
 eyebrow: "// docs · advanced install · cron"
 lede: No systemd? On an appliance or NAS, schedule syscert from cron. The binary is the same — only the scheduler changes.
@@ -40,10 +40,10 @@ Cron runs with a **minimal environment**, so load the secrets explicitly with
 
 ```sh
 # crontab -e — run daily at 03:17 (pick an odd minute so you're not on the hour)
-17 3 * * * /volume1/syscert/syscert ensure --config /volume1/syscert/syscert.toml --env-file /volume1/syscert/secrets >> /volume1/syscert/syscert.log 2>&1
+17 3 * * * /volume1/syscert/syscert --config /volume1/syscert/syscert.toml --env-file /volume1/syscert/secrets >> /volume1/syscert/syscert.log 2>&1
 ```
 
-`ensure` is the default action — issue if missing, renew if due, then distribute — and
+Bare `syscert` runs the default **ensure** action — issue if missing, renew if due, then distribute — and
 a **no-op when nothing is due**, so a daily run is cheap and safe. `--env-file` loads
 the credentials the systemd unit would otherwise get from `/etc/syscert/secrets`; an
 existing environment variable always wins, and values are never logged.

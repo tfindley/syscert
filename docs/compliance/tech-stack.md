@@ -21,7 +21,7 @@ short dependency list. Nothing to babysit, little to attack.
 | Logging | standard-library structured logging (`log/slog`) to stderr/journal |
 | Direct dependencies | **two** (`lego`, `toml`); the large transitive tree is lego's per-provider DNS SDKs |
 
-**Architecture.** A CLI (`syscert ensure|issue|renew|void|destroy|distribute|status|trust|dry-run`)
+**Architecture.** A CLI (bare `syscert` = ensure, plus `issue|renew|void|destroy|distribute|status|trust|dry-run`)
 over small internal packages: config load + **fail-fast validation**, an ACME client wrapper
 (lego), an atomic certificate **store** (`/var/lib/syscert`), **distribution** to consumer paths
 with per-target owner/mode/SELinux context, **renewal** decisioning, and system **trust**
@@ -61,7 +61,7 @@ Releases are reproducible (`-trimpath`, pinned `go.sum`, embedded VCS revision) 
 
 ## Licensing
 
-SysCert is released under the **MIT** license.
+SysCert is released under the **AGPL-3.0** license.
 
 ---
 

@@ -40,7 +40,7 @@ timer was never started, start it once: `sudo systemctl start syscert.timer`.
 | `/var/lib/syscert/` — ACME account key, certificates, archive | (SELinux labels re-applied; `daemon-reload` run) |
 
 Because the store and config survive, the existing **ACME account and certificate carry over** —
-the next `syscert ensure` continues issuing/renewing exactly as before.
+the next scheduled `syscert` run continues issuing/renewing exactly as before.
 
 ## From a source checkout or a downloaded binary
 
