@@ -37,11 +37,11 @@ your system; the script does, and it's idempotent. Point it at your downloaded o
 built binary:
 
 ```sh
-# need the packaging files? clone the repo (no Go required)
-git clone https://github.com/tfindley/syscert.git
+# need the packaging files? clone the repo into a named dir (no Go required)
+git clone https://github.com/tfindley/syscert.git syscert-src
 
 # point the installer at your downloaded or built binary (idempotent; needs root)
-sudo packaging/install.sh ./syscert
+sudo syscert-src/packaging/install.sh ./syscert
 ```
 
 It creates the `syscert` system user and `/var/lib/syscert` (`0700`), installs the
