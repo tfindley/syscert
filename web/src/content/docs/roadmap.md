@@ -34,6 +34,10 @@ lede: Where syscert is and where it's going. It's pre-1.0 — this is the direct
 - **IP-SAN hardening** — the public-CA `shortlived` profile path and the Vault
   specifics for certificates with IP Subject Alternative Names (IPv4 is the
   supported path).
+- **Reissue on config drift** — when the certificate's configuration changes
+  (SANs, IP-SANs, key type, profile), reissue on the next scheduled run instead of
+  only at expiry. Today a changed config is applied by forcing a renewal
+  (`renew --force`); this would make the timer detect the drift and act on its own.
 
 ## Planned for 1.0
 
