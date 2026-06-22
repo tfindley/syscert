@@ -2,7 +2,7 @@
 title: Procedures
 navLabel: Procedures
 description: Formal, self-contained operating procedures for syscert — designed to be importable into your own operational documentation.
-order: 7
+order: 8.5
 eyebrow: "// docs · procedures"
 lede: Concise, action-oriented SOPs for operating syscert. Each procedure is self-contained and designed to be imported into your own ops manual.
 ---
@@ -18,7 +18,7 @@ Each procedure is self-contained with a fixed structure: purpose, scope, prerequ
 steps with exact commands, verification, and rollback. They are intended to be copied or referenced
 directly from an operational runbook or ops manual.
 
-> **Combined download:** a single-file Markdown bundle of all procedures will be available here.
+> **Download all procedures:** [syscert-procedures.zip](/downloads/syscert-procedures.zip) — one Markdown file per procedure (named by Procedure ID, frontmatter stripped), ready to drop into your own ops manual.
 
 ## Procedure index
 

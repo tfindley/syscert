@@ -8,6 +8,7 @@
     "dev": "astro dev",
     "prebuild": "node scripts/vendor.mjs",
     "build": "astro build",
+    "postbuild": "node scripts/procedures-zip.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -21,6 +22,7 @@
     "tailwindcss": "^4.3.1"
   },
   "devDependencies": {
+    "adm-zip": "^0.5.17",
     "playwright": "^1.60.0"
   },
   "overrides": {
