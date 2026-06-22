@@ -116,6 +116,18 @@ if [ -x /tmp/syscert.pre ]; then
   [ -z "$miss" ] && gate PASS "cmd↔docs parity" "$(echo "$cmds" | wc -w | tr -d ' ') commands" \
                  || gate FAIL "cmd↔docs parity" "undocumented:$miss"
 
+  # backward parity: a command *named in an invocation* in the docs (`syscert <word> -…`)
+  # must actually exist — catches a documented-but-nonexistent command, e.g. the old
+  # `syscert ensure --config …` (ensure is the bare default, not a subcommand). Scans doc
+  # subdirs too (that bug lived in docs/advanced-install/cron.md); skips internal notes.
+  allowed=" $cmds version help syscert "
+  bogus=""
+  for n in $(grep -hoE 'syscert [a-z][a-z0-9-]+ +-' README.md $(find docs -name '*.md' -not -path 'docs/internal/*') 2>/dev/null | awk '{print $2}' | sort -u); do
+    case "$allowed" in *" $n "*) ;; *) bogus="$bogus $n" ;; esac
+  done
+  [ -z "$bogus" ] && gate PASS "docs→cmd parity (backward)" \
+                 || gate FAIL "docs→cmd parity (backward)" "docs name non-commands:$bogus"
+
   fmiss=""
   for f in --config --staging --force --config-only; do
     grep -q -- "$f" README.md docs/*.md 2>/dev/null || fmiss="$fmiss $f"

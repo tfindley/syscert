@@ -67,7 +67,7 @@ install_syscert() {
   fi
 
   if [ ! -e "$SECRETS_FILE" ]; then
-    log "Writing secrets template ${SECRETS_FILE} (0600)"
+    log "Writing secrets template ${SECRETS_FILE} (0640)"
     write_secrets_template
   else
     log "Keeping existing ${SECRETS_FILE}"
