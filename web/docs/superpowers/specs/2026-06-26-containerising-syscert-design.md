@@ -1,8 +1,23 @@
 # Design — Containerising syscert
 
 **Date:** 2026-06-26
-**Status:** Approved (brainstorm) — ready for implementation planning
-**Scope:** One cohesive feature ("run syscert in containers"), four components built in sequence.
+**Status:** Approved + validated (adversarial 6-agent review, 2026-06-26) → **rescoped for v1**.
+**Scope:** One cohesive feature ("run syscert in containers"), built in sequence.
+
+> **Validation outcome & rescope (authoritative build guide: the approved plan).** The review
+> greenlit this "sound-with-changes". Net changes to the four components below:
+> - **Component 2 (published image) is DEFERRED to 1.1+** — premature pre-1.0; users `COPY` the static
+>   binary into their own Dockerfile meanwhile. (When built: test distroless CA roots first + add a
+>   volume-perms fail-fast.)
+> - **dns-01 is the loud default. http-01/tls-alpn-01 stand up their own servers on :80/:443
+>   (no webroot mode) and CANNOT coexist with a co-located nginx/apache/Traefik** — they hard-fail
+>   with `address already in use`. Webroot http-01 is **out of scope** (use certbot `--webroot` or
+>   dns-01). The docs carry a prominent warning.
+> - **All three patterns ship**, but the **embedded** pattern carries an explicit single-responsibility
+>   trade-off note + a supervisor/restart mitigation, and **`reload-helper.sh` is optional/advanced**
+>   (recommend app-native reload first).
+> - **`--interval` is reconciled with ADR-0033 via a new ADR-0046** (container/appliance scheduler, not
+>   a service daemon; host/systemd path unchanged) + real SIGTERM/SIGINT handling.
 
 ## Motivation
 

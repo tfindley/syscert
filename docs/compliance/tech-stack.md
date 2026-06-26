@@ -25,8 +25,10 @@ short dependency list. Nothing to babysit, little to attack.
 over small internal packages: config load + **fail-fast validation**, an ACME client wrapper
 (lego), an atomic certificate **store** (`/var/lib/syscert`), **distribution** to consumer paths
 with per-target owner/mode/SELinux context, **renewal** decisioning, and system **trust**
-management. There is **no long-running daemon** — a systemd **oneshot + timer** runs the binary on
-a schedule.
+management. The default model is **no long-running daemon** — a systemd **oneshot + timer** runs
+the binary on a schedule. `--interval <duration>` (env `SYSCERT_INTERVAL`) adds an in-process
+renewal loop for non-systemd contexts (containers, appliances) without changing the host model;
+one-shot (no flag) remains the default.
 
 **Runtime model.** Runs as a dedicated, non-root **`syscert`** system user under a hardened
 systemd unit (`NoNewPrivileges`, `ProtectSystem=strict`, `MemoryDenyWriteExecute`, a single

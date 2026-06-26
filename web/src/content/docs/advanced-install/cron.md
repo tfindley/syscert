@@ -64,6 +64,24 @@ and you later invoke syscert as a different user — including root over a
 non-root-owned store — syscert refuses early rather than creating files the original
 owner can't renew. Always run syscert as the same user that owns the store directory.
 
+## Alternative: `--interval` instead of crond
+
+If the appliance runs a container or lacks a reliable cron daemon, the `--interval` flag is an
+alternative to an external scheduler. `syscert --interval 12h` runs the ensure loop in-process:
+
+```sh
+/volume1/syscert/syscert --interval 12h --config /volume1/syscert/syscert.toml \
+  --env-file /volume1/syscert/secrets >> /volume1/syscert/syscert.log 2>&1 &
+```
+
+Start this in an init script or a startup hook and the process self-schedules. `SIGTERM` shuts it
+down cleanly (it finishes the current cycle, then exits). Minimum interval is `1m`; the
+environment variable `SYSCERT_INTERVAL` is equivalent to the flag.
+
+This is also the model used in [container setups](/docs/containerisation/) where cron is not
+available. The cron approach above remains the right choice when the appliance already has a
+reliable task scheduler.
+
 ## No reload hooks, no journal
 
 SysCert never restarts your services — each consumer watches its own certificate file

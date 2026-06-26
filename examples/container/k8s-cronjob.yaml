@@ -1,0 +1,79 @@
+# syscert Kubernetes CronJob — RECOMMENDED for k8s
+# ------------------------------------------------------------------------------
+# Runs syscert as a one-shot Job on a schedule via a Kubernetes CronJob.
+# The cert is written to a PersistentVolumeClaim shared with the app pod.
+#
+# This is the k8s-native equivalent of compose.scheduled.yml: no --interval,
+# no long-running process, easy to monitor via job history.
+#
+# dns-01 is the default — needs no inbound ports and no special NetworkPolicy.
+# Secrets are delivered via a Kubernetes Secret (never in the image).
+#
+# Adjust the namespace, schedule, image, PVC name, and secret name to match
+# your environment.
+# ------------------------------------------------------------------------------
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: syscert
+  namespace: default
+spec:
+  schedule: "17 3 * * *"       # daily at 03:17 — pick an odd minute
+  concurrencyPolicy: Forbid     # never run two renewal jobs at once
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000       # ensures the cert PVC is writable by uid 1000
+          containers:
+            - name: syscert
+              image: your-registry/syscert:latest  # image containing the syscert binary
+              args:
+                - syscert
+                - --config
+                - /etc/syscert/syscert.toml
+              env:
+                # DNS-provider credentials from a Kubernetes Secret.
+                # Create with: kubectl create secret generic syscert-dns-creds \
+                #   --from-literal=CLOUDFLARE_DNS_API_TOKEN=your-token
+                - name: CLOUDFLARE_DNS_API_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: syscert-dns-creds
+                      key: CLOUDFLARE_DNS_API_TOKEN
+              volumeMounts:
+                - name: config
+                  mountPath: /etc/syscert
+                  readOnly: true
+                - name: cert-store
+                  mountPath: /var/lib/syscert  # store — must be writable (fsGroup covers it)
+          volumes:
+            - name: config
+              configMap:
+                name: syscert-config  # create from syscert.toml: kubectl create configmap syscert-config --from-file=syscert.toml
+            - name: cert-store
+              persistentVolumeClaim:
+                claimName: syscert-cert-store  # shared with the app pod (ReadWriteMany or separate)
+
+---
+# Example PVC for the cert store.
+# The app deployment mounts this same PVC read-only.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: syscert-cert-store
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi

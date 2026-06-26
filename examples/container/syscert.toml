@@ -1,0 +1,49 @@
+# syscert container config — used by compose.sidecar.yml / compose.scheduled.yml
+# ------------------------------------------------------------------------------
+# dns-01 is the right challenge for containers — no inbound ports required, and
+# cannot conflict with nginx/apache/Traefik already on :80/:443.
+#
+# Secrets never go in this file. Pass them via --env-file or Docker secrets:
+#   CLOUDFLARE_DNS_API_TOKEN=your-token   (or your provider's variable name)
+#
+# Look up provider variable names: https://go-acme.github.io/lego/dns/
+# Full annotated reference: examples/full.toml
+
+[cert]
+hostname = "app.example.com"   # your container's public hostname
+
+[acme]
+ca        = "letsencrypt"      # or "custom" for Vault / step-ca
+email     = "ops@example.com"
+challenge = "dns-01"
+
+[acme.dns]
+provider = "cloudflare"        # creds via env — CLOUDFLARE_DNS_API_TOKEN
+
+# Internal CA (Vault / step-ca)? Use:
+#   ca            = "custom"
+#   directory_url = "https://vault.example.com:8200/v1/pki/acme/directory"
+#   ca_bundle     = "/etc/syscert/vault-ca.pem"   # if Vault is not yet trusted
+
+[store]
+path = "/var/lib/syscert"      # the mounted cert volume
+
+# Distribute into the shared cert volume for nginx to read.
+# The sidecar pattern mounts this same volume into nginx read-only.
+[[distribute]]
+artifact = "fullchain"
+path     = "/var/lib/syscert/dist/fullchain.pem"
+owner    = ""     # leave empty — syscert user owns the volume
+group    = ""
+mode     = "0644"
+
+[[distribute]]
+artifact = "privkey"
+path     = "/var/lib/syscert/dist/privkey.pem"
+owner    = ""
+group    = ""
+mode     = "0600"
+
+[logging]
+level  = "info"
+format = "json"   # structured JSON suits container log aggregators
