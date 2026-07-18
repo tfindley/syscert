@@ -1,11 +1,11 @@
 ---
 const commands = [
-  { cmd: "syscert ensure", def: true, d: "The default. Issue if missing, renew if due, then distribute." },
+  { cmd: "syscert", def: true, d: "The default. Issue if missing, renew if due, then distribute." },
   { cmd: "syscert issue", d: "Force a fresh certificate now." },
   { cmd: "syscert renew", d: "Renew if inside the renewal window." },
   { cmd: "syscert distribute", d: "Copy artifacts to their consumer paths." },
-  { cmd: "syscert dry-run", d: "Show exactly what would happen — change nothing." },
-  { cmd: "syscert status", d: "Show the stored cert's dates, account, and targets — offline." },
+  { cmd: "syscert dry-run", d: "Show exactly what would happen, change nothing." },
+  { cmd: "syscert status", d: "Show the stored cert's dates, account, and targets. Offline." },
   { cmd: "syscert void", d: "Revoke the current certificate, then reissue." },
   { cmd: "syscert destroy", d: "Wipe local cert + account state (no revoke); --keep-account keeps the account." },
   { cmd: "syscert trust install", d: "Add the CA to the system trust store (and remove)." },

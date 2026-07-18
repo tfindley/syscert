@@ -1,24 +1,23 @@
 ---
 title: Procedures
 navLabel: Procedures
-description: Formal, self-contained operating procedures for syscert — designed to be importable into your own operational documentation.
+description: Formal, self-contained operating procedures for syscert, built to drop straight into your own operational documentation.
 order: 8.5
 eyebrow: "// docs · procedures"
-lede: Concise, action-oriented SOPs for operating syscert. Each procedure is self-contained and designed to be imported into your own ops manual.
+lede: Short, do-this-now SOPs for operating syscert. Each one stands alone and is built to drop into your own ops manual.
 ---
 
-These are formal operating procedures for syscert — the terse "do this now" layer. They are not a
-substitute for the rest of the documentation: the explanatory *what* and *why* live in
-[Quick start](/docs/quick-start/), [Configuration](/docs/configuration/),
-[Advanced install](/docs/advanced-install/), [Distributing certs](/docs/distributing/), and
-[Troubleshooting](/docs/troubleshooting/). Each procedure cross-links into those docs rather than
-repeating the detail.
+These are formal operating procedures for syscert, the terse "do this now" layer. They don't replace
+the rest of the docs. The explanatory *what* and *why* live in [Quick start](/docs/quick-start/),
+[Configuration](/docs/configuration/), [Advanced install](/docs/advanced-install/),
+[Distributing certs](/docs/distributing/), and [Troubleshooting](/docs/troubleshooting/), and each
+procedure links back into those instead of repeating the detail.
 
-Each procedure is self-contained with a fixed structure: purpose, scope, prerequisites, numbered
-steps with exact commands, verification, and rollback. They are intended to be copied or referenced
-directly from an operational runbook or ops manual.
+Every procedure follows the same fixed structure: purpose, scope, prerequisites, numbered steps with
+exact commands, verification, and rollback. Copy one straight into a runbook, or reference it from
+your ops manual.
 
-> **Download all procedures:** [syscert-procedures.zip](/downloads/syscert-procedures.zip) — one Markdown file per procedure (named by Procedure ID, frontmatter stripped), ready to drop into your own ops manual.
+> **Download all procedures:** [syscert-procedures.zip](/downloads/syscert-procedures.zip) gives you one Markdown file per procedure (named by Procedure ID, frontmatter stripped), ready to drop into your own ops manual.
 
 ## Procedure index
 

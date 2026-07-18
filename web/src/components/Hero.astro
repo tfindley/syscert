@@ -21,9 +21,9 @@ const release = await getRelease();
 
       <p class="hero-sub reveal d-150">
         One static binary and a <code>systemd</code> timer. Every Linux host gets its own
-        auto-renewing certificate — from <strong>Let's Encrypt</strong>, <strong>Vault</strong>, or
-        <strong>step-ca</strong> — delivered to nginx, HAProxy, Cockpit &amp; co. with the exact
-        owner, mode, and SELinux context each needs.
+        auto-renewing certificate, issued by <strong>Let's Encrypt</strong>, <strong>Vault</strong>, or
+        <strong>step-ca</strong> and dropped where nginx, HAProxy, Cockpit &amp; co. read it, with the
+        exact owner, mode, and SELinux context each one needs.
       </p>
 
       <div class="reveal d-210">
@@ -54,7 +54,7 @@ const release = await getRelease();
         </div>
         <div class="term-body code">
           <div><span class="c-cmt">#</span> the default action — issue, renew, distribute</div>
-          <div><span class="c-str">$</span> syscert ensure</div>
+          <div><span class="c-str">$</span> syscert</div>
           <div class="term-out">==&gt; host    <span class="c-key">centauri.example.com</span></div>
           <div class="term-out">==&gt; ca      <span class="c-key">letsencrypt</span> · challenge <span class="c-key">dns-01</span></div>
           <div class="term-out">==&gt; issue   leaf + chain + bundle <span class="ok">✓</span></div>

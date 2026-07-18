@@ -2,10 +2,10 @@
 
 ## Reporting a vulnerability
 
-Please report security vulnerabilities via the [GitHub Issues tracker](https://github.com/tfindley/syscert/issues). For sensitive disclosures, contact the maintainer directly via the profile linked in the README.
+Report security vulnerabilities through the [GitHub Issues tracker](https://github.com/tfindley/syscert/issues). If a disclosure is sensitive, contact the maintainer directly using the profile linked from the README.
 
 ## Security assessment
 
-A published, tool-backed security assessment and risk register is maintained at
-[docs/compliance/security.md](docs/compliance/security.md) (rendered at <https://syscert.tfindley.dev/docs/compliance/security/>).
-It is re-run on every release via `scripts/prerelease.sh` (`gosec` + `govulncheck` + tests).
+The security assessment and risk register live at
+[docs/compliance/security.md](docs/compliance/security.md), rendered at <https://syscert.tfindley.dev/docs/compliance/security/>.
+Both are tool-backed, and every release re-runs them through `scripts/prerelease.sh` (`gosec`, `govulncheck`, and the tests).

@@ -1,10 +1,10 @@
 ---
 title: "SC-OPS-003: Force an immediate renewal"
 navLabel: "003 · Force an immediate renewal"
-description: Formal procedure for renewing the certificate immediately — bypassing the expiry window — without making any configuration change.
+description: How to renew the certificate right now, bypassing the expiry window, without touching the config.
 order: 3
 eyebrow: "// docs · procedures · SC-OPS-003"
-lede: Renew the certificate right now, regardless of how much time is left. No config change is needed — this is the expiry-bypass path only.
+lede: Renew the certificate right now, whatever's left on the clock. No config change needed; this is the expiry-bypass path only.
 ---
 
 | | |
@@ -16,20 +16,20 @@ lede: Renew the certificate right now, regardless of how much time is left. No c
 
 ## Purpose
 
-Place a new ACME order and replace the certificate immediately, without modifying the
-configuration and without waiting for the timer's expiry-driven renewal window.
+Place a new ACME order and swap in the certificate immediately. No config change, and no waiting
+for the timer's expiry-driven renewal window.
 
 ## Scope
 
-Covers the case where the certificate is valid but you need a fresh one now — for example,
-after a CA incident, a missed distribution, or a service restart that reloaded stale cached
-material. The configuration does **not** change.
+For when the certificate is still valid but you need a fresh one now. Maybe the CA had an
+incident, a distribution got missed, or a service restart reloaded stale cached material. The
+configuration does **not** change.
 
 Does **not** cover:
 
-- Changes to certificate identity (SANs, key type, etc.) — see [SC-OPS-002](/docs/procedures/change-cert-details/).
-- Revoking the current certificate before reissuing — see [SC-OPS-005](/docs/procedures/revoke-and-replace/).
-- Key-only rotation — see [SC-OPS-004](/docs/procedures/rotate-key/).
+- Changes to certificate identity like SANs or key type (see [SC-OPS-002](/docs/procedures/change-cert-details/)).
+- Revoking the current certificate before reissuing (see [SC-OPS-005](/docs/procedures/revoke-and-replace/)).
+- Key-only rotation (see [SC-OPS-004](/docs/procedures/rotate-key/)).
 
 ## Prerequisites
 
@@ -45,9 +45,8 @@ Does **not** cover:
 sudo -u syscert syscert renew --force --staging --env-file /etc/syscert/secrets
 ```
 
-This places an order against the CA's staging environment (Let's Encrypt only) and confirms
-the ACME round-trip succeeds without consuming production rate limits. Skip to step 2 when
-confident.
+This orders against the CA's staging environment (Let's Encrypt only), which confirms the ACME
+round-trip works without burning production rate limits. Skip to step 2 once you're confident.
 
 **2. Force a new ACME order.**
 
@@ -55,9 +54,9 @@ confident.
 sudo -u syscert syscert renew --force --env-file /etc/syscert/secrets
 ```
 
-`--force` bypasses the expiry check and places a new order immediately. The new certificate
-and a fresh keypair are written to the store (`/var/lib/syscert/`). If `[store] archive_keep`
-is set, the previous set is snapshotted first.
+`--force` skips the expiry check and places a new order straight away. The new certificate and
+a fresh keypair land in the store (`/var/lib/syscert/`). If `[store] archive_keep` is set, the
+previous set is snapshotted first.
 
 **3. Distribute to configured targets.**
 
@@ -65,8 +64,8 @@ is set, the previous set is snapshotted first.
 sudo -u syscert syscert distribute
 ```
 
-`renew --force` writes the store but does **not** push to the paths in your `[[distribute]]`
-blocks — the separate `distribute` step does that.
+`renew --force` writes the store, but it won't push to the paths in your `[[distribute]]`
+blocks. This separate `distribute` step does that.
 
 ## Verification
 
@@ -82,20 +81,20 @@ Check the expiry date on a distributed copy:
 openssl x509 -in /etc/nginx/tls/fullchain.pem -noout -enddate   # adjust to your path
 ```
 
-The `notAfter` date should reflect the newly issued certificate.
+The `notAfter` date should match the certificate you just issued.
 
 ## Rollback / recovery
 
-The previous certificate is overwritten in the store. If `[store] archive_keep > 0`, the
-snapshot is in `archive/<UTC-timestamp>/` inside the store and can be copied back manually.
-Otherwise, re-run `renew --force` if the new certificate has a problem, or restore from your
-own backup.
+The previous certificate is overwritten in the store. If `[store] archive_keep > 0`, its
+snapshot sits in `archive/<UTC-timestamp>/` inside the store, and you can copy it back by hand.
+Without an archive, re-run `renew --force` if the new certificate misbehaves, or restore from
+your own backup.
 
 ## Related procedures
 
-- [SC-OPS-002 — Change certificate details & reissue](/docs/procedures/change-cert-details/) — when you also need to change SANs or the key type.
-- [SC-OPS-004 — Rotate the private key](/docs/procedures/rotate-key/) — explicit key-rotation notes.
-- [SC-OPS-005 — Revoke and replace](/docs/procedures/revoke-and-replace/) — when the old certificate must be revoked first.
+- [SC-OPS-002 — Change certificate details & reissue](/docs/procedures/change-cert-details/): when you also need to change SANs or the key type.
+- [SC-OPS-004 — Rotate the private key](/docs/procedures/rotate-key/): the key-rotation specifics.
+- [SC-OPS-005 — Revoke and replace](/docs/procedures/revoke-and-replace/): when the old certificate has to be revoked first.
 
 **Explanatory docs:** [Configuration](/docs/configuration/) · [Distributing certs](/docs/distributing/) ·
 [Troubleshooting](/docs/troubleshooting/)

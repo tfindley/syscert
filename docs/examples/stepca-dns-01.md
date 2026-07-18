@@ -4,7 +4,7 @@ navLabel: step-ca · DNS-01
 description: A syscert.toml for an internal certificate from a Smallstep step-ca ACME provisioner via DNS-01.
 order: 6
 eyebrow: "// docs · sample configs"
-lede: Internal certificate from a step-ca ACME provisioner. step-ca supports all three challenges; this one uses dns-01, so no inbound :80/:443.
+lede: An internal certificate from a step-ca ACME provisioner. step-ca does all three challenges; this config picks dns-01, so nothing needs :80 or :443 open.
 ---
 
 ```toml
@@ -22,12 +22,12 @@ challenge     = "dns-01"
 provider = "cloudflare"            # creds via env: CLOUDFLARE_DNS_API_TOKEN
 ```
 
-- `directory_url` format: `https://<ca-host>:9000/acme/<provisioner>/directory`.
-- DNS-01 means no inbound ports — combine an internal CA with internal DNS.
-- If the provisioner has `requireEAB`, set `[acme.eab].kid` + `SYSCERT_EAB_HMAC`.
-- Bootstrap trust with `ca_bundle`, then `sudo syscert trust install`, the same as
-  Vault.
-- File: [`stepca-dns-01.toml`](https://github.com/tfindley/syscert/blob/main/examples/stepca-dns-01.toml)
+The `directory_url` follows `https://<ca-host>:9000/acme/<provisioner>/directory`. Using dns-01
+keeps every inbound port closed, which pairs well with an internal CA and internal DNS. If the
+provisioner sets `requireEAB`, add `[acme.eab].kid` and `SYSCERT_EAB_HMAC`. Trust bootstraps the
+same way as Vault: point `ca_bundle` at the CA, then run `sudo syscert trust install`.
 
-The shared `[store]` / `[[distribute]]` / `[logging]` tail is identical across every
-example — see [Sample configs](/docs/examples/).
+File: [`stepca-dns-01.toml`](https://github.com/tfindley/syscert/blob/main/examples/stepca-dns-01.toml)
+
+The `[store]`, `[[distribute]]` and `[logging]` tail is identical in every example; see
+[Sample configs](/docs/examples/).

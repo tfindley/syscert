@@ -4,15 +4,16 @@
 [![Release](https://github.com/tfindley/syscert/actions/workflows/release.yml/badge.svg)](https://github.com/tfindley/syscert/actions/workflows/release.yml)
 [![Web](https://github.com/tfindley/syscert/actions/workflows/web.yml/badge.svg)](https://github.com/tfindley/syscert/actions/workflows/web.yml)
 
-**Set-and-forget TLS for every machine.** SysCert is a small, least-privilege Linux service that
-gives a host its own TLS certificate — from **Let's Encrypt** or an internal **HashiCorp Vault** /
-**Smallstep `step-ca`** — keeps it renewed, and delivers it to local consumers (nginx, HAProxy,
-Cockpit, databases…) with the exact ownership, mode, and SELinux context each needs. A systemd timer
-keeps it fresh forever: no cron, no scripts, no cert babysitting. It's independent of any host
-`certbot`.
+**Every machine gets its own TLS certificate, then forgets about it.** SysCert is a small,
+least-privilege Linux service. It gives a host a certificate (from **Let's Encrypt**, or an internal
+CA like **HashiCorp Vault** or **Smallstep `step-ca`**), renews it before it lapses, and drops it
+where local consumers actually read it — nginx, HAProxy, Cockpit, a database — with the exact owner,
+mode, and SELinux context each one needs. A systemd timer keeps it current: no cron, no renewal
+scripts to babysit. And it doesn't touch, or need, a host `certbot`.
 
-It speaks ACME via [lego](https://go-acme.github.io/lego/) and writes certbot-compatible output
-(`cert.pem` / `privkey.pem` / `chain.pem` / `fullchain.pem`) plus an all-in-one `bundle.pem`.
+Under the hood it speaks ACME through [lego](https://go-acme.github.io/lego/) and writes the
+certbot-compatible files you already expect (`cert.pem`, `privkey.pem`, `chain.pem`, `fullchain.pem`),
+plus one `bundle.pem` with the lot in it.
 
 > **Project status: early (pre-1.0).** Working today: the full `syscert` CLI (the default *ensure*
 > plus `issue` / `renew` / `distribute` / `void` / `destroy` / `dry-run` / `trust install`/`remove`),
@@ -22,16 +23,19 @@ It speaks ACME via [lego](https://go-acme.github.io/lego/) and writes certbot-co
 
 ## Why
 
-You terminate public TLS at the edge (HAProxy, a load balancer). But the hop from there to your
-backends — and traffic between internal services — is often plaintext, or relies on hand-made certs
-that expire and page someone at 2 a.m. SysCert makes every host responsible for its own cert,
-automatically:
+You terminate public TLS at the edge — HAProxy, a load balancer, whatever sits out front. The hop
+from there to your backends, though, is usually plaintext, and so is the chatter between internal
+services. When it isn't, it's a hand-rolled cert that expires on a Sunday and pages someone at 2 a.m.
+SysCert hands that job to each host. The box owns its cert, and that's the end of it.
 
-- **Encrypt the edge→backend hop** — the backend gets its own cert, no lifecycle to manage.
-- **mTLS between services** — run it on both ends against an internal CA; `syscert trust install`
-  adds the CA to the system store so each side verifies the other.
-- **Admin UIs & data stores** — Cockpit, Postgres, Redis, internal APIs, metrics over TLS.
-- **Any host that should just have a valid, auto-renewing cert** without someone owning the renewal.
+Where it earns its keep:
+
+- Encrypting the edge-to-backend hop. The backend carries its own cert, with no separate lifecycle to
+  track.
+- mTLS between services. Run SysCert on both ends against an internal CA, and `syscert trust install`
+  puts that CA in the system store so each side can verify the other.
+- TLS on the admin and data plane: Cockpit, Postgres, Redis, internal APIs, metrics.
+- Or just any host that ought to have a valid, self-renewing cert without a person owning the renewal.
 
 ## Quick start
 
@@ -42,9 +46,9 @@ and arm64. One static binary and a systemd timer:
 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-This downloads the matching release binary, **verifies its checksum**, and runs the installer —
-creating the `syscert` user, `/var/lib/syscert`, starter config + secrets, the systemd units, and
-enabling (not starting) the timer. Then edit two files and you're done:
+That pulls the matching release binary, checks its checksum, and runs the installer: it creates the
+`syscert` user and `/var/lib/syscert`, writes a starter config and secrets file, installs the systemd
+units, and enables the timer without starting it. Then you edit two files:
 
 ```sh
 sudoedit /etc/syscert/syscert.toml      # subject, CA, challenge, distribute targets
@@ -55,13 +59,14 @@ sudo -u syscert syscert --staging --env-file /etc/syscert/secrets   # real run; 
 # happy? drop --staging, then: sudo systemctl start syscert.timer
 ```
 
-The full walkthrough — complete minimal config and what each step prints — is in the
-[Quick start guide](docs/quick-start.md). To inspect the script, verify checksums by hand, build from
-source, or install manually, see [Advanced install](docs/advanced-install.md).
+For the full walkthrough, a complete minimal config and what each command prints back, see the
+[Quick start guide](docs/quick-start.md). If you'd rather read the script first, check the checksums
+yourself, build from source, or install by hand, [Advanced install](docs/advanced-install.md) covers
+all of it.
 
-Uninstall the same way, no clone needed —
+Uninstalling works the same way, no clone required:
 `curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall` (add `--purge` to
-also remove certs/keys/config). Details in [Advanced install](docs/advanced-install.md#uninstall).
+take the certs, keys, and config with it). Details in [Advanced install](docs/advanced-install.md#uninstall).
 
 ## Commands
 
@@ -77,10 +82,10 @@ also remove certs/keys/config). Details in [Advanced install](docs/advanced-inst
 | `syscert destroy [--force]` | Wipe the stored cert + ACME account (provider switch). `--keep-account` drops only the cert — reissue with no new EAB token. |
 | `syscert status` | Show config + the stored cert's dates (issued/expiry/renewal), account, and distribute targets. Offline. |
 
-`--config` defaults to `/etc/syscert/syscert.toml` (or `$SYSCERT_CONFIG`). Secrets (DNS/CA tokens)
-always come from the **environment**, never the TOML, and are never logged. The systemd service
-loads them from `/etc/syscert/secrets`; for a manual run, pass `--env-file /etc/syscert/secrets`
-instead of exporting each one.
+`--config` defaults to `/etc/syscert/syscert.toml`, or `$SYSCERT_CONFIG` if you set it. Secrets — DNS
+and CA tokens — come from the environment, never the TOML, and never reach the logs. The systemd
+service reads them from `/etc/syscert/secrets`. For a one-off manual run, point `--env-file` at that
+same file instead of exporting each variable by hand.
 
 ## Documentation
 

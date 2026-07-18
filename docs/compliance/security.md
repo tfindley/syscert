@@ -29,7 +29,7 @@ SysCert is a small, single-purpose Go program that obtains an ACME/TLS certifica
 (Let's Encrypt, HashiCorp Vault PKI, or Smallstep step-ca), stores it under a locked
 syscert-owned directory, and copies the requested artefacts to local consumers with explicit
 ownership/mode/SELinux context. It runs **as a dedicated non-root system user on a systemd
-timer** — there is no long-running daemon and no inbound network surface in the default
+timer**, with no long-running daemon and no inbound network surface in the default
 (dns-01) configuration.
 
 The security posture is **strong for its size and stage**:
@@ -88,8 +88,8 @@ testing / dynamic analysis against a live CA.
    - archive/<UTC>/ (optional history)
 ```
 
-**Trust boundaries.** (a) Operator-supplied config/secrets are **trusted input** — written by
-root or the syscert user, validated fail-fast. (b) The CA is **TLS-authenticated** (system trust,
+**Trust boundaries.** (a) Operator-supplied config/secrets are **trusted input**, written by
+root or the syscert user and validated fail-fast. (b) The CA is **TLS-authenticated** (system trust,
 or an explicit connection-only `ca_bundle` to bootstrap an internal CA). (c) DNS-provider APIs are
 reached with operator-supplied credentials via lego. (d) Local consumers receive files but
 SysCert **never executes consumer code or reload hooks**.

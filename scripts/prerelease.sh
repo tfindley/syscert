@@ -120,7 +120,7 @@ if [ -x /tmp/syscert.pre ]; then
   # must actually exist — catches a documented-but-nonexistent command, e.g. the old
   # `syscert ensure --config …` (ensure is the bare default, not a subcommand). Scans doc
   # subdirs too (that bug lived in docs/advanced-install/cron.md); skips internal notes.
-  allowed=" $cmds version help syscert "
+  allowed=" $(echo "$cmds" | tr '\n' ' ')version help syscert "  # space-join $cmds (awk emits one per line) so the case-match below works
   bogus=""
   for n in $(grep -hoE 'syscert [a-z][a-z0-9-]+ +-' README.md $(find docs -name '*.md' -not -path 'docs/internal/*') 2>/dev/null | awk '{print $2}' | sort -u); do
     case "$allowed" in *" $n "*) ;; *) bogus="$bogus $n" ;; esac
