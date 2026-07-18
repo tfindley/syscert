@@ -64,7 +64,10 @@ isn't ours to fix:
 
 - `device-attest-01` and acting as a general multi-domain ACME client — syscert is
   deliberately one cert per host, not a fleet-wide certificate manager.
-- A long-running daemon — the systemd timer firing a one-shot binary is the model.
+- A long-running **host service daemon** — the systemd timer firing a one-shot binary is the
+  model for host installs. (The `--interval` flag provides an equivalent scheduler for
+  non-systemd contexts — containers and appliances — without changing the host model. See
+  [Containerisation](/docs/containerisation/) and ADR-0046.)
 
 ---
 

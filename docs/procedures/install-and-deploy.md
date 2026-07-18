@@ -181,4 +181,5 @@ curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall -
 - [SC-OPS-010 — Uninstall or purge](/docs/procedures/uninstall/) — full removal.
 
 **Explanatory docs:** [Quick start](/docs/quick-start/) · [Advanced install](/docs/advanced-install/) ·
-[Advanced install → Manually](/docs/advanced-install/manually/) · [Configuration](/docs/configuration/)
+[Advanced install → Manually](/docs/advanced-install/manually/) · [Configuration](/docs/configuration/) ·
+[Containerisation](/docs/containerisation/) (for container-based deployments instead of the systemd timer)
