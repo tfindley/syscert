@@ -5,7 +5,7 @@ export const SITE = {
   domain: "syscert.tfindley.dev",
   tagline: "Set-and-forget TLS for every machine.",
   description:
-    "syscert is a small, least-privilege Linux service that gives every host its own auto-renewing TLS certificate — from Let's Encrypt, HashiCorp Vault, or Smallstep step-ca — and delivers it to local consumers with the exact ownership, mode, and SELinux context each needs. One static binary and a systemd timer. No cron, no scripts, no cert babysitting.",
+    "syscert is a small, least-privilege Linux service that gives every host its own auto-renewing TLS certificate, from Let's Encrypt, HashiCorp Vault, or Smallstep step-ca, and delivers it to local consumers with the exact ownership, mode, and SELinux context each one needs. One static binary and a systemd timer. No cron, no renewal scripts to babysit.",
   status: "early · pre-1.0",
   version: "v0.0.6", // build-time fetch from GitHub Releases later; static fallback here
 } as const;

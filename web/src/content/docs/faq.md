@@ -11,27 +11,27 @@ lede: Short answers to the things people ask most. For depth, follow the links i
 
 ### What is syscert?
 
-A small, least-privilege Linux service that gives a host its own TLS certificate —
-from Let's Encrypt or an internal HashiCorp Vault / Smallstep step-ca — keeps it
-renewed via a systemd timer, and delivers it to local consumers (nginx, HAProxy,
-Cockpit, databases…) with the exact ownership, mode, and SELinux context each
-needs. One static binary, no daemon, no cron.
+A small, least-privilege Linux service that gives a host its own TLS certificate,
+from Let's Encrypt or an internal HashiCorp Vault or Smallstep step-ca. It keeps
+that cert renewed with a systemd timer and delivers it to local consumers (nginx,
+HAProxy, Cockpit, databases…) with the exact ownership, mode, and SELinux context
+each one needs. One static binary, no daemon, no cron.
 
 ### How is it different from certbot?
 
-syscert is independent of any host `certbot`. It speaks ACME via
+syscert is independent of any host `certbot`. It talks ACME via
 [lego](https://go-acme.github.io/lego/) (a large DNS-provider set), runs as a
-dedicated non-root user, and speaks to internal CAs (Vault, step-ca), not just
-public ones.
+dedicated non-root user, and works with internal CAs like Vault and step-ca, not
+just public ones.
 
-The crucial difference is **how certs reach non-root services.** certbot keeps them
+The big difference is **how certs reach non-root services.** certbot keeps them
 in `/etc/letsencrypt/archive/<domain>/` at `0700 root` and symlinks `live/<domain>/`
-into it — so a non-root daemon that follows `live` lands in a root-only directory and
+into it. So a non-root daemon that follows `live` lands in a root-only directory and
 **can't read its own cert** without group hacks or manual copies, and a renewal can
-silently re-break those permissions. syscert never symlinks: it keeps the store
+silently re-break those permissions. syscert never symlinks. It keeps the store
 locked but **delivers a real file** to each consumer's own path with the exact
-owner/mode/SELinux it needs (atomic overwrite gives the stable path certbot uses
-symlinks for — without the read trap). See [Distributing](/docs/distributing/).
+owner/mode/SELinux it needs; the atomic overwrite gives you the stable path certbot
+uses symlinks for, without the read trap. See [Distributing](/docs/distributing/).
 
 For a side-by-side table and an honest "when to use which" (including where certbot,
 Caddy/Traefik, or cert-manager is the better pick), see the [Comparison](/docs/comparison/).
@@ -40,9 +40,9 @@ Caddy/Traefik, or cert-manager is the better pick), see the [Comparison](/docs/c
 
 ### Which CAs are supported?
 
-Let's Encrypt (`ca = "letsencrypt"`), and any internal/other ACME CA via
-`ca = "custom"` + `directory_url` — validated against HashiCorp Vault PKI and
-Smallstep step-ca. See [Configuration](/docs/configuration/#which-directory_url-for-your-ca).
+Let's Encrypt (`ca = "letsencrypt"`), plus any internal or other ACME CA via
+`ca = "custom"` and `directory_url`. We've validated it against HashiCorp Vault PKI
+and Smallstep step-ca. See [Configuration](/docs/configuration/#which-directory_url-for-your-ca).
 
 ### Which challenge types work?
 
@@ -63,13 +63,13 @@ the `SYSCERT_EAB_HMAC` environment variable. See
 
 ### What files does syscert produce?
 
-Five certbot-compatible PEMs — `cert.pem`, `privkey.pem`, `chain.pem`,
-`fullchain.pem` — plus a configurable all-in-one `bundle.pem`. See
+Five certbot-compatible PEMs (`cert.pem`, `privkey.pem`, `chain.pem`,
+`fullchain.pem`), plus a configurable all-in-one `bundle.pem`. See
 [Distributing](/docs/distributing/#the-artifacts).
 
 ### Do I have to reload my services after renewal?
 
-No — and syscert won't do it for you. It writes files and never runs commands. Have
+No, and syscert won't do it for you. It writes files and never runs commands. Have
 each consumer watch its cert file and reload itself; a `systemd.path` unit is the
 clean way. See [Reloading services](/docs/reloading/).
 
@@ -82,9 +82,9 @@ needs with its own owner/group/mode.
 
 ### How often does it renew?
 
-The timer runs daily (with jitter); bare `syscert` renews only when the cert is due.
-The window is derived from the cert's lifetime by default — short-lived/IP certs
-renew ~daily, long-lived use a wide window. Override with
+The timer runs daily (with jitter), and bare `syscert` renews only when the cert is
+due. By default the window comes from the cert's lifetime: short-lived and IP certs
+renew about daily, long-lived ones use a wide window. Override it with
 `[renewal].renew_before = "30d"`.
 
 ### Can I renew or rotate right now?
@@ -107,10 +107,10 @@ needed for Let's Encrypt. Details in
 
 ### How are keys and secrets handled?
 
-Private keys live in the store at `0600` (owned by the `syscert` user) and are
-delivered with the tight mode each consumer specifies. A fresh keypair is generated
-on every renewal by default (`reuse_key` opts out). Provider/CA credentials are read
-from the environment — never the TOML — and are never logged. The systemd service
+Private keys live in the store at `0600` (owned by the `syscert` user) and go out
+with the tight mode each consumer specifies. By default syscert generates a fresh
+keypair on every renewal (`reuse_key` opts out). It reads provider and CA credentials
+from the environment, never from the TOML, and never logs them. The systemd service
 loads them from `/etc/syscert/secrets`; for a manual run, pass `--env-file
 /etc/syscert/secrets` (repeatable; the existing environment wins) rather than
 exporting each variable.
@@ -130,8 +130,8 @@ amd64 and arm64. The host needs systemd.
 
 ### Is there an Ansible role?
 
-Not yet — it's on the [roadmap](/docs/roadmap/) for fleet installs and will perform
-the same steps as `install.sh`. syscert is pre-1.0; expect rough edges and please
+Not yet. It's on the [roadmap](/docs/roadmap/) for fleet installs and will do the
+same steps as `install.sh`. syscert is pre-1.0, so expect rough edges, and please
 [report issues](https://github.com/tfindley/syscert/issues).
 
 ---

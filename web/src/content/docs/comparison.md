@@ -7,17 +7,17 @@ eyebrow: "// docs · comparison"
 lede: SysCert isn't trying to replace certbot. Here's the specific job it's built for — one host's system certificate, usually from internal PKI, delivered to local services with the right ownership and SELinux — and an honest guide to when another tool fits better.
 ---
 
-SysCert delegates the ACME protocol to [lego](https://github.com/go-acme/lego), the same way certbot
-delegates it to its own ACME implementation — so the *plumbing* isn't the differentiator. What differs
-is the **operational model** wrapped around it. This page compares the tools for the job SysCert is
-built for; if your job is different, the guidance at the bottom points you elsewhere.
+SysCert hands the ACME protocol to [lego](https://github.com/go-acme/lego), the same way certbot
+hands it to its own ACME code. So the *plumbing* isn't where these tools differ. What differs is the
+**operational model** wrapped around it. This page compares them for the job SysCert is built for; if
+your job is different, the guidance at the bottom points you elsewhere.
 
 ## The job: one host's system certificate
 
-A single machine needs **one OS-level TLS certificate**, consumed by that machine's **own system
-services** — often issued by an **internal CA** (HashiCorp Vault, step-ca), and delivered to each
+A single machine needs **one OS-level TLS certificate** for that machine's **own system services**.
+It's often issued by an **internal CA** like HashiCorp Vault or step-ca, and it has to land at each
 service's expected path with the right **owner, mode, and SELinux context**. Not a fleet-wide
-certificate manager, not a public CDN edge — the host's own identity certificate.
+certificate manager, not a public CDN edge. Just the host's own identity certificate.
 
 ## SysCert vs certbot
 
@@ -36,31 +36,33 @@ certificate manager, not a public CDN edge — the host's own identity certifica
 | **Supply chain** | distro / pip package | SLSA build provenance, SBOM, gosec + govulncheck gates, a published [security assessment](/docs/compliance/security/) |
 | **Ubiquity / maturity** | **the standard**, decade-proven | bespoke, pre-1.0 |
 
-**The essence.** certbot *gets you the cert*. For a single system certificate you then own the
-"put it where each daemon reads it, with the right perms and SELinux, from root, and re-run a reload
-script" part as bespoke glue. SysCert makes exactly that part **declarative and least-privilege**, and
-treats the **internal-CA source as the default**, not an afterthought. So the honest framing isn't
-"certbot can't" — it's *"with certbot this host accretes a pile of root deploy-hooks and copy scripts;
-with SysCert it's one config file, running unprivileged, that never executes a command."*
+certbot *gets you the cert*. For a single system certificate, you then own the glue: put it where
+each daemon reads it, with the right perms and SELinux, from root, then re-run a reload script. SysCert
+makes that part **declarative and least-privilege**, and it treats the **internal-CA source as the
+default** rather than an afterthought. The honest framing isn't that certbot can't do it. With certbot,
+this host accretes a pile of root deploy-hooks and copy scripts; with SysCert, it's one config file,
+running unprivileged, that never executes a command.
 
-**Where certbot is the better call — and this is the part that keeps the rest credible:** if that
-single certificate is a **public Let's Encrypt cert for one web server** reachable on :80, certbot's
-`standalone` / `--nginx` / `--apache` plugins are simpler and more conventional — and certbot is the
+Where certbot is the better call, and this is the part that keeps the rest honest: if that single
+certificate is a **public Let's Encrypt cert for one web server** reachable on :80, certbot's
+`standalone` / `--nginx` / `--apache` plugins are simpler and more conventional. certbot is also the
 tool everyone already knows, packaged everywhere, proven for a decade. Choosing SysCert means *you*
-own and maintain a certificate tool; that's a real cost certbot doesn't carry.
+own and maintain a certificate tool, and that's a real cost certbot doesn't carry.
 
 ## Other tools, briefly
 
-- **Caddy / Traefik** — if a web server or reverse proxy *is* the consumer and it's web-fronted, they
-  do ACME **natively** (issue, renew, and reload themselves, no external agent). Excellent for that;
-  they aren't a general "deliver a cert to arbitrary system services" tool, and their internal-CA
-  story is thinner.
-- **cert-manager** — the **Kubernetes** answer (`Certificate` CRDs, issuers including Vault). If your
-  certificates live in a cluster, use it. SysCert is for **hosts, VMs, appliances, and standalone
-  containers** — outside an orchestrator.
-- **acme.sh** — a capable pure-shell ACME client with strong dns-01 coverage; lighter than certbot,
-  but the same "get the cert, you handle delivery" shape, as a shell script rather than a single
-  static binary with an opinionated distribution + trust model.
+**Caddy / Traefik.** If a web server or reverse proxy *is* the consumer and it's web-fronted, they do
+ACME **natively**: they issue, renew, and reload themselves, no external agent. Great at that. But they
+aren't a general "deliver a cert to arbitrary system services" tool, and their internal-CA story is
+thinner.
+
+**cert-manager** is the **Kubernetes** answer: `Certificate` CRDs, issuers including Vault. If your
+certificates live in a cluster, use it. SysCert is for **hosts, VMs, appliances, and standalone
+containers** outside an orchestrator.
+
+**acme.sh** is a capable pure-shell ACME client with strong dns-01 coverage, lighter than certbot. But
+it's the same "get the cert, you handle delivery" shape, as a shell script rather than a single static
+binary with an opinionated distribution and trust model.
 
 ## When to use which
 
@@ -80,8 +82,8 @@ standard, ubiquitous tool.
   surface) matters.
 
 Where certbot's envelope fits, use certbot. Where the job is a host's own certificate from internal
-PKI, delivered to its services with strict permissions and a clean audit story — that's the job
-SysCert is opinionated about.
+PKI, delivered to its services with strict permissions and a clean audit story, that's what SysCert is
+opinionated about.
 
 ---
 

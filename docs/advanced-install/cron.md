@@ -7,17 +7,17 @@ eyebrow: "// docs · advanced install · cron"
 lede: No systemd? On an appliance or NAS, schedule syscert from cron. The binary is the same — only the scheduler changes.
 ---
 
-SysCert's normal scheduler is a [systemd timer](/docs/advanced-install/manually/#the-user-service-and-timer),
-but the binary doesn't need systemd: it's a single static binary that issues, renews,
-and distributes on each run, then exits. On appliances and NAS devices that lack
-systemd — Asustor ADM and similar BusyBox/cron-based systems — run it from **cron**
-instead. Everything else (config, store, distribution) is unchanged.
+SysCert usually schedules itself with a [systemd timer](/docs/advanced-install/manually/#the-user-service-and-timer),
+but the binary doesn't need systemd at all. It's one static binary that issues and renews
+certs, distributes them, then exits on each run. On appliances and NAS boxes with no
+systemd (Asustor ADM and other BusyBox/cron systems), run it from **cron** instead.
+Config, store, distribution: none of that changes.
 
 ## 1. Place the binary
 
-Download and verify a release binary as in [Manually → Download a release binary &
+Download and verify a release binary the same way as in [Manually → Download a release binary &
 verify](/docs/advanced-install/manually/#download-a-release-binary--verify), then put
-it somewhere **persistent**. NAS firmware updates often wipe `/usr/local`, so prefer a
+it somewhere **persistent**. NAS firmware updates like to wipe `/usr/local`, so pick a
 path on a data volume:
 
 ```sh
@@ -43,38 +43,55 @@ Cron runs with a **minimal environment**, so load the secrets explicitly with
 17 3 * * * /volume1/syscert/syscert --config /volume1/syscert/syscert.toml --env-file /volume1/syscert/secrets >> /volume1/syscert/syscert.log 2>&1
 ```
 
-Bare `syscert` runs the default **ensure** action — issue if missing, renew if due, then distribute — and
-a **no-op when nothing is due**, so a daily run is cheap and safe. `--env-file` loads
-the credentials the systemd unit would otherwise get from `/etc/syscert/secrets`; an
-existing environment variable always wins, and values are never logged.
+Bare `syscert` runs the default **ensure** action: issue if the cert's missing, renew if it's
+due, then distribute. When nothing's due it's a **no-op**, so a daily run costs almost nothing.
+`--env-file` loads the credentials the systemd unit would otherwise pull from `/etc/syscert/secrets`.
+An existing environment variable always wins, and values never reach the log.
 
-On Asustor ADM (and many NAS web UIs) you don't have to touch `crontab` directly — add
+On Asustor ADM (and plenty of NAS web UIs) you don't have to touch `crontab` at all. Add
 the same command as a daily **user-defined script** in the built-in task scheduler.
 
 ## Run as a low-privilege user
 
-Where the appliance allows it, run the job as a dedicated, non-root user that owns the
-config, secrets, and store — not root. If you must run as root, keep the secrets file
-`0600` and the store directory `0700`. SysCert only needs `CAP_CHOWN` when it must set
-a *different* owner on a distributed copy; if it runs as the same user that consumes
-the certificate, no elevated capabilities are required.
+Where the appliance lets you, run the job as a dedicated non-root user that owns the
+config, secrets, and store. Not root. If you're stuck running as root, keep the secrets
+file `0600` and the store directory `0700`. SysCert only wants `CAP_CHOWN` when it has to
+set a *different* owner on a distributed copy. Run it as the same user that consumes the
+certificate and it needs no elevated capabilities at all.
 
-**The user running syscert must own the store.** If the store was created by one user
-and you later invoke syscert as a different user — including root over a
-non-root-owned store — syscert refuses early rather than creating files the original
-owner can't renew. Always run syscert as the same user that owns the store directory.
+**The user running syscert must own the store.** Say one user created the store and you
+later run syscert as another (root over a non-root store counts), syscert bails out early
+rather than write files the original owner could never renew. Always run syscert as the
+user that owns the store directory.
+
+## Alternative: `--interval` instead of crond
+
+If the appliance runs a container, or its cron daemon isn't dependable, the `--interval` flag
+replaces the external scheduler. `syscert --interval 12h` runs the ensure loop in-process:
+
+```sh
+/volume1/syscert/syscert --interval 12h --config /volume1/syscert/syscert.toml \
+  --env-file /volume1/syscert/secrets >> /volume1/syscert/syscert.log 2>&1 &
+```
+
+Start it from an init script or a startup hook and the process schedules itself. `SIGTERM` shuts
+it down cleanly: it finishes the current cycle, then exits. The minimum interval is `1m`, and the
+`SYSCERT_INTERVAL` environment variable does the same job as the flag.
+
+It's the same model [container setups](/docs/containerisation/) use when there's no cron.
+Stick with the cron approach above when the appliance already has a task scheduler you trust.
 
 ## No reload hooks, no journal
 
-SysCert never restarts your services — each consumer watches its own certificate file
-and reloads itself (see [Reloading services](/docs/reloading/)). And without journald,
-send output to a log file (as above) and rotate it with the appliance's own tools.
+SysCert never restarts your services. Each consumer watches its own certificate file and
+reloads itself (see [Reloading services](/docs/reloading/)). With no journald around,
+send output to a log file like the example above and rotate it with the appliance's own tools.
 
 ## Uninstall
 
-There's nothing system-level to undo: remove the crontab line (`crontab -e`) or the
+Nothing system-level to undo here. Remove the crontab line (`crontab -e`) or the
 scheduled task, then delete the binary, config, secrets, and the store directory you
-created.
+made.
 
 ---
 

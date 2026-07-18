@@ -7,10 +7,10 @@ eyebrow: "// docs · advanced install"
 lede: The one-liner is the fast path. These are the verify-every-byte routes — download + verify, build from source, run from cron on an appliance, and uninstall.
 ---
 
-**Supported targets:** Debian/Ubuntu and the RHEL family (others may work but
-aren't tested), on amd64 and arm64. For the one-line installer and an
-inspect-first walkthrough, see the [install page](/install/); the pages below are
-the building blocks it automates — pick the route that fits.
+Supported targets are Debian/Ubuntu and the RHEL family, on amd64 and arm64. Others
+might work, but they're untested. The [install page](/install/) covers the one-line
+installer and an inspect-first walkthrough; the pages below are the building blocks it
+automates, so pick the route that fits.
 
 ## Pick an install route
 
@@ -23,28 +23,28 @@ the building blocks it automates — pick the route that fits.
   **without systemd** (e.g. Asustor ADM): schedule `syscert` from cron instead of the
   systemd timer.
 
-**Already installed?** See [Upgrading](/docs/advanced-install/upgrading/) — an in-place binary swap
-that preserves your config and certificates.
+If syscert's already installed, [Upgrading](/docs/advanced-install/upgrading/) covers
+the in-place binary swap that keeps your config and certificates.
 
 ## Uninstall
 
-Installed with the one-liner? Remove it the same way — no clone needed:
+If you installed with the one-liner, remove it the same way. No clone needed:
 
 ```sh
 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall          # keep data
 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall --purge  # + data, config, user
 ```
 
-From a source checkout, use the script directly:
+From a source checkout, run the script directly:
 
 ```sh
 sudo packaging/install.sh --uninstall            # remove units + binary, keep data
 sudo packaging/install.sh --uninstall --purge    # also remove /var/lib/syscert, /etc/syscert, user
 ```
 
-`--purge` is irreversible, so it asks you to confirm on the terminal; set
-`SYSCERT_ASSUME_YES=1` to skip the prompt (e.g. in automation). Ran it from cron on an
-appliance instead? There's nothing system-level to remove — see
+`--purge` can't be undone, so it asks you to confirm at the terminal; set
+`SYSCERT_ASSUME_YES=1` to skip that prompt (handy in automation). If you ran syscert
+from cron on an appliance, there's nothing system-level to remove. See
 [As a cron job](/docs/advanced-install/cron/).
 
 ---

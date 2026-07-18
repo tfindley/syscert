@@ -1,7 +1,7 @@
 ---
 title: "SC-OPS-010: Uninstall or purge"
 navLabel: "010 · Uninstall or purge"
-description: Formal procedure for removing syscert from a host — keeping data with --uninstall or fully purging config, store, and the syscert user with --uninstall --purge.
+description: How to remove syscert from a host, keeping data with --uninstall or fully purging config, store, and the syscert user with --uninstall --purge.
 order: 10
 eyebrow: "// docs · procedures · SC-OPS-010"
 lede: --uninstall removes the binary and units but keeps config and certificates. Add --purge to also remove the store, config, and the syscert user.
@@ -16,14 +16,14 @@ lede: --uninstall removes the binary and units but keeps config and certificates
 
 ## Purpose
 
-Remove syscert from a host cleanly — either preserving certificate state for later
-reinstallation (`--uninstall`) or removing everything including the store, config files, and
-the `syscert` system user (`--uninstall --purge`).
+Take syscert off a host cleanly. Either keep the certificate state for a later reinstall
+(`--uninstall`), or wipe everything: the store, the config files, and the `syscert` system
+user (`--uninstall --purge`).
 
 ## Scope
 
-Covers the two uninstall modes driven by `packaging/install.sh`. Does **not** revoke the
-certificate before removal — do that first if needed (see [SC-OPS-005](/docs/procedures/revoke-and-replace/)).
+Covers the two uninstall modes that `packaging/install.sh` drives. It does **not** revoke the
+certificate before removal, so do that first if you need it (see [SC-OPS-005](/docs/procedures/revoke-and-replace/)).
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ sudo packaging/install.sh --uninstall --purge
 
 ### Confirmation and automation
 
-`--purge` asks for confirmation before removing the store and user:
+`--purge` asks you to confirm before it removes the store and user:
 
 ```
 Remove /var/lib/syscert, /etc/syscert, and the syscert user? [y/N]
@@ -100,10 +100,10 @@ id syscert               # no such user
 
 ## Rollback / recovery
 
-- After `--uninstall` (data kept): re-run the installer to restore the binary and units. The
-  existing config and certificates are reused.
-- After `--uninstall --purge`: there is no recovery path — the store is gone. Reinstall from
-  scratch using [SC-OPS-001](/docs/procedures/install-and-deploy/).
+- After `--uninstall` (data kept): run the installer again to bring back the binary and units.
+  Your existing config and certificates get reused.
+- After `--uninstall --purge`: there's no way back. The store is gone, so reinstall from
+  scratch with [SC-OPS-001](/docs/procedures/install-and-deploy/).
 
 ## Related procedures
 

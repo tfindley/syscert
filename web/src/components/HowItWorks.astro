@@ -2,7 +2,7 @@
 const steps = [
   { n: "1", t: "Install", d: "One static binary + a systemd timer. Download or build, then run install.sh." },
   { n: "2", t: "Edit two files", d: "Your subject & CA in syscert.toml; DNS/CA credentials in the secrets env file." },
-  { n: "3", t: "Done", d: "The timer issues, renews and distributes — forever. No cron, no babysitting." },
+  { n: "3", t: "Done", d: "The timer issues, renews, and distributes. Forever. No cron, no babysitting." },
 ];
 ---
 <section class="sec" id="how">
@@ -61,7 +61,7 @@ const steps = [
 <span class="c-cmt"># loads this file as its environment.</span>
 <span class="c-key">CLOUDFLARE_DNS_API_TOKEN</span>=<span class="c-str">••••••••••••••••</span></pre>
         <div class="cfg-note">
-          <span class="ok">✓</span> Then the timer takes over — <code>syscert ensure</code> runs on a
+          <span class="ok">✓</span> Then the timer takes over. <code>syscert</code> runs on a
           schedule and keeps every artifact fresh.
         </div>
       </div>

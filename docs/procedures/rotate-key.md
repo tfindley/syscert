@@ -1,7 +1,7 @@
 ---
 title: "SC-OPS-004: Rotate the private key"
 navLabel: "004 · Rotate the private key"
-description: Formal procedure for rotating the certificate's private key — either via the default fresh-keypair-on-renewal behaviour or by disabling reuse_key before forcing a renewal.
+description: How to rotate the certificate's private key, either through the default fresh-keypair-on-renewal behaviour or by clearing reuse_key before you force a renewal.
 order: 4
 eyebrow: "// docs · procedures · SC-OPS-004"
 lede: syscert generates a fresh keypair on every renewal by default. If reuse_key is set, clear it first, then force a renewal.
@@ -16,20 +16,18 @@ lede: syscert generates a fresh keypair on every renewal by default. If reuse_ke
 
 ## Purpose
 
-Ensure the certificate is reissued with a new private key. By default, syscert already does
-this on every renewal — a **fresh keypair is generated each time**. This procedure makes that
-explicit and covers the `reuse_key = true` case where the key has been pinned.
+Reissue the certificate with a new private key. syscert already does this on every renewal by
+default: a **fresh keypair is generated each time**. This procedure spells that out and also
+handles the `reuse_key = true` case, where you've pinned the key.
 
 ## Scope
 
-Covers two situations:
+Two situations. If `reuse_key = false` (the default), a forced renewal already rotates the
+key, so take the short path below. If `reuse_key = true`, the key is pinned and you have to
+clear that flag before renewing.
 
-- **Default (`reuse_key = false`)**: a forced renewal already rotates the key — follow the
-  short path below.
-- **Key pinned (`reuse_key = true`)**: must clear the flag before renewing.
-
-Does **not** revoke the certificate that held the old key — do that explicitly if required
-(see [SC-OPS-005](/docs/procedures/revoke-and-replace/)).
+This does **not** revoke the certificate that held the old key. Do that separately if you need
+it (see [SC-OPS-005](/docs/procedures/revoke-and-replace/)).
 
 ## Prerequisites
 
@@ -41,7 +39,7 @@ Does **not** revoke the certificate that held the old key — do that explicitly
 
 ### When `reuse_key` is `false` (the default)
 
-A new keypair is generated automatically on every renewal. Force a renewal now:
+Every renewal generates a new keypair on its own. Force one now:
 
 **1. Force a renewal.**
 
@@ -93,7 +91,7 @@ sudo -u syscert syscert dry-run --config-only
 sudo -u syscert syscert renew --force --env-file /etc/syscert/secrets
 ```
 
-A new keypair is generated. The old key is no longer used.
+You get a new keypair, and the old key is no longer used.
 
 **4. Distribute to configured targets.**
 
@@ -103,7 +101,7 @@ sudo -u syscert syscert distribute
 
 **5. (Optional) Re-enable key pinning if required.**
 
-If you needed a one-time rotation and want to re-pin the new key:
+If this was a one-off rotation and you want to pin the new key again:
 
 ```sh
 sudo vi /etc/syscert/syscert.toml    # set reuse_key = true again
@@ -117,8 +115,8 @@ Confirm the private key fingerprint changed:
 openssl pkey -in /var/lib/syscert/privkey.pem -noout -text 2>/dev/null | grep "Public-Key"
 ```
 
-Compare the fingerprint against what was there before. A different key length or public key
-value confirms rotation. To capture the new fingerprint for auditing:
+Compare that against whatever you had before. A different key length or public-key value means
+the rotation took. To capture the new fingerprint for your audit trail:
 
 ```sh
 openssl pkey -in /var/lib/syscert/privkey.pem -pubout | openssl dgst -sha256
@@ -132,12 +130,12 @@ openssl x509 -in /etc/nginx/tls/fullchain.pem -noout -enddate   # adjust to your
 
 ## Rollback / recovery
 
-The old key is not retained in the store after rotation (unless `[store] archive_keep > 0`,
-in which case it is in `archive/<UTC-timestamp>/privkey.pem`). There is no automated
-rollback path for a key rotation. If the new cert/key is problematic, force another renewal.
+Once you rotate, the store drops the old key, unless `[store] archive_keep > 0`, in which case
+you'll find it under `archive/<UTC-timestamp>/privkey.pem`. There's no automated rollback for a
+key rotation. If the new cert or key gives you trouble, force another renewal.
 
-Note: rotating the key does **not** revoke the certificate that was bound to the old key. If
-revocation is required, run [SC-OPS-005](/docs/procedures/revoke-and-replace/) instead.
+Note: rotating the key does **not** revoke the certificate that was bound to the old one. If
+you need revocation, run [SC-OPS-005](/docs/procedures/revoke-and-replace/) instead.
 
 ## Related procedures
 

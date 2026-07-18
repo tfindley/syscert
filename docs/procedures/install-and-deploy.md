@@ -16,19 +16,19 @@ lede: Get syscert installed, configured, and running on a new host. Two supporte
 
 ## Purpose
 
-Install syscert on a host for the first time, configure it to issue and distribute a certificate,
-validate the configuration, and hand operation over to the systemd timer.
+Install syscert on a host for the first time, set it up to issue and distribute a certificate,
+validate that config, then hand day-to-day operation to the systemd timer.
 
 ## Scope
 
 Covers Debian/Ubuntu and the RHEL family (amd64/arm64). Two supported install methods:
 
-- **(A)** the one-line network installer — the normal path.
-- **(B)** manual verified-binary install — for air-gapped or inspect-first environments.
+- **(A)** the one-line network installer, the normal path.
+- **(B)** manual verified-binary install, for air-gapped or inspect-first environments.
 
 **Not covered:** compile-from-source (see [Compile from source](/docs/advanced-install/compile-from-source/)),
 cron-only installs (see [As a cron job](/docs/advanced-install/cron/)), and Ansible fleet installs
-(planned — see [roadmap](/docs/roadmap/)).
+(planned; see [roadmap](/docs/roadmap/)).
 
 ## Prerequisites
 
@@ -50,10 +50,10 @@ cron-only installs (see [As a cron job](/docs/advanced-install/cron/)), and Ansi
 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-The installer creates the `syscert` system user, `/var/lib/syscert` (mode `0700`), a starter
-`/etc/syscert/syscert.toml` (`0640 root:syscert`), a `0640` `/etc/syscert/secrets`, the
-`/etc/default/syscert` operator settings file, installs the systemd units, enables (but does not
-start) the timer, and applies SELinux labels where active.
+The installer sets up everything: the `syscert` system user, `/var/lib/syscert` (mode `0700`), a
+starter `/etc/syscert/syscert.toml` (`0640 root:syscert`), a `0640` `/etc/syscert/secrets`, and the
+`/etc/default/syscert` operator settings file. It installs the systemd units, enables the timer
+without starting it, and applies SELinux labels where they're active.
 
 **2. Edit the configuration.**
 
@@ -61,9 +61,9 @@ start) the timer, and applies SELinux labels where active.
 sudo vi /etc/syscert/syscert.toml
 ```
 
-Set at minimum: `[cert] hostname`, `[acme] ca`, `[acme] email`, `[acme] challenge`, and at least
-one `[[distribute]]` block. See [Configuration](/docs/configuration/) for the full reference and
-[examples/](https://github.com/tfindley/syscert/tree/main/examples) for ready-to-edit starters.
+At a minimum, set `[cert] hostname`, `[acme] ca`, `[acme] email`, `[acme] challenge`, and at least
+one `[[distribute]]` block. [Configuration](/docs/configuration/) has the full reference;
+[examples/](https://github.com/tfindley/syscert/tree/main/examples) has ready-to-edit starters.
 
 **3. Add credentials to the secrets file.**
 
@@ -72,8 +72,8 @@ sudo vi /etc/syscert/secrets
 ```
 
 Add the environment variables your DNS provider needs (e.g. `CLOUDFLARE_DNS_API_TOKEN=…`). The
-exact variable names are listed in the [lego DNS provider docs](https://go-acme.github.io/lego/dns/).
-Secrets never go in the TOML — see [Configuration](/docs/configuration/).
+[lego DNS provider docs](https://go-acme.github.io/lego/dns/) list the exact variable names.
+Secrets never go in the TOML; see [Configuration](/docs/configuration/).
 
 **4. Validate the config offline.**
 
@@ -90,7 +90,7 @@ config OK:
   challenge: dns-01
 ```
 
-Fix any reported errors before continuing.
+Fix anything it flags before you continue.
 
 **5. Test against the CA's staging environment.**
 
@@ -98,8 +98,8 @@ Fix any reported errors before continuing.
 sudo -u syscert syscert --staging --env-file /etc/syscert/secrets
 ```
 
-This performs a real ACME order using the staging CA (no rate-limit risk, certificate is not
-publicly trusted). Confirm the certificate is issued and distributed to the configured targets.
+This runs a real ACME order against the staging CA. No rate-limit risk, and the certificate isn't
+publicly trusted. Check that it's issued and distributed to the configured targets.
 
 **6. Start the timer.**
 
@@ -127,7 +127,7 @@ sha256sum --check --ignore-missing sha256sums.txt
 ./syscert --help
 ```
 
-To pin a specific version, replace `latest/download` with `download/<tag>` (e.g. `download/v0.3.0`).
+To pin a version, swap `latest/download` for `download/<tag>` (e.g. `download/v0.3.0`).
 
 **2. Clone the packaging files and run the installer.**
 
@@ -137,8 +137,8 @@ git clone https://github.com/tfindley/syscert.git syscert-src
 sudo syscert-src/packaging/install.sh ./syscert
 ```
 
-The installer is idempotent and external to the binary — it creates the system user, store, config
-starters, systemd units, and SELinux labels. The binary never self-installs.
+The installer is idempotent and lives outside the binary. It creates the system user, store, config
+starters, systemd units, and SELinux labels. The binary never installs itself.
 
 **3–6. Follow steps 2–6 from Method A** (edit config, add credentials, validate, test staging, start
 the timer).
@@ -152,8 +152,8 @@ sudo -u syscert syscert dry-run --config-only  # config validates cleanly
 sudo -u syscert syscert status                 # shows cert subject, expiry, account, targets
 ```
 
-Confirm the distributed artifacts exist at the paths in your `[[distribute]]` blocks and have the
-expected owner/mode:
+Confirm the distributed artifacts exist at the paths in your `[[distribute]]` blocks, with the
+owner and mode you set:
 
 ```sh
 ls -l /etc/nginx/tls/fullchain.pem   # adjust to your configured path(s)
@@ -161,7 +161,7 @@ ls -l /etc/nginx/tls/fullchain.pem   # adjust to your configured path(s)
 
 ## Rollback / recovery
 
-The installer is idempotent — re-running it is safe. To fully remove the installation:
+The installer is idempotent, so re-running it is safe. To remove the installation completely:
 
 ```sh
 # Keep data (config, certificates)
@@ -175,10 +175,11 @@ curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall -
 
 ## Related procedures
 
-- [SC-OPS-002 — Change certificate details & reissue](/docs/procedures/change-cert-details/) — once
+- [SC-OPS-002 — Change certificate details & reissue](/docs/procedures/change-cert-details/): once
   installed, if you need to add SANs or change the key type.
-- [SC-OPS-009 — Upgrade syscert](/docs/procedures/upgrade/) — in-place binary swap.
-- [SC-OPS-010 — Uninstall or purge](/docs/procedures/uninstall/) — full removal.
+- [SC-OPS-009 — Upgrade syscert](/docs/procedures/upgrade/): an in-place binary swap.
+- [SC-OPS-010 — Uninstall or purge](/docs/procedures/uninstall/): full removal.
 
 **Explanatory docs:** [Quick start](/docs/quick-start/) · [Advanced install](/docs/advanced-install/) ·
-[Advanced install → Manually](/docs/advanced-install/manually/) · [Configuration](/docs/configuration/)
+[Advanced install → Manually](/docs/advanced-install/manually/) · [Configuration](/docs/configuration/) ·
+[Containerisation](/docs/containerisation/) (for container-based deployments instead of the systemd timer)

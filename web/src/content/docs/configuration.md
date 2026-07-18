@@ -14,10 +14,10 @@ unit reads `SYSCERT_CONFIG` from `/etc/default/syscert`, so you can point the
 service at a different file once, with no unit edit.
 
 Ready-to-edit files live in the repo's
-[examples/](https://github.com/tfindley/syscert/tree/main/examples) — a
+[examples/](https://github.com/tfindley/syscert/tree/main/examples): a
 fully-commented
 [full.toml](https://github.com/tfindley/syscert/blob/main/examples/full.toml)
-covering every option, plus focused starters for Let's Encrypt, Vault and step-ca.
+covering every option, plus focused starters for Let's Encrypt, Vault, and step-ca.
 
 > **Secrets never go in this file.** DNS-provider tokens, CA credentials and the
 > EAB HMAC are read from the environment (typically `/etc/syscert/secrets`, mode
@@ -61,8 +61,8 @@ key_type = "ec256"
 | Any other ACME server | `custom`      | its RFC 8555 directory URL.                                                                                     |
 
 > **All three CAs support `dns-01`, `http-01`, and `tls-alpn-01`.** Vault's PKI
-> ACME exposes `dns-01` in current versions (older releases had `http-01` /
-> `tls-alpn-01` only — confirm your Vault version).
+> ACME exposes `dns-01` in current versions; older releases had `http-01` /
+> `tls-alpn-01` only, so confirm your Vault version.
 
 ```toml
 # Let's Encrypt (production) via DNS-01
@@ -88,11 +88,11 @@ Used only when `challenge` is `dns-01`.
 | `provider` | `""` | Any [lego DNS-provider id](https://go-acme.github.io/lego/dns/) (e.g. `cloudflare`, `gandiv5`, `route53`). |
 | `propagation_check` | `all` | `all` — visible on the local resolver *and* the authoritative NS (lego default). `authoritative` — verify only on the CA's authoritative NS; skip the local check (use on split-horizon/VPN/slow resolvers). `off` — skip the local pre-check entirely. |
 
-Credentials are supplied via the environment (or a restricted secrets file),
-**never in the config**. Each lego provider reads its own variables — e.g.
+You supply credentials through the environment (or a restricted secrets file),
+**never in the config**. Each lego provider reads its own variables:
 `CLOUDFLARE_DNS_API_TOKEN` (cloudflare), `GANDIV5_PERSONAL_ACCESS_TOKEN` (Gandi
 LiveDNS), or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION`
-(route53). See the [lego provider docs](https://go-acme.github.io/lego/dns/) for
+(route53). Check the [lego provider docs](https://go-acme.github.io/lego/dns/) for
 the exact names. The systemd unit loads these from `/etc/syscert/secrets`; for a
 manual run, pass `--env-file /etc/syscert/secrets` (repeatable; the existing
 environment wins) instead of exporting each one.
@@ -114,11 +114,11 @@ like ZeroSSL / Google / SSL.com.
 |---|---|---|
 | `kid` | `""` | EAB Key ID. Setting it **enables EAB**. An identifier, not a secret — fine in this file. |
 
-The **HMAC key is a secret** — supply it via `SYSCERT_EAB_HMAC` (the base64url key
-the CA gave you) in `/etc/syscert/secrets`, never in the TOML and never logged. EAB
-is checked by the CA only when the account is first created; syscert reuses its
-persistent account key afterwards. Requesting one from HashiCorp Vault?
-See [EAB](/docs/eab/) — and [EAB → Vault](/docs/eab/vault/) to request one.
+The **HMAC key is a secret**, so supply it via `SYSCERT_EAB_HMAC` (the base64url key
+the CA gave you) in `/etc/syscert/secrets`, never in the TOML and never logged. The
+CA checks EAB only when the account is first created; syscert reuses its persistent
+account key after that. Requesting one from HashiCorp Vault?
+See [EAB](/docs/eab/), then [EAB → Vault](/docs/eab/vault/) to request one.
 
 ```toml
 [acme.eab]
@@ -134,10 +134,10 @@ kid = "kid-from-your-ca"          # + export SYSCERT_EAB_HMAC=<base64url-hmac> i
 | `group` | `syscert` | Group that owns the store dir and files. Set it (with a `dir_mode` that grants group access) to let a trusted group read the store directly. |
 | `archive_keep` | `0` | Keep this many previous certificate sets. `0` overwrites in place (no history). When >0, each renewal first snapshots the current artifacts to `archive/<UTC-timestamp>/` inside the store (real files, no symlinks), pruned to the newest N. |
 
-> Prefer **[[distribute]]** for giving a specific service its cert — it copies a real file
-> with that consumer's exact owner/mode (including the key). `group`/`dir_mode` only widen
+> Reach for **[[distribute]]** when you want to give a specific service its cert: it copies a
+> real file with that consumer's exact owner/mode, key included. `group`/`dir_mode` only widen
 > direct read of the *public* artifacts; they never expose private keys. Archived snapshots
-> live inside the locked store and are never distributed, so consumers are unaffected.
+> live inside the locked store and never get distributed, so consumers aren't affected.
 
 ## `[bundle]` — all-in-one file
 
@@ -157,9 +157,9 @@ The `root` is dropped automatically when the CA provides none (public CAs). If
 
 ## `[[distribute]]` — delivering to consumers
 
-Zero or more blocks; each copies **one artifact** to a path with the
+Zero or more blocks. Each copies **one artifact** to a path with the
 ownership/mode/context that consumer needs. syscert overwrites only the paths it
-manages and **does not reload consumers** — see
+manages, and it **does not reload consumers**. See
 [Distributing certs](/docs/distributing/).
 
 | Key | Description |

@@ -33,10 +33,10 @@ FQDN.
 
 ## "x509: unknown authority" against an internal CA
 
-Requesting from Vault/step-ca makes an HTTPS call to the CA's ACME endpoint, which
-Go verifies against the **system** trust store. If the host doesn't trust the
-internal CA yet, that call fails before anything happens — a chicken-and-egg. Two
-distinct trust settings solve two distinct problems:
+Requesting from Vault or step-ca makes an HTTPS call to the CA's ACME endpoint, and
+Go verifies that against the **system** trust store. If the host doesn't trust the
+internal CA yet, the call fails before anything else happens. Classic chicken-and-egg.
+Two trust settings solve two separate problems:
 
 - **For the ACME connection only:** set
   `acme.ca_bundle = "/etc/syscert/internal-ca.pem"` to trust the CA just for that
@@ -46,36 +46,36 @@ distinct trust settings solve two distinct problems:
   store, so other local consumers and clients trust the issued certs. Undo with
   `sudo syscert trust remove`.
 
-Let's Encrypt needs neither — it's already trusted by the system.
+Let's Encrypt needs neither; the system already trusts it.
 
 ## Distribution can't write to a target
 
-Confirm the target directory exists and is writable by the `syscert` user. When the
-target is owned by a different user, the copy needs `CAP_CHOWN` — the shipped
-systemd unit grants it (`AmbientCapabilities=CAP_CHOWN`). A **rejected
-world-readable mode** on `privkey`/`bundle` is intentional: key-bearing artifacts
-must use a tight mode such as `0600`.
+Confirm the target directory exists and the `syscert` user can write to it. When the
+target is owned by a different user, the copy needs `CAP_CHOWN`, which the shipped
+systemd unit grants (`AmbientCapabilities=CAP_CHOWN`). A **rejected world-readable
+mode** on `privkey`/`bundle` is intentional: key-bearing artifacts have to use a
+tight mode such as `0600`.
 
 ## A service still serves the old certificate after renewal
 
-syscert delivers files but **never reloads consumers**. The service must watch its
-cert file and reload itself — the clean way is a `systemd.path` unit. See
+syscert delivers files but **never reloads consumers**. The service has to watch its
+cert file and reload itself, and the clean way is a `systemd.path` unit. See
 [Reloading services](/docs/reloading/) for the pattern and per-service reload commands.
 
 ## The timer's "next run" is in the future / nothing happened
 
-That's normal: the timer fires shortly after boot and daily with jitter, but bare
-`syscert` only renews when the certificate is actually due. A run where nothing was
-due is a no-op. Check scheduling with `systemctl list-timers syscert.timer` and the
-last run with `journalctl -u syscert.service`. Remember `install.sh` **enables** but
-doesn't **start** the timer — run `sudo systemctl start syscert.timer` once after
-configuring.
+That's normal. The timer fires shortly after boot and daily with jitter, but bare
+`syscert` only renews when the certificate is actually due. A run where nothing's due
+does nothing. Check scheduling with `systemctl list-timers syscert.timer`, and the
+last run with `journalctl -u syscert.service`. Remember that `install.sh` **enables**
+the timer but doesn't **start** it, so run `sudo systemctl start syscert.timer` once
+after you've configured things.
 
 ## Testing safely before production
 
 Validate offline with `syscert dry-run --config-only` (no network). The full
-`syscert dry-run` performs a real ACME order + challenge and then discards the cert
-— Let's Encrypt automatically uses staging. Add `--staging` to
+`syscert dry-run` runs a real ACME order and challenge, then discards the cert;
+against Let's Encrypt it uses staging automatically. Add `--staging` to
 `issue`/`renew`/`void`/bare `syscert` to route Let's Encrypt to staging during a
 real run.
 
@@ -85,11 +85,11 @@ Running by hand (not via the systemd unit)? The unit loads DNS/CA credentials fr
 
 ## IP-SAN and Vault gotchas
 
-- **Private IP + public CA is rejected.** A private (RFC 1918) IP SAN requires an
+- Private IP plus public CA gets rejected. A private (RFC 1918) IP SAN requires an
   internal CA; public-CA IP certs need a public IP and `acme.profile = "shortlived"`.
-- **IP SANs force http-01/tls-alpn-01** (RFC 8738 forbids dns-01 for IPs), so the CA
-  must reach the host on :80/:443 — open the firewall.
-- **Vault's ACME has a known IPv6 challenge issue** — prefer IPv4 in the directory
+- IP SANs force http-01/tls-alpn-01 (RFC 8738 forbids dns-01 for IPs), so the CA
+  has to reach the host on :80/:443. Open the firewall.
+- Vault's ACME has a known IPv6 challenge issue, so prefer IPv4 in the directory
   URL and IP SANs for now.
 
 ## "store is owned by …" — wrong user running syscert
@@ -97,7 +97,7 @@ Running by hand (not via the systemd unit)? The unit loads DNS/CA credentials fr
 syscert refuses early if the running user doesn't match the store's owner, rather
 than creating files the scheduled timer can't later renew or overwrite. Two cases:
 
-- **Running as root over a `syscert`-owned store** — if the store at
+- **Running as root over a `syscert`-owned store.** If the store at
   `/var/lib/syscert` is owned by the `syscert` user and you invoke `sudo syscert
   …`, the command fails:
 
@@ -107,7 +107,7 @@ than creating files the scheduled timer can't later renew or overwrite. Two case
   Use `sudo -u syscert syscert …` (not bare `sudo`) for all write operations.
   The systemd timer already runs as `User=syscert`, so the service is unaffected.
 
-- **Running as an unprivileged user who doesn't own the store** — if you try to
+- **Running as an unprivileged user who doesn't own the store.** If you try to
   run syscert as a user other than the store's owner, the command fails:
 
   > store /var/lib/syscert is owned by syscert; run syscert as that user or root
@@ -122,9 +122,9 @@ store that does not yet exist is not checked.
 ## SELinux: binary not executable under systemd (RHEL enforcing)
 
 On an **enforcing RHEL / CentOS / Rocky / AlmaLinux** host, a binary installed from
-a non-standard location (e.g., `/root` or a home directory) retains the source
-label — often `admin_home_t` — and `systemd` (`init_t`) cannot execute it. The
-symptom is the timer failing with a permission denial in the audit log.
+a non-standard location like `/root` or a home directory keeps the source label
+(often `admin_home_t`), and `systemd` (`init_t`) can't execute it. You'll see it as
+the timer failing with a permission denial in the audit log.
 
 `install.sh` handles this automatically: after placing the binary at
 `/usr/local/bin/syscert` it runs `restorecon -R /usr/local/bin/syscert` (alongside
@@ -151,12 +151,13 @@ sudo -u syscert syscert destroy --keep-account  # drop the cert, KEEP the accoun
 sudo -u syscert syscert destroy --force         # wipe stored cert + ACME account (switching CA)
 ```
 
-`status` is read-only — config, the stored cert's issue/expiry/renewal dates, the
-account, and distribute targets. `void` revokes (if the CA supports it) then reissues.
-`destroy --keep-account` removes only the certificate (and any archived snapshots),
-so the next run reissues **reusing the existing account — no new EAB token needed**.
-Plain `destroy` also wipes the ACME account (and can un-trust an internal CA) but does
-**not** revoke or reissue; after it, update the config and run `syscert issue`.
+`status` is read-only: it shows the config, the stored cert's issue/expiry/renewal
+dates, the account, and the distribute targets. `void` revokes (if the CA supports it)
+then reissues. `destroy --keep-account` removes only the certificate and any archived
+snapshots, so the next run reissues **using the existing account, with no new EAB
+token needed**. Plain `destroy` also wipes the ACME account (and can un-trust an
+internal CA), but it does **not** revoke or reissue; after it, update the config and
+run `syscert issue`.
 
 ---
 

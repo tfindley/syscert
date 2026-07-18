@@ -1,10 +1,10 @@
 ---
 title: Let's Encrypt · TLS-ALPN-01
 navLabel: Let's Encrypt · TLS-ALPN-01
-description: A syscert.toml for a public Let's Encrypt certificate validated over port 443 (TLS-ALPN-01) — no DNS provider, no port 80.
+description: A syscert.toml for a public Let's Encrypt certificate validated over port 443 (TLS-ALPN-01), with no DNS provider and no port 80.
 order: 3
 eyebrow: "// docs · sample configs"
-lede: Modern :443-only challenge (RFC 8737) — no DNS provider and no port 80.
+lede: The modern :443-only challenge (RFC 8737). No DNS provider, and nothing on port 80.
 ---
 
 ```toml
@@ -18,9 +18,10 @@ email     = "you@example.com"
 challenge = "tls-alpn-01"       # CA validates over :443
 ```
 
-- **Needs:** the host publicly reachable on **port 443**.
-- Same `CAP_NET_BIND_SERVICE` + firewall note as HTTP-01 (for :443 / `https`).
-- File: [`letsencrypt-tls-alpn-01.toml`](https://github.com/tfindley/syscert/blob/main/examples/letsencrypt-tls-alpn-01.toml)
+Your host has to be reachable on port 443. Same `CAP_NET_BIND_SERVICE` and firewall dance as
+HTTP-01, only for :443 / `https` this time.
 
-The shared `[store]` / `[[distribute]]` / `[logging]` tail is identical across every
-example — see [Sample configs](/docs/examples/).
+File: [`letsencrypt-tls-alpn-01.toml`](https://github.com/tfindley/syscert/blob/main/examples/letsencrypt-tls-alpn-01.toml)
+
+The `[store]`, `[[distribute]]` and `[logging]` tail is identical in every example; see
+[Sample configs](/docs/examples/).
