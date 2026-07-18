@@ -7,12 +7,12 @@ eyebrow: "// docs · containerisation · scheduled"
 lede: The simplest pattern. syscert runs once, exits, and an external timer brings it back. Mirrors the systemd-timer model and maps directly to a Kubernetes CronJob.
 ---
 
-The scheduled pattern is **recommended** for most setups. `syscert` runs without `--interval`,
-performs one ensure cycle (issue if missing, renew if due, distribute), and exits. An external
-timer — cron, a systemd timer on the host, or a Kubernetes CronJob — re-runs it on a schedule.
+For most setups, the scheduled pattern is **recommended**. `syscert` runs without `--interval`,
+does one ensure cycle (issue if missing, renew if due, distribute), and exits. Something external
+re-runs it on a schedule: cron, a systemd timer on the host, or a Kubernetes CronJob.
 
-This mirrors the host systemd-timer model: a one-shot binary on a schedule, easy to inspect, trivially
-restartable, and with a clear success/failure signal per run.
+It mirrors the host systemd-timer model: a one-shot binary on a schedule. Easy to inspect, safe to
+restart, and every run gives you a clear success or failure signal.
 
 ## Docker Compose + cron
 
@@ -122,28 +122,28 @@ volumes:
 
 ## Volume ownership
 
-In Compose, fix the volume owner before first use:
+In Compose, fix the volume owner before you use it:
 
 ```sh
 docker run --rm -v <project>_certs:/vol alpine chown 1000:1000 /vol
 ```
 
-In Kubernetes, `securityContext.fsGroup` sets the group owner of a mounted PVC automatically — no
-manual step needed.
+In Kubernetes, `securityContext.fsGroup` sets the group owner of a mounted PVC for you, so there's
+no manual step.
 
 ## Secrets
 
-In Compose, put credentials in a `.env` file (`0600`). In Kubernetes, store them in a `Secret` and
-project them as environment variables (as shown above). Never bake secrets into the image.
+In Compose, put credentials in a `.env` file (`0600`). In Kubernetes, keep them in a `Secret` and
+project them as environment variables, like the example above. Never bake secrets into the image.
 
 ## Why one-shot?
 
-- **Rate-limit safe:** a failed run doesn't spin and hammer the CA. The next scheduled run will retry.
-- **Observable:** job history gives a per-run success/failure record.
-- **Restartable:** re-running the job is safe — `syscert` is idempotent.
+A few things make one-shot nice. A failed run doesn't spin and hammer the CA; the next scheduled run
+just retries, so you stay rate-limit safe. Job history hands you a success or failure record per run.
+And re-running the job is safe, because `syscert` is idempotent.
 
-The only advantage of `--interval` over this pattern is that the sidecar self-schedules without an
-external timer. If you have cron or a Kubernetes CronJob available, this pattern is simpler.
+The one thing `--interval` buys you over this pattern is that the sidecar schedules itself without an
+external timer. If you've already got cron or a Kubernetes CronJob, this pattern is simpler.
 
 ---
 

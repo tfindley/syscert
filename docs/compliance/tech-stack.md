@@ -25,10 +25,10 @@ short dependency list. Nothing to babysit, little to attack.
 over small internal packages: config load + **fail-fast validation**, an ACME client wrapper
 (lego), an atomic certificate **store** (`/var/lib/syscert`), **distribution** to consumer paths
 with per-target owner/mode/SELinux context, **renewal** decisioning, and system **trust**
-management. The default model is **no long-running daemon** — a systemd **oneshot + timer** runs
+management. The default model is **no long-running daemon**: a systemd **oneshot + timer** runs
 the binary on a schedule. `--interval <duration>` (env `SYSCERT_INTERVAL`) adds an in-process
-renewal loop for non-systemd contexts (containers, appliances) without changing the host model;
-one-shot (no flag) remains the default.
+renewal loop for non-systemd contexts (containers, appliances) without changing the host model.
+One-shot (no flag) stays the default.
 
 **Runtime model.** Runs as a dedicated, non-root **`syscert`** system user under a hardened
 systemd unit (`NoNewPrivileges`, `ProtectSystem=strict`, `MemoryDenyWriteExecute`, a single
@@ -45,7 +45,7 @@ See the [Security assessment](/docs/compliance/security/) for the full control s
 | Runtime image | **`nginx:alpine-slim`** serving static files (TLS terminated upstream by Traefik) |
 | Registry / hosting | image published to **GHCR** (`ghcr.io/tfindley/syscert-web`), pulled by a self-managed host behind **Traefik** |
 
-The website is a *hosting artifact*, not the product — it documents the binary, which is the thing
+The website is a *hosting artifact*, not the product. It documents the binary, which is the thing
 you install. Self-hosted fonts and the per-page CSP keep its origin self-contained; see the
 [Security assessment](/docs/compliance/security/) for the site's full header set.
 

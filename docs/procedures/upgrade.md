@@ -1,7 +1,7 @@
 ---
 title: "SC-OPS-009: Upgrade syscert"
 navLabel: "009 · Upgrade syscert"
-description: Formal procedure for upgrading an already-installed syscert to a new version — in-place binary swap via the one-liner or install.sh, with verification and rollback.
+description: How to upgrade an already-installed syscert to a new version, an in-place binary swap via the one-liner or install.sh, with verification and rollback.
 order: 9
 eyebrow: "// docs · procedures · SC-OPS-009"
 lede: Upgrading is an in-place binary swap. Config, secrets, and certificates are preserved. The timer keeps running and uses the new binary on its next fire.
@@ -16,24 +16,24 @@ lede: Upgrading is an in-place binary swap. Config, secrets, and certificates ar
 
 ## Purpose
 
-Replace the installed syscert binary (and refresh the systemd units) with a new version,
-while leaving the configuration, secrets, ACME account, and certificates untouched.
+Swap the installed syscert binary for a new version (and refresh the systemd units), while
+leaving your configuration, secrets, ACME account, and certificates untouched.
 
 ## Scope
 
-Covers the two supported upgrade paths: the one-line network installer (normal path) and the
-manual binary-swap path (for air-gapped or inspect-first environments). The binary never
-self-installs — upgrades are always driven by the installer.
+Covers the two upgrade paths: the one-line network installer, which is the normal one, and the
+manual binary swap for air-gapped or inspect-first setups. The binary never self-installs; the
+installer always drives an upgrade.
 
-For background on what is preserved versus replaced, see
+For the full picture of what's kept versus replaced, see
 [Advanced install → Upgrading](/docs/advanced-install/upgrading/).
 
 ## Prerequisites
 
 - Root access on the host.
 - For the manual path: the new binary downloaded and verified (see step 1B).
-- Read the [changelog](/changelog/) for the target version — each release has a **Risk &
-  Security** note and calls out any config changes that require attention before the timer
+- Read the [changelog](/changelog/) for the version you're moving to. Every release carries a
+  **Risk & Security** note and flags any config changes you need to handle before the timer
   fires.
 
 ## Procedure
@@ -46,9 +46,9 @@ For background on what is preserved versus replaced, see
 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-The installer downloads the latest binary, verifies its checksum, replaces
+The installer pulls the latest binary, checks its checksum, replaces
 `/usr/local/bin/syscert`, refreshes the systemd units, and re-applies SELinux labels. Config,
-secrets, and the store are untouched.
+secrets, and the store stay untouched.
 
 To pin a specific version instead of latest:
 
@@ -80,7 +80,7 @@ git clone https://github.com/tfindley/syscert.git syscert-src
 sudo syscert-src/packaging/install.sh ./syscert
 ```
 
-Or, fully manual (no `install.sh` — only if the units are unchanged):
+Or go fully manual (no `install.sh`, and only if the units haven't changed):
 
 ```sh
 sudo install -o root -g root -m 0755 ./syscert /usr/local/bin/syscert
@@ -105,8 +105,8 @@ Pin the previous version and re-run the installer:
 SYSCERT_VERSION=v0.3.0 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-Config and certificates are preserved either way. If the release notes called out a store or
-config format change, check them before downgrading.
+Either way, config and certificates are preserved. If the release notes mentioned a store or
+config format change, read them before you downgrade.
 
 ## Related procedures
 

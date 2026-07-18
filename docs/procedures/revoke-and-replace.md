@@ -1,10 +1,10 @@
 ---
 title: "SC-OPS-005: Revoke and replace (void)"
 navLabel: "005 · Revoke and replace"
-description: Formal procedure for revoking the current certificate at the CA and immediately reissuing and distributing a replacement — using the void subcommand.
+description: How to revoke the current certificate at the CA and reissue plus distribute a replacement in a single run, using the void subcommand.
 order: 5
 eyebrow: "// docs · procedures · SC-OPS-005"
-lede: void revokes the current certificate at the CA, reissues a replacement, and distributes it in one step. Interactive by default; --force skips the confirmation.
+lede: void revokes the current certificate at the CA, reissues a replacement, and distributes it, all in one run. It's interactive by default; --force skips the confirmation.
 ---
 
 | | |
@@ -16,15 +16,15 @@ lede: void revokes the current certificate at the CA, reissues a replacement, an
 
 ## Purpose
 
-Revoke the current certificate at the CA (marking it invalid in OCSP/CRL), then immediately
-reissue and distribute a replacement. Use this when the private key is suspected compromised,
-when a CA security event requires revocation, or when you need to guarantee clients will not
-accept the old certificate.
+Revoke the current certificate at the CA (it goes invalid in OCSP/CRL), then reissue and
+distribute a replacement in the same run. You'd do this if the private key might be
+compromised. Also when a CA security event forces revocation, or when you simply need every
+client to stop accepting the old certificate.
 
 ## Scope
 
-Covers the `void` subcommand, which revokes + reissues + distributes in a single step. The
-replacement certificate uses the current configuration with a fresh keypair.
+Covers the `void` subcommand: one command that revokes, reissues, then distributes. The
+replacement is built from your current configuration with a fresh keypair.
 
 Does **not** cover:
 
@@ -47,11 +47,11 @@ For Let's Encrypt, you can sanity-check the ACME round-trip before the live revo
 sudo -u syscert syscert renew --force --staging --env-file /etc/syscert/secrets
 ```
 
-This does **not** revoke anything — it is a staging renewal only. Skip if you are confident.
+This revokes **nothing**; it's a staging renewal and that's all. Skip it if you're confident in the connection.
 
 **2. Revoke, reissue, and distribute.**
 
-Interactive (recommended — confirm before revoking):
+Interactive (recommended, so you confirm before anything gets revoked):
 
 ```sh
 sudo -u syscert syscert void --env-file /etc/syscert/secrets
@@ -69,13 +69,13 @@ Enter `y` to proceed. To skip the prompt (automation or scripts):
 sudo -u syscert syscert void --force --env-file /etc/syscert/secrets
 ```
 
-`void` performs three steps in sequence: revoke the current cert at the CA → issue a new ACME
-order → distribute the new certificate to all `[[distribute]]` targets.
+`void` runs three steps in order: revoke the current cert at the CA → issue a new ACME order →
+distribute the new certificate to every `[[distribute]]` target.
 
-**Partial-failure behaviour.** If the revocation request fails (e.g. the CA is temporarily
-unreachable), `void` prints a warning and continues — it still reissues and distributes the
-replacement. The exit code will be non-zero (`1`) in that case; check stderr. The old
-certificate was **not** revoked if the warning appeared.
+**Partial-failure behaviour.** Say the revocation request fails because the CA is briefly
+unreachable. `void` prints a warning and keeps going: it still reissues and distributes the
+replacement. The exit code comes back non-zero (`1`) when that happens, so check stderr. And if
+you saw the warning, the old certificate was **not** revoked.
 
 ## Verification
 
@@ -85,21 +85,21 @@ Confirm the new certificate is in place:
 sudo -u syscert syscert status
 ```
 
-Check the serial number or `notBefore` of the distributed certificate to confirm it is the
-newly issued one:
+Check the serial or `notBefore` on the distributed certificate to confirm it's the freshly
+issued one:
 
 ```sh
 openssl x509 -in /etc/nginx/tls/fullchain.pem -noout -serial -dates   # adjust to your path
 ```
 
-To verify the old certificate is revoked (if revocation succeeded), use your CA's OCSP or
-CRL endpoint — the mechanism is CA-specific.
+To confirm the old certificate is actually revoked (assuming revocation went through), check
+your CA's OCSP or CRL endpoint. How you do that depends on the CA.
 
 ## Rollback / recovery
 
-There is no automated rollback after `void` — the old certificate has been revoked at the CA
-and the store holds the replacement. If the new certificate has a problem, run
-`renew --force` to get another replacement:
+There's no automated rollback after `void`. The old certificate is already revoked at the CA,
+and the store now holds the replacement. If something's wrong with the new certificate, run
+`renew --force` for another one:
 
 ```sh
 sudo -u syscert syscert renew --force --env-file /etc/syscert/secrets

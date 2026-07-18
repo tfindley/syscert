@@ -11,8 +11,8 @@ Every example lives in
 [`examples/`](https://github.com/tfindley/syscert/tree/main/examples) and is
 ready to copy to `/etc/syscert/syscert.toml` and edit. The full annotated
 reference is
-[`full.toml`](https://github.com/tfindley/syscert/blob/main/examples/full.toml) —
-it documents every option. The deliver/store/logging tail below is identical in
+[`full.toml`](https://github.com/tfindley/syscert/blob/main/examples/full.toml);
+it documents every option. The deliver/store/logging tail below is the same in
 all of them:
 
 ```toml
@@ -39,7 +39,7 @@ format = "text"
 ```
 
 What changes between setups is the **CA** and the **challenge**. Pick the one that
-matches how the CA can reach (or not reach) your host:
+matches how the CA can reach your host, or can't:
 
 - [**Let's Encrypt · DNS-01**](/docs/examples/letsencrypt-dns-01/) — public cert via
   a DNS TXT record; no inbound ports. The most internal-friendly public option.
@@ -54,7 +54,7 @@ matches how the CA can reach (or not reach) your host:
 - [**Smallstep step-ca · DNS-01**](/docs/examples/stepca-dns-01/) — internal CA from
   a step-ca provisioner; step-ca supports all three challenges.
 
-Validate any of these offline before issuing:
+Check any of these offline before you issue anything:
 `sudo -u syscert syscert dry-run --config-only --config ./syscert.toml`.
 
 Next: [Configuration reference](/docs/configuration/) ·

@@ -4,17 +4,17 @@ navLabel: Upgrading
 description: How to upgrade an already-installed syscert to a new version — in place via the one-liner or install.sh, what's preserved vs replaced, how to verify, and how to roll back.
 order: 4
 eyebrow: "// docs · advanced install · upgrading"
-lede: Upgrading an installed syscert is an in-place binary swap — your config, secrets, and certificates are preserved. Here's how, how to verify it, and how to roll back.
+lede: Upgrading an installed syscert is an in-place binary swap; your config, secrets, and certificates stay put. Below is how to do it, how to check it worked, and how to roll back.
 ---
 
-SysCert upgrades **in place**: you replace the binary (and refresh the systemd units), and your
-configuration and certificate state are left untouched. The binary **never self-installs**
-(ADR-0034), so there is no `syscert upgrade` command — upgrades are driven by the same installer
+SysCert upgrades **in place**. You replace the binary (and refresh the systemd units), and your
+configuration and certificate state come through untouched. The binary **never self-installs**
+(ADR-0034), so there's no `syscert upgrade` command. You drive upgrades with the same installer
 you used to set it up.
 
 ## The fast path — re-run the one-liner
 
-The network installer always resolves the **latest** release, re-verifies its checksum, and re-runs
+The network installer always grabs the **latest** release, re-checks its checksum, and re-runs
 `install.sh`:
 
 ```sh
@@ -27,8 +27,8 @@ Pin a specific version instead of latest:
 SYSCERT_VERSION=v0.3.1 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-The timer keeps running across the upgrade; the **next scheduled run uses the new binary**. If the
-timer was never started, start it once: `sudo systemctl start syscert.timer`.
+The timer keeps ticking across the upgrade, and the **next scheduled run uses the new binary**. If
+you never started the timer, start it now: `sudo systemctl start syscert.timer`.
 
 ## What's preserved vs replaced
 
@@ -39,21 +39,21 @@ timer was never started, start it once: `sudo systemctl start syscert.timer`.
 | `/etc/default/syscert` | `/etc/systemd/system/syscert.timer` |
 | `/var/lib/syscert/` — ACME account key, certificates, archive | (SELinux labels re-applied; `daemon-reload` run) |
 
-Because the store and config survive, the existing **ACME account and certificate carry over** —
-the next scheduled `syscert` run continues issuing/renewing exactly as before.
+Because the store and config survive, the existing **ACME account and certificate carry over**.
+The next scheduled `syscert` run keeps issuing and renewing exactly as before.
 
 ## From a source checkout or a downloaded binary
 
-If you installed from a built/downloaded binary, point the (idempotent) installer at the new one —
-it replaces the binary and units and keeps your config:
+If you installed from a built or downloaded binary, point the installer at the new one. It's
+idempotent: it swaps the binary and units and leaves your config alone.
 
 ```sh
 # in a checkout of the new version's packaging
 sudo packaging/install.sh ./syscert
 ```
 
-Fully manual (no `install.sh`): replace the binary, relabel it for SELinux, and refresh the units
-only if they changed in the new release:
+Fully by hand, with no `install.sh`: replace the binary, relabel it for SELinux, and refresh the
+units only if the new release changed them:
 
 ```sh
 sudo install -o root -g root -m 0755 ./syscert /usr/local/bin/syscert
@@ -70,7 +70,7 @@ sudo -u syscert syscert status                    # cert subject, dates, account
 systemctl list-timers syscert.timer               # timer is active and scheduled
 ```
 
-Verifying the download itself (one-liner does this automatically; manual installs should too):
+Verify the download itself too (the one-liner does this automatically; manual installs should):
 
 ```sh
 sha256sum --check --ignore-missing sha256sums.txt
@@ -79,23 +79,23 @@ gh attestation verify syscert-linux-amd64 --repo tfindley/syscert   # SLSA build
 
 ## Before a notable upgrade
 
-SysCert is pre-1.0, so read the [changelog](/changelog/) first — each release has a **Risk &
-Security** note and calls out any behaviour or config changes. If a change touches your config,
+SysCert is pre-1.0, so read the [changelog](/changelog/) first. Every release carries a **Risk &
+Security** note and flags any behaviour or config changes. If a change touches your config,
 rehearse it with `sudo -u syscert syscert dry-run --config-only` (or `--staging` for a full
 dry run against Let's Encrypt) before the timer fires.
 
 ## Rolling back
 
-Rollback is symmetric — pin the previous tag and re-install:
+Rollback works the same way in reverse: pin the previous tag and re-install.
 
 ```sh
 SYSCERT_VERSION=v0.3.0 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-Your config and certificates are preserved either way. The one caveat: if a release migrated the
-store or config format (called out in the changelog), check that note before downgrading.
+Your config and certificates survive either direction. One caveat: if a release migrated the
+store or config format (the changelog calls this out), read that note before you downgrade.
 
-> **Fleet upgrades.** With configuration management, bump the pinned version and re-run — the role
+> **Fleet upgrades.** With configuration management, bump the pinned version and re-run. The role
 > replaces the binary and units the same way. (The Ansible role tracks the target version as a
 > variable.)
 

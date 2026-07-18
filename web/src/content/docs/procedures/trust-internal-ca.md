@@ -1,7 +1,7 @@
 ---
 title: "SC-OPS-008: Trust an internal CA system-wide"
 navLabel: "008 · Trust an internal CA"
-description: Formal procedure for installing or removing an internal CA's root certificate in the system trust store using syscert trust install and trust remove.
+description: How to install or remove an internal CA's root certificate in the system trust store with syscert trust install and trust remove.
 order: 8
 eyebrow: "// docs · procedures · SC-OPS-008"
 lede: trust install adds the internal CA's root to the system trust store so clients accept its certificates without -k. trust remove removes it. Both require root.
@@ -16,21 +16,22 @@ lede: trust install adds the internal CA's root to the system trust store so cli
 
 ## Purpose
 
-Install an internal CA's root certificate into the system-wide trust store so that standard
-clients (curl, wget, browsers, OpenSSL) accept certificates issued by that CA without
-disabling verification. Remove it when the CA is decommissioned or replaced.
+Put an internal CA's root certificate into the system-wide trust store so standard clients
+(curl, wget, browsers, OpenSSL) accept that CA's certificates without you having to turn off
+verification. Pull it back out when the CA is retired or replaced.
 
-For public CAs (Let's Encrypt), the system already trusts them — `trust install` exits
-immediately with "nothing to do."
+For public CAs like Let's Encrypt, the system already trusts them, so `trust install` just
+exits with "nothing to do."
 
 ## Scope
 
-Covers `syscert trust install` (add the root) and `syscert trust remove` (remove
-SysCert-managed anchors). Both operations affect the system trust store and require `root`.
+Covers `syscert trust install` (add the root) and `syscert trust remove` (pull SysCert-managed
+anchors back out). Both touch the system trust store, and both need `root`.
 
-This is **separate from `acme.ca_bundle`**, which only trusts the CA for the ACME connection
-to bootstrap issuance — it does not make clients trust the issued certificate. Use this
-procedure when you want issued certificates to be trusted end-to-end without extra flags.
+This is **separate from `acme.ca_bundle`**. That setting only trusts the CA for the ACME
+connection so issuance can bootstrap; it doesn't make clients trust the certificate you get out
+the other end. Use this procedure when you want issued certificates trusted end-to-end without
+extra flags.
 
 ## Prerequisites
 
@@ -42,8 +43,8 @@ procedure when you want issued certificates to be trusted end-to-end without ext
 
 ### Install the internal CA root
 
-The CA source is resolved in order: `--ca-file <pem>` (if passed) → `acme.ca_bundle` in the
-config. One of the two must be set.
+syscert works out where to read the CA from in order: `--ca-file <pem>` if you pass it,
+otherwise `acme.ca_bundle` from the config. One of the two has to be set.
 
 **Option A — source from `acme.ca_bundle` (already in config):**
 
@@ -69,7 +70,7 @@ On success:
 OK: installed CA "My Internal CA" into the system trust store (/usr/local/share/ca-certificates)
 ```
 
-The root is written to the system anchor directory and the trust database is updated (`update-ca-certificates` on Debian/Ubuntu; `update-ca-trust` on RHEL). Other syscert operations (`renew`, `distribute`) are unchanged.
+syscert writes the root into the system anchor directory and refreshes the trust database (`update-ca-certificates` on Debian/Ubuntu, `update-ca-trust` on RHEL). Nothing else changes: `renew` and `distribute` carry on as before.
 
 ---
 
@@ -79,8 +80,8 @@ The root is written to the system anchor directory and the trust database is upd
 sudo syscert trust remove
 ```
 
-This removes only anchors that were installed by `syscert trust install` — it does not touch
-anchors managed by your OS or other tools.
+This only removes anchors that `syscert trust install` put there. It leaves anchors managed by
+your OS or other tools alone.
 
 On success:
 
@@ -90,7 +91,7 @@ OK: removed 1 SysCert-managed CA anchor(s) from /usr/local/share/ca-certificates
 
 ## Verification
 
-After installing, confirm a client trusts a certificate issued by that CA without disabling
+Once installed, check that a client trusts a certificate from that CA without you disabling
 verification:
 
 ```sh
@@ -109,13 +110,13 @@ Expected output:
 /var/lib/syscert/cert.pem: OK
 ```
 
-After removing, the same verification should fail with an untrusted-anchor error (confirming
-the root is gone).
+After a remove, that same check should fail with an untrusted-anchor error, which tells you the
+root is gone.
 
 ## Rollback / recovery
 
-To re-install after a removal, re-run `trust install`. To undo an install, run `trust remove`.
-Both operations are idempotent — re-running them is safe.
+To reinstall after a removal, run `trust install` again. To undo an install, run `trust
+remove`. Both are idempotent, so running them twice does no harm.
 
 ## Related procedures
 

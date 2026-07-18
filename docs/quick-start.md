@@ -16,16 +16,16 @@ binary, verifies its checksum, and runs the installer:
 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-It creates the dedicated `syscert` system user, the canonical store at
-`/var/lib/syscert`, a starter config and secrets file, installs the systemd
-units, and **enables** (does not start) the timer — so the first run can't fire
-against an unconfigured config. Prefer to inspect the script, verify checksums by
-hand, or build from source? See [Advanced install](/docs/advanced-install/).
+That sets up the dedicated `syscert` system user, the canonical store at
+`/var/lib/syscert`, and a starter config and secrets file. It installs the systemd
+units and **enables** the timer without starting it, so the first run can't fire
+against a config you haven't filled in yet. To read the script first, verify
+checksums by hand, or build from source, see [Advanced install](/docs/advanced-install/).
 
 ## 2 · Configure two files
 
-The installer writes starters you edit in place. First the config — your subject,
-CA, challenge, and where the certificate is delivered:
+The installer writes starter files you edit in place. First the config: your
+subject, CA, challenge, and where the certificate ends up:
 
 ```toml
 # /etc/syscert/syscert.toml
@@ -56,17 +56,17 @@ group    = "nginx"
 mode     = "0600"                 # key-bearing → not world-readable
 ```
 
-Then the credentials your DNS provider needs. These are read from the
-environment, never the TOML. Look up the exact variable names for your provider in
-the [lego DNS provider list](https://go-acme.github.io/lego/dns/):
+Then the credentials your DNS provider needs. syscert reads these from the
+environment, never from the TOML. Look up the exact variable names for your
+provider in the [lego DNS provider list](https://go-acme.github.io/lego/dns/):
 
 ```sh
 # /etc/syscert/secrets   (env file, 0640 — never put secrets in the .toml)
 CLOUDFLARE_DNS_API_TOKEN=your-token-here
 ```
 
-> **Internal CA?** Set `ca = "custom"` and `directory_url` to your Vault or
-> step-ca ACME endpoint — see [Configuration](/docs/configuration/).
+> **Running an internal CA?** Set `ca = "custom"` and point `directory_url` at
+> your Vault or step-ca ACME endpoint. See [Configuration](/docs/configuration/).
 
 ## 3 · Validate, then test on staging
 
@@ -87,9 +87,9 @@ config OK:
   challenge: dns-01
 ```
 
-A failing check lists every problem with an actionable message and exits non-zero
-— fix those before going live. The full `dry-run` (without `--config-only`)
-performs the real ACME order and challenge, then discards the certificate.
+A failing check lists every problem with an actionable message and exits non-zero,
+so fix those before you go live. The full `dry-run` (without `--config-only`) runs
+a real ACME order and challenge, then throws the certificate away.
 
 ## 4 · Go live
 
@@ -101,8 +101,9 @@ sudo systemctl start syscert.timer   # hand it over to the timer
 systemctl list-timers syscert.timer  # confirm it's scheduled
 ```
 
-That's it. The timer runs shortly after boot and daily with jitter, renewing when
-due and re-delivering to your consumers every time — no cron, no scripts.
+That's it. The timer runs shortly after boot and again daily with jitter; it
+renews when a cert is due and re-delivers to your consumers every time. No cron, no
+wrapper scripts.
 
 ---
 
