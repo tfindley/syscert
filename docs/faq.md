@@ -33,6 +33,9 @@ locked but **delivers a real file** to each consumer's own path with the exact
 owner/mode/SELinux it needs (atomic overwrite gives the stable path certbot uses
 symlinks for — without the read trap). See [Distributing](/docs/distributing/).
 
+For a side-by-side table and an honest "when to use which" (including where certbot,
+Caddy/Traefik, or cert-manager is the better pick), see the [Comparison](/docs/comparison/).
+
 ## CAs & challenges
 
 ### Which CAs are supported?
