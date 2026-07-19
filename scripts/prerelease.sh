@@ -57,6 +57,10 @@ TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 
 nfeat=0 nfix=0 nbreak=0 nother=0
 for s in "${SUBJECTS[@]}"; do
+  # web/site/ci-scoped commits ship in the website image or the release tooling,
+  # not the binary, so they must NOT move the binary release version. Skip them
+  # from the bump tally (a feat(web) is still a real feature, just not a binary one).
+  printf '%s' "$s" | grep -Eq '^(feat|fix|perf|refactor)\((web|site|ci)\)!?:' && continue
   case $s in *"!:"*) nbreak=$((nbreak+1)) ;; esac
   if   printf '%s' "$s" | grep -Eq '^feat(\(.+\))?!?:'; then nfeat=$((nfeat+1))
   elif printf '%s' "$s" | grep -Eq '^fix(\(.+\))?!?:';  then nfix=$((nfix+1))
