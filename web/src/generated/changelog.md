@@ -1,3 +1,70 @@
+## [v0.4.0] — 2026-07-19
+
+### Features
+
+feat(cli): add --interval scheduler mode for non-systemd contexts (7a19f00)
+feat(web): build a procedures download zip in CI; slot Procedures in the menu (43f6a19)
+
+### Bug Fixes
+
+fix(ci): exclude web/site/ci-scoped commits from the binary version bump (ac667de)
+fix(ci): backward-parity gate falsely flagged real multi-word commands (6194e77)
+fix(acme): drop unbuildable dns-persist-01; reject it at config validation (93aa669)
+fix(web): serve CSP frame-ancestors as an HTTP header (48439c4)
+fix(web): self-host fonts and add a Content-Security-Policy (75673d9)
+
+### Documentation
+
+docs: add Comparison page (syscert vs certbot; when to use which) (#4) (a34adb7)
+docs: human-rewrite all public docs + site copy (voice only) (010ca37)
+docs: add Comparison page (syscert vs certbot; when to use which) (a8c4138)
+docs: add Containerisation section + container reference examples (d9085b3)
+docs(spec): containerising syscert — design (5f336c0)
+docs: roadmap — add "reissue on config drift" to Next (69e3821)
+docs: fix accuracy issues found in the documentation audit (c1fb2e6)
+docs: add formal Procedures section (index + 11 SOPs) (0384883)
+docs: note self-hosted fonts and CSP in tech-stack page (883f80c)
+docs: add an upgrading guide under advanced install (b9416aa)
+docs(compliance): add Tech stack and AI-assisted development pages (d0edbef)
+docs(compliance): nest the security assessment under a Compliance section (6700cc7)
+docs(security): publish the security assessment + risk register (0912953)
+
+### Other
+
+Docs comparison (#6) (912efdf)
+ci+pkg: backward command↔docs parity gate; correct secrets log string (87438bd)
+Merge branch 'web-surface-headers' (9426efd)
+
+### Risk & Security
+
+Low risk. The only new runtime surface is the opt-in `--interval` scheduler; certificate
+issuance, key handling, the privilege model, and secret/trust handling are otherwise
+unchanged. A `/security-review` of `v0.3.1..HEAD` found no vulnerabilities.
+
+- **Go 1.26.5 is the headline fix.** It patches two reachable standard-library advisories
+  that `govulncheck` flagged on the previous toolchain — GO-2026-5856 (`crypto/tls`) and
+  GO-2026-4970 (`os`). The release build now reports zero affecting vulnerabilities.
+- **`--interval` is a scheduler, not a daemon.** It's opt-in (bare one-shot stays the
+  default), runs no external commands, and reads only a flag/env duration, floored at 1m so
+  it can't hammer the CA. `SIGTERM`/`SIGINT` cancel at a cycle boundary, so an in-flight
+  issuance or key/store write always finishes before exit — no partial or corrupt key
+  material. A failed cycle logs at error level and retries on the next tick; a bad config
+  still exits non-zero before the loop even starts. ADR-0046 scopes it as a
+  container/appliance scheduler, not a host service — the systemd timer path is unchanged
+  (ADR-0033).
+- **Dropping `dns-persist-01` only tightens validation.** The unbuildable challenge is now
+  rejected up front at `dry-run` with a clear message instead of failing mid-issuance; no
+  code path is widened.
+- **Nothing changed in secrets, keys, permissions, or trust.** Secrets stay env- or
+  `0640`-file-only and unlogged, private keys `0600`, and the internal-CA `trust` commands
+  are untouched.
+- **Supply chain unchanged.** The release is a CGO-free static binary published with sha256
+  checksums and SLSA build provenance. `npm audit` reports one high advisory in the website's
+  build-time toolchain (adm-zip, used only to *write* the procedures zip from our own docs) —
+  it affects the site build, not the tool binary, and is tracked for a separate web
+  dependency bump.
+
+
 ## [v0.3.1] — 2026-06-18
 
 ### Fixes
