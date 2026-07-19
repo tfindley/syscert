@@ -7,9 +7,7 @@ eyebrow: "// docs · compliance · security"
 lede: A published, tool-backed security assessment of the SysCert Go application and release binary — with a full risk register, so you can review the posture before you deploy.
 ---
 
-This assessment is published for transparency. It covers the **Go application and the released
-binary**; it is re-run as part of every release (`prerelease.sh` gates `gosec`, `govulncheck`, and
-the test suite). To report a vulnerability, see the [Security policy](https://github.com/tfindley/syscert/blob/main/SECURITY.md).
+This assessment is published for transparency. It covers the **Go application and the released binary**; it is re-run as part of every release (`prerelease.sh` gates `gosec`, `govulncheck`, and the test suite). To report a vulnerability, see the [Security policy](https://github.com/tfindley/syscert/blob/main/SECURITY.md).
 
 | | |
 |---|---|
@@ -25,35 +23,21 @@ the test suite). To report a vulnerability, see the [Security policy](https://gi
 
 ## 1. Executive summary
 
-SysCert is a small, single-purpose Go program that obtains an ACME/TLS certificate for a host
-(Let's Encrypt, HashiCorp Vault PKI, or Smallstep step-ca), stores it under a locked
-syscert-owned directory, and copies the requested artefacts to local consumers with explicit
-ownership/mode/SELinux context. It runs **as a dedicated non-root system user on a systemd
-timer**, with no long-running daemon and no inbound network surface in the default
-(dns-01) configuration.
+SysCert is a small, single-purpose Go program that obtains an ACME/TLS certificate for a host (Let's Encrypt, HashiCorp Vault PKI, or Smallstep step-ca), stores it under a locked syscert-owned directory, and copies the requested artefacts to local consumers with explicit ownership/mode/SELinux context. It runs **as a dedicated non-root system user on a systemd timer**, with no long-running daemon and no inbound network surface in the default (dns-01) configuration.
 
 The security posture is **strong for its size and stage**:
 
-- **Automated analysis is clean.** `go vet` (clean), `gosec` (**0 issues**, 9 reviewed
-  `#nosec` suppressions), and `govulncheck` (**0 vulnerabilities** across 676 modules).
-- **Memory-safe, statically linked.** Pure Go, `CGO_ENABLED=0` → no C/libc memory-safety class
-  of defects and no shared-library hijack surface.
-- **Secrets are handled correctly.** DNS/CA credentials and the EAB HMAC come from the
-  environment / a `0640` file, are **never written to the config, logged, or printed**, and this
-  is enforced by a regression test.
-- **Least privilege at runtime.** Dedicated `syscert` user, a single ambient capability
-  (`CAP_CHOWN`), and an extensively hardened systemd unit (`ProtectSystem=strict`,
-  `MemoryDenyWriteExecute`, `RestrictAddressFamilies`, etc.).
-- **Supply-chain integrity.** Releases ship `sha256sums.txt` plus a SLSA build-provenance
-  attestation (GitHub OIDC), built reproducibly (`-trimpath`, pinned `go.sum`).
+- **Automated analysis is clean.** `go vet` (clean), `gosec` (**0 issues**, 9 reviewed `#nosec` suppressions), and `govulncheck` (**0 vulnerabilities** across 676 modules).
+- **Memory-safe, statically linked.** Pure Go, `CGO_ENABLED=0` → no C/libc memory-safety class of defects and no shared-library hijack surface.
+- **Secrets are handled correctly.** DNS/CA credentials and the EAB HMAC come from the environment / a `0640` file, are **never written to the config, logged, or printed**, and this is enforced by a regression test.
+- **Least privilege at runtime.** Dedicated `syscert` user, a single ambient capability (`CAP_CHOWN`), and an extensively hardened systemd unit (`ProtectSystem=strict`, `MemoryDenyWriteExecute`, `RestrictAddressFamilies`, etc.).
+- **Supply-chain integrity.** Releases ship `sha256sums.txt` plus a SLSA build-provenance attestation (GitHub OIDC), built reproducibly (`-trimpath`, pinned `go.sum`).
 
-The findings below are predominantly **hardening / defence-in-depth** items and **process**
-observations rather than exploitable defects. No high or critical issues were identified.
+The findings below are predominantly **hardening / defence-in-depth** items and **process** observations rather than exploitable defects. No high or critical issues were identified.
 
 ## 2. Scope & methodology
 
-**In scope:** all first-party Go packages (`cmd/syscert`, `internal/*`), the dependency graph,
-and the released linux/amd64+arm64 binary and its build pipeline.
+**In scope:** all first-party Go packages (`cmd/syscert`, `internal/*`), the dependency graph, and the released linux/amd64+arm64 binary and its build pipeline.
 
 | Activity | Tool / method |
 |---|---|
@@ -64,9 +48,7 @@ and the released linux/amd64+arm64 binary and its build pipeline.
 | Build-pipeline review | `.github/workflows/release.yml` |
 | Manual code review | secrets, crypto, file modes, privilege, input handling, `exec` use |
 
-**Out of scope:** the Ansible role (separate repo); the operator's host hardening, disk
-encryption, backup security, DNS-provider account security, and CA server security; penetration
-testing / dynamic analysis against a live CA.
+**Out of scope:** the Ansible role (separate repo); the operator's host hardening, disk encryption, backup security, DNS-provider account security, and CA server security; penetration testing / dynamic analysis against a live CA.
 
 ## 3. Architecture & trust boundaries
 
@@ -88,11 +70,7 @@ testing / dynamic analysis against a live CA.
    - archive/<UTC>/ (optional history)
 ```
 
-**Trust boundaries.** (a) Operator-supplied config/secrets are **trusted input**, written by
-root or the syscert user and validated fail-fast. (b) The CA is **TLS-authenticated** (system trust,
-or an explicit connection-only `ca_bundle` to bootstrap an internal CA). (c) DNS-provider APIs are
-reached with operator-supplied credentials via lego. (d) Local consumers receive files but
-SysCert **never executes consumer code or reload hooks**.
+**Trust boundaries.** (a) Operator-supplied config/secrets are **trusted input**, written by root or the syscert user and validated fail-fast. (b) The CA is **TLS-authenticated** (system trust, or an explicit connection-only `ca_bundle` to bootstrap an internal CA). (c) DNS-provider APIs are reached with operator-supplied credentials via lego. (d) Local consumers receive files but SysCert **never executes consumer code or reload hooks**.
 
 ## 4. Automated analysis results
 
@@ -111,12 +89,9 @@ SysCert **never executes consumer code or reload hooks**.
 
 **`#nosec` suppressions reviewed (all justified):**
 
-- `G304` (file inclusion) ×5 — reads of syscert-owned store paths or operator-supplied
-  `--ca-file`/`--env-file`/`ca_bundle` paths (trusted input by design).
-- `G204` (subprocess) ×2 — the OS-detected trust-store update command and a fixed
-  `chcon -t <ctx> <path>`; no shell, arguments are not attacker-controlled.
-- `G306` (file perms) ×1 — CA trust anchors written `0644` **intentionally** (public certs must
-  be world-readable in the system trust store).
+- `G304` (file inclusion) ×5 — reads of syscert-owned store paths or operator-supplied `--ca-file`/`--env-file`/`ca_bundle` paths (trusted input by design).
+- `G204` (subprocess) ×2 — the OS-detected trust-store update command and a fixed `chcon -t <ctx> <path>`; no shell, arguments are not attacker-controlled.
+- `G306` (file perms) ×1 — CA trust anchors written `0644` **intentionally** (public certs must be world-readable in the system trust store).
 
 ## 5. Security controls — by domain
 
@@ -140,27 +115,13 @@ SysCert **never executes consumer code or reload hooks**.
 
 Each maps to a risk-register row (§7). All are Low or Informational.
 
-- **F-01 — Large transitive dependency tree (676 modules via lego) — Low.** `go-acme/lego/v5`
-  vendors every DNS-provider SDK. *Mitigated by* `go.sum` pinning, the mandatory `govulncheck`
-  gate (0 reachable vulns), and that only the configured provider's code path runs. *Recommend*
-  Dependabot/renovate for `lego` and keeping the gate blocking.
-- **F-02 — Release binary is not position-independent (no full-binary ASLR) — Low.** `Type: EXEC`
-  (Go `-buildmode=exe` default). NX/stack/heap ASLR still apply, and Go memory safety removes most
-  exploit primitives. *Recommend* optionally building `-buildmode=pie` for defence-in-depth.
-- **F-03 — Sensitive material persists on disk — Low.** Private keys (`0600`), secrets
-  (`0640 root:syscert`); `archive_keep > 0` retains historical keys. *Mitigated by* tight modes
-  and `0700` store; history off by default. *Recommend* protected storage / encrypted or excluded
-  backups and a modest `archive_keep` (operator responsibility).
-- **F-04 — `CAP_CHOWN` grants broad ownership-change ability — Low.** Needed to chown distributed
-  artefacts. *Mitigated by* `CapabilityBoundingSet=CAP_CHOWN`, `NoNewPrivileges`,
-  `ProtectSystem=strict`, bounded `ReadWritePaths`.
-- **F-05 — No detached cryptographic signature on the binary — Low.** Integrity/origin via
-  `sha256sums.txt` + SLSA provenance attestation (verify with `gh attestation verify`). *Recommend*
-  optionally adding cosign/Sigstore signatures if a detached signature is required downstream.
-- **F-06 — Connection-only `ca_bundle` can trust an arbitrary CA — Informational.** Opt-in,
-  runtime-warned, connection-scoped (not the system trust store). Accept as documented.
-- **F-07 — Single-maintainer, pre-1.0 project — Informational.** Mitigated by a disciplined,
-  gated release process and an ADR log. *Recommend* keeping the disclosure policy current.
+- **F-01 — Large transitive dependency tree (676 modules via lego) — Low.** `go-acme/lego/v5` vendors every DNS-provider SDK. *Mitigated by* `go.sum` pinning, the mandatory `govulncheck` gate (0 reachable vulns), and that only the configured provider's code path runs. *Recommend* Dependabot/renovate for `lego` and keeping the gate blocking.
+- **F-02 — Release binary is not position-independent (no full-binary ASLR) — Low.** `Type: EXEC` (Go `-buildmode=exe` default). NX/stack/heap ASLR still apply, and Go memory safety removes most exploit primitives. *Recommend* optionally building `-buildmode=pie` for defence-in-depth.
+- **F-03 — Sensitive material persists on disk — Low.** Private keys (`0600`), secrets (`0640 root:syscert`); `archive_keep > 0` retains historical keys. *Mitigated by* tight modes and `0700` store; history off by default. *Recommend* protected storage / encrypted or excluded backups and a modest `archive_keep` (operator responsibility).
+- **F-04 — `CAP_CHOWN` grants broad ownership-change ability — Low.** Needed to chown distributed artefacts. *Mitigated by* `CapabilityBoundingSet=CAP_CHOWN`, `NoNewPrivileges`, `ProtectSystem=strict`, bounded `ReadWritePaths`.
+- **F-05 — No detached cryptographic signature on the binary — Low.** Integrity/origin via `sha256sums.txt` + SLSA provenance attestation (verify with `gh attestation verify`). *Recommend* optionally adding cosign/Sigstore signatures if a detached signature is required downstream.
+- **F-06 — Connection-only `ca_bundle` can trust an arbitrary CA — Informational.** Opt-in, runtime-warned, connection-scoped (not the system trust store). Accept as documented.
+- **F-07 — Single-maintainer, pre-1.0 project — Informational.** Mitigated by a disciplined, gated release process and an ADR log. *Recommend* keeping the disclosure policy current.
 
 ## 7. Risk register
 
@@ -195,23 +156,15 @@ Likelihood (L) / Impact (I) / Residual: **L**ow / **M**edium / **H**igh. Inheren
 
 ## 9. Recommendations
 
-1. **Keep the release gates mandatory** — `govulncheck` + `gosec` + tests in `prerelease.sh` stay
-   blocking (R-01, R-03, R-06).
-2. **Document operator data-protection prerequisites** — protected storage / encrypted backups for
-   `/var/lib/syscert` and `/etc/syscert/secrets`; keep `archive_keep` modest (R-02, F-03).
-3. **Publish the artefact-verification path** — `gh attestation verify` + `sha256sum --check`;
-   optionally add cosign signatures (R-07, F-05).
+1. **Keep the release gates mandatory** — `govulncheck` + `gosec` + tests in `prerelease.sh` stay blocking (R-01, R-03, R-06).
+2. **Document operator data-protection prerequisites** — protected storage / encrypted backups for `/var/lib/syscert` and `/etc/syscert/secrets`; keep `archive_keep` modest (R-02, F-03).
+3. **Publish the artefact-verification path** — `gh attestation verify` + `sha256sum --check`; optionally add cosign signatures (R-07, F-05).
 4. **(Optional) PIE build** — evaluate `-buildmode=pie` (F-02, R-11).
 5. **(Optional) Dependency hygiene** — Dependabot/renovate for `lego`; track advisories (R-01).
 
 ## 10. Conclusion
 
-SysCert presents a **low overall security risk**. Memory-safe Go with no CGO, a dedicated
-least-privilege user, an extensively sandboxed systemd unit, secrets that never touch the config or
-logs, fresh keys per renewal, fail-fast validation, and provenance-attested reproducible releases
-reflect a security-by-default posture. Automated analysis (`go vet`, `gosec`, `govulncheck`) is
-clean. Open items are defence-in-depth and operator/process recommendations, none rated above Low
-residual risk.
+SysCert presents a **low overall security risk**. Memory-safe Go with no CGO, a dedicated least-privilege user, an extensively sandboxed systemd unit, secrets that never touch the config or logs, fresh keys per renewal, fail-fast validation, and provenance-attested reproducible releases reflect a security-by-default posture. Automated analysis (`go vet`, `gosec`, `govulncheck`) is clean. Open items are defence-in-depth and operator/process recommendations, none rated above Low residual risk.
 
 ---
 
@@ -229,9 +182,4 @@ gh attestation verify syscert-linux-amd64 --repo tfindley/syscert   # release pr
 
 ### Appendix B — assessment status
 
-Produced by the SysCert maintainer using the tooling and methodology in §2, and published for
-transparency. It is re-run as part of the release process (`prerelease.sh` gates `gosec`,
-`govulncheck`, and the test suite on every release); findings and residual risks are reviewed at
-each release, and material changes are reflected here and in the
-[changelog](/changelog/). To report a vulnerability, see the
-[Security policy](https://github.com/tfindley/syscert/blob/main/SECURITY.md).
+Produced by the SysCert maintainer using the tooling and methodology in §2, and published for transparency. It is re-run as part of the release process (`prerelease.sh` gates `gosec`, `govulncheck`, and the test suite on every release); findings and residual risks are reviewed at each release, and material changes are reflected here and in the [changelog](/changelog/). To report a vulnerability, see the [Security policy](https://github.com/tfindley/syscert/blob/main/SECURITY.md).

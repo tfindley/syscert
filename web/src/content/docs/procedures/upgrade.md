@@ -16,25 +16,19 @@ lede: Upgrading is an in-place binary swap. Config, secrets, and certificates ar
 
 ## Purpose
 
-Swap the installed syscert binary for a new version (and refresh the systemd units), while
-leaving your configuration, secrets, ACME account, and certificates untouched.
+Swap the installed syscert binary for a new version (and refresh the systemd units), while leaving your configuration, secrets, ACME account, and certificates untouched.
 
 ## Scope
 
-Covers the two upgrade paths: the one-line network installer, which is the normal one, and the
-manual binary swap for air-gapped or inspect-first setups. The binary never self-installs; the
-installer always drives an upgrade.
+Covers the two upgrade paths: the one-line network installer, which is the normal one, and the manual binary swap for air-gapped or inspect-first setups. The binary never self-installs; the installer always drives an upgrade.
 
-For the full picture of what's kept versus replaced, see
-[Advanced install → Upgrading](/docs/advanced-install/upgrading/).
+For the full picture of what's kept versus replaced, see [Advanced install → Upgrading](/docs/advanced-install/upgrading/).
 
 ## Prerequisites
 
 - Root access on the host.
 - For the manual path: the new binary downloaded and verified (see step 1B).
-- Read the [changelog](/changelog/) for the version you're moving to. Every release carries a
-  **Risk & Security** note and flags any config changes you need to handle before the timer
-  fires.
+- Read the [changelog](/changelog/) for the version you're moving to. Every release carries a **Risk & Security** note and flags any config changes you need to handle before the timer fires.
 
 ## Procedure
 
@@ -46,9 +40,7 @@ For the full picture of what's kept versus replaced, see
 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-The installer pulls the latest binary, checks its checksum, replaces
-`/usr/local/bin/syscert`, refreshes the systemd units, and re-applies SELinux labels. Config,
-secrets, and the store stay untouched.
+The installer pulls the latest binary, checks its checksum, replaces `/usr/local/bin/syscert`, refreshes the systemd units, and re-applies SELinux labels. Config, secrets, and the store stay untouched.
 
 To pin a specific version instead of latest:
 
@@ -105,13 +97,11 @@ Pin the previous version and re-run the installer:
 SYSCERT_VERSION=v0.3.0 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-Either way, config and certificates are preserved. If the release notes mentioned a store or
-config format change, read them before you downgrade.
+Either way, config and certificates are preserved. If the release notes mentioned a store or config format change, read them before you downgrade.
 
 ## Related procedures
 
 - [SC-OPS-001 — Install & deploy](/docs/procedures/install-and-deploy/) — initial installation reference.
 - [SC-OPS-010 — Uninstall or purge](/docs/procedures/uninstall/) — full removal.
 
-**Explanatory docs:** [Advanced install → Upgrading](/docs/advanced-install/upgrading/) ·
-[Changelog](/changelog/)
+**Explanatory docs:** [Advanced install → Upgrading](/docs/advanced-install/upgrading/) · [Changelog](/changelog/)

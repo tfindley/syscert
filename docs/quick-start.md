@@ -9,23 +9,17 @@ lede: Install the binary, edit two files, and every renewal after that is automa
 
 ## 1 · Install
 
-One static binary and a systemd timer. The one-liner downloads the release
-binary, verifies its checksum, and runs the installer:
+One static binary and a systemd timer. The one-liner downloads the release binary, verifies its checksum, and runs the installer:
 
 ```sh
 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh
 ```
 
-That sets up the dedicated `syscert` system user, the canonical store at
-`/var/lib/syscert`, and a starter config and secrets file. It installs the systemd
-units and **enables** the timer without starting it, so the first run can't fire
-against a config you haven't filled in yet. To read the script first, verify
-checksums by hand, or build from source, see [Advanced install](/docs/advanced-install/).
+That sets up the dedicated `syscert` system user, the canonical store at `/var/lib/syscert`, and a starter config and secrets file. It installs the systemd units and **enables** the timer without starting it, so the first run can't fire against a config you haven't filled in yet. To read the script first, verify checksums by hand, or build from source, see [Advanced install](/docs/advanced-install/).
 
 ## 2 · Configure two files
 
-The installer writes starter files you edit in place. First the config: your
-subject, CA, challenge, and where the certificate ends up:
+The installer writes starter files you edit in place. First the config: your subject, CA, challenge, and where the certificate ends up:
 
 ```toml
 # /etc/syscert/syscert.toml
@@ -56,9 +50,7 @@ group    = "nginx"
 mode     = "0600"                 # key-bearing → not world-readable
 ```
 
-Then the credentials your DNS provider needs. syscert reads these from the
-environment, never from the TOML. Look up the exact variable names for your
-provider in the [lego DNS provider list](https://go-acme.github.io/lego/dns/):
+Then the credentials your DNS provider needs. syscert reads these from the environment, never from the TOML. Look up the exact variable names for your provider in the [lego DNS provider list](https://go-acme.github.io/lego/dns/):
 
 ```sh
 # /etc/syscert/secrets   (env file, 0640 — never put secrets in the .toml)
@@ -70,8 +62,7 @@ CLOUDFLARE_DNS_API_TOKEN=your-token-here
 
 ## 3 · Validate, then test on staging
 
-Check the config offline first, then do a real run against Let's Encrypt staging
-(no rate-limit risk, certs aren't publicly trusted):
+Check the config offline first, then do a real run against Let's Encrypt staging (no rate-limit risk, certs aren't publicly trusted):
 
 ```sh
 sudo -u syscert syscert dry-run --config-only   # offline checks, no network
@@ -87,9 +78,7 @@ config OK:
   challenge: dns-01
 ```
 
-A failing check lists every problem with an actionable message and exits non-zero,
-so fix those before you go live. The full `dry-run` (without `--config-only`) runs
-a real ACME order and challenge, then throws the certificate away.
+A failing check lists every problem with an actionable message and exits non-zero, so fix those before you go live. The full `dry-run` (without `--config-only`) runs a real ACME order and challenge, then throws the certificate away.
 
 ## 4 · Go live
 
@@ -101,12 +90,8 @@ sudo systemctl start syscert.timer   # hand it over to the timer
 systemctl list-timers syscert.timer  # confirm it's scheduled
 ```
 
-That's it. The timer runs shortly after boot and again daily with jitter; it
-renews when a cert is due and re-delivers to your consumers every time. No cron, no
-wrapper scripts.
+That's it. The timer runs shortly after boot and again daily with jitter; it renews when a cert is due and re-delivers to your consumers every time. No cron, no wrapper scripts.
 
 ---
 
-Next: [Configuration reference](/docs/configuration/) ·
-[Distributing certs](/docs/distributing/) ·
-[Troubleshooting](/docs/troubleshooting/)
+Next: [Configuration reference](/docs/configuration/) · [Distributing certs](/docs/distributing/) · [Troubleshooting](/docs/troubleshooting/)

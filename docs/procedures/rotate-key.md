@@ -16,18 +16,13 @@ lede: syscert generates a fresh keypair on every renewal by default. If reuse_ke
 
 ## Purpose
 
-Reissue the certificate with a new private key. syscert already does this on every renewal by
-default: a **fresh keypair is generated each time**. This procedure spells that out and also
-handles the `reuse_key = true` case, where you've pinned the key.
+Reissue the certificate with a new private key. syscert already does this on every renewal by default: a **fresh keypair is generated each time**. This procedure spells that out and also handles the `reuse_key = true` case, where you've pinned the key.
 
 ## Scope
 
-Two situations. If `reuse_key = false` (the default), a forced renewal already rotates the
-key, so take the short path below. If `reuse_key = true`, the key is pinned and you have to
-clear that flag before renewing.
+Two situations. If `reuse_key = false` (the default), a forced renewal already rotates the key, so take the short path below. If `reuse_key = true`, the key is pinned and you have to clear that flag before renewing.
 
-This does **not** revoke the certificate that held the old key. Do that separately if you need
-it (see [SC-OPS-005](/docs/procedures/revoke-and-replace/)).
+This does **not** revoke the certificate that held the old key. Do that separately if you need it (see [SC-OPS-005](/docs/procedures/revoke-and-replace/)).
 
 ## Prerequisites
 
@@ -115,8 +110,7 @@ Confirm the private key fingerprint changed:
 openssl pkey -in /var/lib/syscert/privkey.pem -noout -text 2>/dev/null | grep "Public-Key"
 ```
 
-Compare that against whatever you had before. A different key length or public-key value means
-the rotation took. To capture the new fingerprint for your audit trail:
+Compare that against whatever you had before. A different key length or public-key value means the rotation took. To capture the new fingerprint for your audit trail:
 
 ```sh
 openssl pkey -in /var/lib/syscert/privkey.pem -pubout | openssl dgst -sha256
@@ -130,12 +124,9 @@ openssl x509 -in /etc/nginx/tls/fullchain.pem -noout -enddate   # adjust to your
 
 ## Rollback / recovery
 
-Once you rotate, the store drops the old key, unless `[store] archive_keep > 0`, in which case
-you'll find it under `archive/<UTC-timestamp>/privkey.pem`. There's no automated rollback for a
-key rotation. If the new cert or key gives you trouble, force another renewal.
+Once you rotate, the store drops the old key, unless `[store] archive_keep > 0`, in which case you'll find it under `archive/<UTC-timestamp>/privkey.pem`. There's no automated rollback for a key rotation. If the new cert or key gives you trouble, force another renewal.
 
-Note: rotating the key does **not** revoke the certificate that was bound to the old one. If
-you need revocation, run [SC-OPS-005](/docs/procedures/revoke-and-replace/) instead.
+Note: rotating the key does **not** revoke the certificate that was bound to the old one. If you need revocation, run [SC-OPS-005](/docs/procedures/revoke-and-replace/) instead.
 
 ## Related procedures
 
@@ -143,5 +134,4 @@ you need revocation, run [SC-OPS-005](/docs/procedures/revoke-and-replace/) inst
 - [SC-OPS-005 — Revoke and replace](/docs/procedures/revoke-and-replace/) — revoking the certificate that held the old key.
 - [SC-OPS-002 — Change certificate details & reissue](/docs/procedures/change-cert-details/) — changing key type (e.g. RSA → ECDSA).
 
-**Explanatory docs:** [Configuration → `[cert]`](/docs/configuration/#cert--certificate-subject) ·
-[Distributing certs](/docs/distributing/)
+**Explanatory docs:** [Configuration → `[cert]`](/docs/configuration/#cert--certificate-subject) · [Distributing certs](/docs/distributing/)

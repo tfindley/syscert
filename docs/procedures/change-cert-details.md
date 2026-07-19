@@ -16,9 +16,7 @@ lede: Edit the config, validate offline, then force a new ACME order and distrib
 
 ## Purpose
 
-Apply a change to the certificate's identity or issuance parameters, then force a fresh certificate
-from the CA that reflects it. In scope: adding or removing Subject Alternative Names, changing the
-key type, switching the ACME profile.
+Apply a change to the certificate's identity or issuance parameters, then force a fresh certificate from the CA that reflects it. In scope: adding or removing Subject Alternative Names, changing the key type, switching the ACME profile.
 
 ## Scope
 
@@ -28,15 +26,12 @@ Covers changes to any of:
 - `[cert] key_type`, `[cert] reuse_key`
 - `[acme] profile`, `[acme] challenge`
 
-It doesn't cover switching to a different CA (see SC-OPS-006 when available), or revoking the
-current certificate before you reissue it (see SC-OPS-005 when available).
+It doesn't cover switching to a different CA (see SC-OPS-006 when available), or revoking the current certificate before you reissue it (see SC-OPS-005 when available).
 
 ## Prerequisites
 
 - syscert is already installed and the current certificate is valid.
-- You know the new values you want to set. Check [Configuration](/docs/configuration/) for the
-  allowed keys and their constraints (e.g. `ip_sans` forces the challenge to `http-01`/`tls-alpn-01`;
-  private IPs require an internal CA).
+- You know the new values you want to set. Check [Configuration](/docs/configuration/) for the allowed keys and their constraints (e.g. `ip_sans` forces the challenge to `http-01`/`tls-alpn-01`; private IPs require an internal CA).
 - Root access to edit `/etc/syscert/syscert.toml`.
 
 ## Procedure
@@ -56,8 +51,7 @@ sans     = ["api.example.com"]
 ip_sans  = ["10.0.1.5"]          # forces challenge to http-01 or tls-alpn-01
 ```
 
-The full key reference and its constraints live in
-[Configuration → `[cert]`](/docs/configuration/#cert--certificate-subject).
+The full key reference and its constraints live in [Configuration → `[cert]`](/docs/configuration/#cert--certificate-subject).
 
 **2. Validate the config offline.**
 
@@ -65,8 +59,7 @@ The full key reference and its constraints live in
 sudo -u syscert syscert dry-run --config-only
 ```
 
-This runs before any network call. It catches structural problems, unsupported combinations, and
-cases where the CA can't do what the config asks. Fix every error it reports before you continue.
+This runs before any network call. It catches structural problems, unsupported combinations, and cases where the CA can't do what the config asks. Fix every error it reports before you continue.
 
 **3. Force a new ACME order.**
 
@@ -74,12 +67,9 @@ cases where the CA can't do what the config asks. Fix every error it reports bef
 sudo -u syscert syscert renew --force
 ```
 
-`--force` skips the expiry check and places a new order from the current config, then writes the
-fresh certificate to the store (`/var/lib/syscert/`). You have to do this by hand: the timer's
-automatic `ensure`/`renew` is **expiry-driven only** and never looks at config changes.
+`--force` skips the expiry check and places a new order from the current config, then writes the fresh certificate to the store (`/var/lib/syscert/`). You have to do this by hand: the timer's automatic `ensure`/`renew` is **expiry-driven only** and never looks at config changes.
 
-By default you get a fresh keypair (`reuse_key = false`). The old certificate is overwritten in the
-store. If you've set `[store] archive_keep`, the previous set is snapshotted first.
+By default you get a fresh keypair (`reuse_key = false`). The old certificate is overwritten in the store. If you've set `[store] archive_keep`, the previous set is snapshotted first.
 
 **4. Distribute to configured targets.**
 
@@ -87,9 +77,7 @@ store. If you've set `[store] archive_keep`, the previous set is snapshotted fir
 sudo -u syscert syscert distribute
 ```
 
-`renew --force` writes the store, but it won't deliver to the paths in your `[[distribute]]` blocks.
-That's what this separate `distribute` step is for. Afterwards every target path holds the new
-certificate.
+`renew --force` writes the store, but it won't deliver to the paths in your `[[distribute]]` blocks. That's what this separate `distribute` step is for. Afterwards every target path holds the new certificate.
 
 ## Verification
 
@@ -127,16 +115,12 @@ sudo -u syscert syscert renew --force
 sudo -u syscert syscert distribute
 ```
 
-The CA issues a new certificate matching the restored config. It won't revoke the old one for you;
-do that explicitly if you need it (see SC-OPS-005 when available).
+The CA issues a new certificate matching the restored config. It won't revoke the old one for you; do that explicitly if you need it (see SC-OPS-005 when available).
 
 ## Related procedures
 
-- [SC-OPS-003 — Force an immediate renewal](/docs/procedures/force-renewal/): a new cert with no
-  config change (expiry bypass only).
-- [SC-OPS-004 — Rotate the private key](/docs/procedures/rotate-key/): rotate the key only, leaving
-  the certificate identity alone.
+- [SC-OPS-003 — Force an immediate renewal](/docs/procedures/force-renewal/): a new cert with no config change (expiry bypass only).
+- [SC-OPS-004 — Rotate the private key](/docs/procedures/rotate-key/): rotate the key only, leaving the certificate identity alone.
 - [SC-OPS-006 — Migrate to a different CA](/docs/procedures/migrate-ca/): switch CA entirely.
 
-**Explanatory docs:** [Configuration](/docs/configuration/) · [Distributing certs](/docs/distributing/) ·
-[Troubleshooting](/docs/troubleshooting/)
+**Explanatory docs:** [Configuration](/docs/configuration/) · [Distributing certs](/docs/distributing/) · [Troubleshooting](/docs/troubleshooting/)

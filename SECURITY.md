@@ -6,6 +6,4 @@ Report security vulnerabilities through the [GitHub Issues tracker](https://gith
 
 ## Security assessment
 
-The security assessment and risk register live at
-[docs/compliance/security.md](docs/compliance/security.md), rendered at <https://syscert.tfindley.dev/docs/compliance/security/>.
-Both are tool-backed, and every release re-runs them through `scripts/prerelease.sh` (`gosec`, `govulncheck`, and the tests).
+The security assessment and risk register live at [docs/compliance/security.md](docs/compliance/security.md), rendered at <https://syscert.tfindley.dev/docs/compliance/security/>. Both are tool-backed, and every release re-runs them through `scripts/prerelease.sh` (`gosec`, `govulncheck`, and the tests).
