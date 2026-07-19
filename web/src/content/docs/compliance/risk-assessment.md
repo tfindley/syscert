@@ -1,23 +1,22 @@
 ---
 title: Risk assessment
 navLabel: Risk
-description: An impartial adoption and operational risk assessment of SysCert — consumption, production operation, and supply chain — written from a due-diligence perspective that treats the maintainer as an untrusted, single-person upstream you should be ready to fork, and mapped to the FitSD Service Acceptance Criteria.
+description: An impartial adoption and operational risk assessment of SysCert covering consumption, production operation, and supply chain. Written from a due-diligence perspective that treats the maintainer as an untrusted, single-person upstream you should be ready to fork, and mapped to the FitSD Service Acceptance Criteria.
 order: 1.5
 eyebrow: "// docs · compliance · risk"
-lede: A due-diligence risk assessment for adopting and running SysCert. It is deliberately impartial — it treats the project as untrusted, single-maintainer, pre-1.0 open source you should be prepared to fork — and maps the residual risk to the FitSD Service Acceptance Criteria.
+lede: A due-diligence risk assessment for adopting and running SysCert. It's deliberately impartial, treating the project as untrusted, single-maintainer, pre-1.0 open source you should be prepared to fork, and mapping the residual risk to the FitSD Service Acceptance Criteria.
 ---
 
-This is a risk assessment for **taking on and running** SysCert, written for whoever has to sign
-off on adopting it. It is a companion to the [Security assessment](/docs/compliance/security/),
-not a copy of it: that document assesses whether the *code* is secure; this one assesses whether
-*depending on the project and operating the service* is an acceptable risk, and what you have to
-own to make it so.
+This is a risk assessment for **taking on and running** SysCert, written for whoever has to sign off
+on adopting it. Think of it as a companion to the [Security assessment](/docs/compliance/security/)
+rather than a copy: that document asks whether the *code* is secure, this one asks whether
+*depending on the project and operating the service* is an acceptable risk, and what you have to own
+to make it so.
 
-It is written to be impartial. **The maintainer is not treated as a trusted supplier.** There is no
-company behind SysCert, no SLA, no support contract, and no promise the project will still be
-maintained next year. Read every "SysCert does X" below as a claim you should verify yourself from
-the source — which you can, because the whole point of the assessment is that you don't have to
-trust the person who wrote it.
+It's written to be impartial, and the maintainer is not treated as a trusted supplier. There's no
+company behind SysCert. No SLA, no support contract, no promise the project is still maintained next
+year. Read every "SysCert does X" below as a claim you can check yourself against the source. You
+can, and that's rather the point: you don't have to trust whoever wrote it.
 
 | | |
 |---|---|
@@ -26,28 +25,27 @@ trust the person who wrote it.
 | **Assessment type** | Adoption + operational + supply-chain risk (service acceptance) |
 | **Perspective** | Impartial / adopter due diligence — maintainer assumed **untrusted** |
 | **Framework** | Mapped to the [FitSD Service Acceptance Criteria](https://fitsd.tfindley.dev) (FSD-PRO §7 / FSD-SD-5) |
-| **Overall** | **Acceptable with owned mitigations.** Low technical risk. The real residual risks are organisational — single-maintainer supplier viability, and operator-owned monitoring and backup — all acceptable *because* the software is forkable, self-buildable, and has no runtime dependency on the maintainer. |
+| **Overall** | **Acceptable with owned mitigations.** Low technical risk. The residual risks are organisational: single-maintainer supplier viability, plus the operator-owned monitoring and backup. All acceptable *because* the software is forkable, self-buildable, and has no runtime dependency on the maintainer. |
 
-## 1. The one fact that shapes everything
+## 1. The runtime has no dependency on the maintainer
 
-Once it is installed, **SysCert never contacts the maintainer or the project's website.** It talks
-to exactly one external thing: the ACME CA directory URL *you* configure — Let's Encrypt, your
-internal HashiCorp Vault, or your step-ca. There is no telemetry, no update check, no phone-home
-(verified: the only external hosts in the binary are the Let's Encrypt directory defaults and two
-documentation URLs that live in help text, not network calls).
+Once it's installed, SysCert never contacts the maintainer or the project's website. It talks to one
+external thing: the ACME directory URL *you* configure, whether that's Let's Encrypt, your internal
+HashiCorp Vault, or step-ca. No telemetry, no update check, nothing phoning home. (Verified: the only
+external hosts in the binary are the Let's Encrypt directory defaults and two documentation URLs that
+sit in help text, not network calls.)
 
-That single fact does most of the de-risking:
+That one fact does most of the de-risking.
 
-- **An abandoned upstream does not break a running deployment.** If the maintainer disappears
-  tomorrow, every host already running SysCert keeps issuing and renewing certificates against your
-  CA, indefinitely. There is nothing to keep the lights on for.
-- **The supplier is not in your data path or your trust path.** Certificates are issued by *your*
-  CA, verified against *your* trust anchors. The maintainer is upstream of your *source code*, not
-  your *runtime*.
+An abandoned upstream doesn't break a running deployment. If the maintainer disappears tomorrow,
+every host already running SysCert keeps issuing and renewing against your CA, indefinitely. There's
+nothing you need from upstream to keep the lights on. And the supplier sits in neither your data path
+nor your trust path: your CA issues the certificates, your trust anchors verify them, and the
+maintainer is upstream of your source code, not your runtime.
 
-So the maintainer risk is a **change-management** risk (will there be future fixes and releases?),
-not an **availability** risk. That distinction is what makes a single-maintainer, pre-1.0 project a
-defensible choice here rather than a reckless one.
+So maintainer risk here is really a change-management risk. Will there be future fixes and releases?
+It isn't an availability risk. That's the distinction that makes a single-maintainer, pre-1.0 project
+a defensible choice rather than a reckless one.
 
 ## 2. What you are actually depending on
 
@@ -59,109 +57,115 @@ defensible choice here rather than a reckless one.
 | The **CA** | Your Let's Encrypt / Vault / step-ca | Your problem, not SysCert's | Swap `directory_url`; standard ACME |
 | The **dependencies** | 2 direct (`lego`, `toml`); large transitive tree via `lego` | Vulnerable/malicious dep | `go.sum` pinned; `govulncheck` gate; see [Security assessment R-01](/docs/compliance/security/) |
 
-The theme: everything you depend on is either yours already, or something you can take over. The
-only thing you cannot fully control is the *quality and pace of future upstream work* — and the
-mitigation for that is that you are legally and technically free to do it yourself.
+The pattern: everything you depend on is either already yours or something you can take over. The one
+thing you can't fully control is the quality and pace of future upstream work, and the mitigation
+there is that you're legally and technically free to do that work yourself.
 
 ## 3. Consumption / adoption risk
 
-The risk of *taking the dependency on* in the first place.
+The risk of taking the dependency on in the first place.
 
-- **Supplier viability (the headline risk).** Bus factor of one. Pre-1.0. No commercial entity, no
-  paid support, no guaranteed response to issues, no roadmap commitment. If you need a vendor you
-  can call at 3am, this is not that, and no amount of code quality changes that. *Mitigation:* it is
-  AGPL-3.0 open source with two direct dependencies and a small first-party codebase, so forking and
-  self-maintaining is realistic, not theoretical. Budget for the possibility that you become the
-  maintainer of your copy.
-- **Maturity / churn.** Pre-1.0 means the CLI flags, config schema, and defaults can still change
-  between minor versions. *Mitigation:* releases follow Conventional Commits + SemVer, ship a
-  changelog, and are gated by `prerelease.sh` (tests, lint, `gosec`, `govulncheck`, provenance);
-  design decisions are recorded in an ADR log. You get warning, not surprises. Pin a version and
-  read the changelog before upgrading.
-- **Licence: AGPL-3.0-or-later.** This is a genuine adoption gate for some organisations — plenty of
-  corporate policies restrict or forbid AGPL, and the network-copyleft clause is unusual. For how
-  SysCert is actually used (a local CLI on a timer, not a network service you modify and expose), the
-  network clause is largely inert, and running the unmodified binary imposes no obligation on you.
-  But if your policy bans AGPL outright, that is a hard stop you need to clear before anything else
-  here matters. Check it first.
-- **Output lock-in: effectively none.** SysCert writes certbot-compatible artefacts
-  (`cert`/`privkey`/`chain`/`fullchain`.pem plus an optional bundle) and speaks standard ACME. If you
-  leave, your consumers keep reading the same files and you can re-point them at certbot,
-  cert-manager, or Vault's own agent without touching the consuming apps. Low switching cost is
-  itself a risk control.
+**Supplier viability is the headline risk.** Bus factor of one, pre-1.0, no commercial entity behind
+it. No paid support, no guaranteed issue response, no roadmap commitment. If you need a vendor you can
+call at 3am, this isn't that, and no amount of code quality changes it. What makes it workable:
+AGPL-3.0, two direct dependencies, a small first-party codebase. Forking and self-maintaining is
+realistic rather than theoretical. Budget for the chance that you end up maintaining your own copy.
+
+**Maturity and churn.** Pre-1.0 means the CLI flags, config schema, and defaults can still shift
+between minor versions. You get warning, though. Releases follow SemVer and Conventional Commits, ship
+a changelog, and are gated by `prerelease.sh` (tests, lint, `gosec`, `govulncheck`, provenance), with
+design decisions recorded in an ADR log. Pin a version and read the changelog before you upgrade.
+
+**Licence: AGPL-3.0-or-later.** For some organisations this is a hard adoption gate. Plenty of
+corporate policies restrict or forbid AGPL, and its network-copyleft clause is unusual. For how
+SysCert actually runs, a local CLI on a timer rather than a network service you've modified and
+exposed, that clause is largely inert, and running the unmodified binary puts no obligation on you.
+But if your policy bans AGPL outright, clear that before anything else here matters.
+
+**Output lock-in is effectively nil.** SysCert writes certbot-compatible artefacts
+(`cert`/`privkey`/`chain`/`fullchain`.pem, plus an optional bundle) and speaks standard ACME. Leave,
+and your consumers keep reading the same files while you re-point them at certbot, cert-manager, or
+Vault's own agent without touching the apps that consume the certs. Low switching cost is a risk
+control in its own right.
 
 ## 4. Production / operational risk
 
-The risk of *running the service* day to day.
+The risk of running the service day to day.
 
-- **Primary failure mode: silent non-renewal.** The thing that actually hurts you is a certificate
-  quietly failing to renew — a transient CA/DNS outage that never recovers, a rotated DNS credential,
-  a CA policy change — until the certificate expires and TLS breaks on that host. This is the risk to
-  watch. *Blast radius is contained:* failures are per-host (no shared control plane), and the
-  outcome is an expired certificate, i.e. an availability event on one host, not a breach or a
-  key compromise.
-- **Observability — and its gap.** SysCert logs to the journal, exits non-zero on failure (so
-  `systemctl status` / a failed-unit alert catches a bad run), and ships a read-only
-  `syscert status` that reports the stored certificate's expiry and renewal dates. **What it does not
-  do is alert you.** There is no built-in metrics endpoint and no "cert expiring / renewal failing"
-  notification. Closing that gap is on you — wire the unit's failure state and certificate expiry
-  into whatever you already run (a systemd `OnFailure=`, a node exporter textfile, an expiry probe).
-  Treat this as a required integration, not an optional one.
-- **Backup and recovery.** SysCert does not back itself up. The state that matters is
-  `/var/lib/syscert` (the ACME account key, current keys and certs) and `/etc/syscert`
-  (config + secrets). *Recovery is straightforward and largely reproducible:* if you lose a host, a
-  reinstall plus a run re-issues fresh certificates against your CA. Preserving the **ACME account
-  key** and the **secrets** file avoids re-registering and re-supplying credentials. The
-  [Recover procedure](/docs/procedures/recover/) documents the steps; the operator owns running and
-  testing a restore.
-- **Availability / DR.** There is no shared state and nothing to cluster — each host is independent
-  and stateless beyond its own store. DR is "redeploy the binary + config and run," which the
-  [offline bundle](/docs/advanced-install/offline/) makes possible even with no internet. There is no
-  high-availability story because the service doesn't need one; a missed run is retried on the next
-  timer tick.
-- **Privilege and isolation.** Runs as a dedicated non-root `syscert` user with a single capability
-  (`CAP_CHOWN`) inside a hardened systemd sandbox. The operational risk here is low and is assessed in
-  detail in the [Security assessment §5](/docs/compliance/security/).
+**The primary failure mode is silent non-renewal.** What actually hurts you is a certificate quietly
+failing to renew: a transient CA or DNS outage that never recovers, a rotated DNS credential, a CA
+policy change, going unnoticed until the cert expires and TLS breaks on that host. That's the one to
+watch. The blast radius is contained, though. Failures are per-host with no shared control plane, and
+the outcome is an expired certificate, an availability event on one host rather than a breach or a key
+compromise.
+
+**Observability, and its gap.** SysCert logs to the journal, exits non-zero on failure (so
+`systemctl status` or a failed-unit alert catches a bad run), and ships a read-only `syscert status`
+that reports the stored certificate's expiry and renewal dates. What it won't do is alert you. There's
+no built-in metrics endpoint and no "cert expiring / renewal failing" notification. Closing that gap
+is your job: wire the unit's failure state and the certificate's expiry into whatever you already run,
+a systemd `OnFailure=`, a node-exporter textfile, an expiry probe. Treat it as a required integration,
+not an optional nicety.
+
+**Backup and recovery.** SysCert doesn't back itself up. The state that matters is `/var/lib/syscert`
+(the ACME account key, current keys and certs) and `/etc/syscert` (config and secrets). Recovery is
+mostly reproducible: lose a host, and a reinstall plus a run re-issues fresh certificates against your
+CA. Keeping the **ACME account key** and the **secrets** file saves you re-registering and
+re-supplying credentials. The [Recover procedure](/docs/procedures/recover/) has the steps; running
+and testing a restore is on you.
+
+**Availability and DR.** No shared state, nothing to cluster. Each host is independent and stateless
+beyond its own store. DR is "redeploy the binary and config, then run," which the
+[offline bundle](/docs/advanced-install/offline/) makes possible even with no internet. There's no
+high-availability story because the service doesn't need one; a missed run is retried on the next
+timer tick.
+
+**Privilege and isolation.** Runs as a dedicated non-root `syscert` user with a single capability
+(`CAP_CHOWN`) inside a hardened systemd sandbox. Low operational risk here, assessed in detail in the
+[Security assessment §5](/docs/compliance/security/).
 
 ## 5. Supply-chain risk
 
-- **Release integrity.** Release binaries ship with `sha256sums.txt` and a SLSA build-provenance
-  attestation (GitHub OIDC), and are built reproducibly (`-trimpath`, pinned `go.sum`,
-  `CGO_ENABLED=0`). You can verify origin and integrity independently with `sha256sum --check` and
-  `gh attestation verify` before anything runs. See [Security assessment R-07 / F-05](/docs/compliance/security/).
-- **The install channel is the weakest link — so bypass trusting it.** The convenience one-liner
-  (`curl … | sudo sh`) trusts `syscert.tfindley.dev`, GitHub, and TLS in the moment. For anything you
-  care about, don't. Pin `SYSCERT_VERSION`, verify the checksum and provenance yourself, or — better —
-  build an [offline bundle](/docs/advanced-install/offline/) once, verify it, and install every host
-  from your **own** internal mirror. The installer already supports this: it takes a local binary path
-  and needs no network.
-- **Or remove the published-binary trust entirely.** Two direct dependencies and a static build mean
-  you can `go build` SysCert yourself from pinned source and distribute *your* binary. At that point
-  the only supply-chain trust left is the Go toolchain and the dependency tree, both of which you
-  audit on your own terms.
-- **Dependency tree.** The large transitive tree comes almost entirely from `lego` vendoring every
-  DNS-provider SDK. Only the provider you configure is ever on a live code path. Pinned `go.sum` plus
-  the mandatory `govulncheck` gate (0 reachable vulnerabilities at the last assessment) keep this at
-  Low residual; see [Security assessment R-01](/docs/compliance/security/).
+**Release integrity.** Release binaries ship with `sha256sums.txt` and a SLSA build-provenance
+attestation (GitHub OIDC), built reproducibly (`-trimpath`, pinned `go.sum`, `CGO_ENABLED=0`). You can
+check origin and integrity yourself with `sha256sum --check` and `gh attestation verify` before
+anything runs. See [Security assessment R-07 / F-05](/docs/compliance/security/).
+
+**The install channel is the weakest link, so don't trust it.** The convenience one-liner
+(`curl … | sudo sh`) trusts `syscert.tfindley.dev`, GitHub, and TLS in the moment. For anything you
+care about, skip it. Pin `SYSCERT_VERSION` and verify the checksum and provenance yourself, or better,
+build an [offline bundle](/docs/advanced-install/offline/) once, verify it, and install every host
+from your **own** internal mirror. The installer already supports that: it takes a local binary path
+and needs no network.
+
+**Or drop the published-binary trust altogether.** Two direct dependencies and a static build mean you
+can `go build` SysCert from pinned source and distribute your own binary. Then the only supply-chain
+trust left is the Go toolchain and the dependency tree, both of which you audit on your own terms.
+
+**Dependency tree.** The large transitive tree comes almost entirely from `lego` vendoring every
+DNS-provider SDK, and only the provider you configure ever runs. Pinned `go.sum` plus the mandatory
+`govulncheck` gate (0 reachable vulnerabilities at the last assessment) keep this at Low residual. See
+[Security assessment R-01](/docs/compliance/security/).
 
 ## 6. Supplier independence — your exit strategy
 
-This section exists because the honest answer to "what if the maintainer vanishes?" is not "trust
-that they won't." It is "here is exactly how you carry on without them." A risk-averse adopter should
-plan to do some of this *before* going live, not after something breaks:
+The honest answer to "what if the maintainer vanishes?" isn't "trust that they won't." It's a plan for
+carrying on without them. A cautious adopter should do some of this before going live, not after
+something breaks:
 
-1. **Mirror the source.** Vendor the repository at the tag you deploy. AGPL guarantees you always
-   have the corresponding source; make sure *you* have it, in your own git, not just a link to GitHub.
+1. **Mirror the source.** Vendor the repository at the tag you deploy. AGPL guarantees you can always
+   get the corresponding source; make sure *you* actually have it, in your own git, not just a link to
+   GitHub.
 2. **Self-host the binaries.** Build an offline bundle (or `go build` from source), verify it once,
    and serve it from your internal artefact store. Install every host from there. Now your deployment
    path has no external dependency.
 3. **Be ready to fork.** The codebase is small and the dependencies are few. If upstream stalls on a
-   fix you need, forking and patching is a realistic afternoon, not a project.
+   fix you need, forking and patching is an afternoon, not a project.
 4. **Keep an exit route.** Because the outputs are certbot-compatible and the protocol is standard
-   ACME, migrating away is a config change on the consumers, not a re-architecture. Know that route
-   exists; you may never need it.
+   ACME, migrating away is a config change on the consumers, not a re-architecture. Know the route's
+   there; you may never use it.
 
-Do these, and "single-maintainer, pre-1.0" stops being a blocker and becomes a manageable, priced-in
+Do that, and "single-maintainer, pre-1.0" stops being a blocker. It becomes a manageable, priced-in
 risk.
 
 ## 7. FitSD Service Acceptance Criteria mapping
@@ -171,9 +175,9 @@ Criteria (the Definition of Done in FSD-PRO §7, required by FSD-SD-5, evidenced
 FitSD's own supplier/third-party capability (FSD-SC) is a known gap in that framework; this document,
 plus the Gate 1 licensing/upgrade-path check, is where SysCert's supplier due-diligence sits.
 
-Verdicts: **Met** — SysCert provides it and it's evidenced. **Partial** — provided but with a gap the
-operator must close. **Operator** — inherently the adopter's responsibility; SysCert gives you what
-you need to satisfy it.
+Verdicts: **Met** means SysCert provides it and it's evidenced. **Partial** means it's provided but
+with a gap you have to close. **Operator** means it's inherently your responsibility, with SysCert
+giving you what you need to satisfy it.
 
 | SAC criterion (FSD-PRO §7) | What SysCert gives you | Gap / what you must own | Verdict |
 |---|---|---|---|
@@ -187,11 +191,11 @@ you need to satisfy it.
 | **Supportability / handover** | Runbooks/SOPs, ADR log, changelog | Operating knowledge is well-captured; **continuity of the *supplier* is the open risk** — mitigate per §6 (fork-readiness) | **Partial** |
 | **Cost / licensing** | Free; run-cost is a periodic timer (negligible) | Clear the **AGPL-3.0** licence against your policy (§3) | **Met** (with licence check) |
 
-The pattern is consistent: SysCert cleanly meets the criteria that are about *the product* (security,
-access, documentation, licensing), and hands you the criteria that are inherently *operational*
-(backup, monitoring, incident definition) with the signals and docs to satisfy them. The two amber
-items to take seriously are **monitoring/alerting** (a real feature gap you must close) and
-**supplier continuity** (mitigated by fork-readiness, not by trust).
+The split is consistent. SysCert cleanly meets the criteria about the product itself (security,
+access, documentation, licensing) and hands you the operational ones (backup, monitoring, incident
+definition) with the signals and docs to satisfy them. Two amber items deserve real attention:
+monitoring and alerting, a genuine feature gap you have to close, and supplier continuity, which
+fork-readiness mitigates rather than trust.
 
 ## 8. Risk register
 
@@ -211,16 +215,16 @@ distinct from the security register's `R-nn`.
 | RA-08 | Vulnerable/malicious transitive dependency | Supply chain | M | M | Medium | Pinned `go.sum`; mandatory `govulncheck` gate; only the configured provider runs — see [R-01](/docs/compliance/security/) | **Low** | Security |
 | RA-09 | Operating knowledge concentrated in one operator | Continuity | L | M | Medium | Runbooks/SOPs, ADRs, changelog capture the knowledge — cross-train off the docs | **Low** | Supportability / handover |
 
-**Residual profile:** three items sit at **Medium** — supplier viability (RA-01) and the
-expiry/alerting pair (RA-02/RA-03). None is a defect in the code; each is closed the same way, by the
-adopter owning something: an exit plan, and monitoring. Everything else reduces to Low.
+**Residual profile:** three rows sit at Medium: supplier viability (RA-01) and the expiry/alerting
+pair (RA-02, RA-03). None is a code defect. Each closes the same way, by the adopter owning something,
+an exit plan and monitoring. Everything else reduces to Low.
 
 ## 9. Recommendations for adopters
 
 1. **Close the alerting gap before go-live.** Alert on `syscert.service` failure and on certificate
    expiry approaching. This is the single highest-value mitigation (RA-02, RA-03).
-2. **Own your supply chain.** Verify provenance/checksums, then install from an internal mirror via
-   the [offline bundle](/docs/advanced-install/offline/) — or build from source (RA-04).
+2. **Own your supply chain.** Verify provenance and checksums, then install from an internal mirror
+   via the [offline bundle](/docs/advanced-install/offline/), or build from source (RA-04).
 3. **Have an exit plan on day one.** Mirror the source, self-host binaries, be fork-ready (§6, RA-01).
 4. **Back up and test a restore.** Preserve the ACME account key and `/etc/syscert/secrets`; rehearse
    [Recover](/docs/procedures/recover/) (RA-06).
@@ -231,21 +235,23 @@ adopter owning something: an exit plan, and monitoring. Everything else reduces 
 
 ## 10. Conclusion
 
-SysCert is **low technical risk and acceptable to adopt**, provided you go in with your eyes open
-about what you're accepting. The code is memory-safe, least-privilege, and cleanly assessed; the
-outputs are standard; and — the fact that carries the most weight — running it creates no dependency
-on the maintainer at all. The residual risks that remain are not about the software being bad. They
-are about it being *small*: one maintainer, no built-in alerting, and the ordinary operator duties of
-backup and monitoring. Each of those is manageable, and each is manageable *specifically because* the
-project is open source you can fork, build, and run entirely on your own infrastructure. Accept it on
-that basis — as software you could take over tomorrow — and it is a sound choice. Accept it as a
-vendor relationship you're trusting to persist, and you've misread the risk.
+SysCert is low technical risk and acceptable to adopt, as long as you go in clear about what you're
+accepting. The code is memory-safe, runs least-privilege, and comes with a clean assessment. The
+outputs are standard. And the point that carries the most weight: running it creates no dependency on
+the maintainer at all.
+
+The risks that remain aren't about the software being bad. They're about it being *small*. One
+maintainer, no built-in alerting, plus the ordinary operator duties of backup and monitoring. Every
+one of those is manageable, and manageable precisely because this is open source you can fork, build,
+and run entirely on your own infrastructure. Treat it as software you could take over tomorrow and
+it's a sound choice. Treat it as a vendor relationship you're trusting to last, and you've misread the
+risk.
 
 ---
 
 ### Appendix — how to verify the claims in this document
 
-Don't take the assessment on faith; that would defeat its purpose.
+Don't take the assessment on faith; that would defeat the point of it.
 
 ```sh
 # Two direct dependencies, nothing hidden
@@ -262,7 +268,7 @@ gh attestation verify syscert-linux-amd64 --repo tfindley/syscert
 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o syscert ./cmd/syscert
 ```
 
-This assessment reflects SysCert around v0.4.0 and the state of the codebase at the time of writing.
-It is a maintainer-published document; its whole design is that you can re-derive every claim from the
-source rather than trust the source's author. Re-run the checks above and disagree where the evidence
+This assessment reflects SysCert around v0.4.0 and the codebase at the time of writing. It's a
+maintainer-published document, and the whole design is that you can re-derive every claim from the
+source instead of trusting the author. Re-run the checks above, and disagree wherever the evidence
 tells you to.
