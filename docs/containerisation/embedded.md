@@ -10,26 +10,20 @@ lede: One container, two processes. It works, but it has a real downside. Read t
 > **Read the trade-off below before you use this pattern.** If a single-container constraint isn't
 > forced on you, use the [sidecar pattern](/docs/containerisation/sidecar/) instead.
 
-The embedded pattern runs `syscert --interval` and the application (nginx, say) in a **single
-container**. It's here because it works and is sometimes forced on you (a constrained PaaS,
-image-size budgets, a demo), but it comes with a real trade-off that you have to mitigate on purpose.
+The embedded pattern runs `syscert --interval` and the application (nginx, say) in a **single container**. It's here because it works and is sometimes forced on you (a constrained PaaS, image-size budgets, a demo), but it comes with a real trade-off that you have to mitigate on purpose.
 
 ## The trade-off
 
 Two jobs in one container gives you an ambiguous failure mode:
 
-- If **syscert** fails (a persistent ACME error, say), nginx keeps running and serves the existing,
-  possibly expiring certificate **silently**. Nothing tells you the renewal broke.
+- If **syscert** fails (a persistent ACME error, say), nginx keeps running and serves the existing, possibly expiring certificate **silently**. Nothing tells you the renewal broke.
 - If **nginx** crashes, syscert keeps renewing, but now nothing is serving the certificate.
 
-Neither failure makes the container exit, so Docker's restart policy never fires. Both stay
-silent unless you're watching the log output.
+Neither failure makes the container exit, so Docker's restart policy never fires. Both stay silent unless you're watching the log output.
 
 ## Required mitigation: restart on either exit
 
-The `entrypoint.sh` in the example starts both processes and **exits the script the moment either one
-exits**. Docker's `restart: unless-stopped` then restarts the whole container, which at least
-surfaces the failure in the restart count and the container logs.
+The `entrypoint.sh` in the example starts both processes and **exits the script the moment either one exits**. Docker's `restart: unless-stopped` then restarts the whole container, which at least surfaces the failure in the restart count and the container logs.
 
 ```sh
 #!/bin/sh
@@ -53,13 +47,11 @@ wait -n "$NGINX_PID" "$SYSCERT_PID" 2>/dev/null || wait "$NGINX_PID" "$SYSCERT_P
 
 For something sturdier, swap this script for a real process supervisor:
 
-- **[s6-overlay](https://github.com/just-containers/s6-overlay)** — the most widely used in Alpine
-  images; per-service restart policies, dependency ordering, clean init.
+- **[s6-overlay](https://github.com/just-containers/s6-overlay)** — the most widely used in Alpine images; per-service restart policies, dependency ordering, clean init.
 - **runit** — lightweight, good for BusyBox-based images.
 - **tini** (`--init` in Docker) — for reaping zombie processes, but not a full supervisor.
 
-A supervisor gives you per-process restart policies (restart syscert on failure without touching
-nginx, and the other way round) plus proper PID 1 signal handling.
+A supervisor gives you per-process restart policies (restart syscert on failure without touching nginx, and the other way round) plus proper PID 1 signal handling.
 
 ## Dockerfile
 
@@ -89,20 +81,15 @@ EXPOSE 80 443
 ENTRYPOINT ["/entrypoint.sh"]
 ```
 
-Full annotated files:
-[`examples/container/embedded/Dockerfile`](https://github.com/tfindley/syscert/blob/main/examples/container/embedded/Dockerfile)
-and
-[`examples/container/embedded/entrypoint.sh`](https://github.com/tfindley/syscert/blob/main/examples/container/embedded/entrypoint.sh)
+Full annotated files: [`examples/container/embedded/Dockerfile`](https://github.com/tfindley/syscert/blob/main/examples/container/embedded/Dockerfile) and [`examples/container/embedded/entrypoint.sh`](https://github.com/tfindley/syscert/blob/main/examples/container/embedded/entrypoint.sh)
 
 ## Challenge
 
-Use `challenge = "dns-01"` in `syscert.toml`. No inbound ports, and nothing to fight nginx over
-`:80`/`:443`. See [Containerisation overview → Challenge selection](/docs/containerisation/#challenge-selection----dns-01-is-the-right-choice-in-containers).
+Use `challenge = "dns-01"` in `syscert.toml`. No inbound ports, and nothing to fight nginx over `:80`/`:443`. See [Containerisation overview → Challenge selection](/docs/containerisation/#challenge-selection----dns-01-is-the-right-choice-in-containers).
 
 ## Secrets
 
-Pass DNS-provider credentials in at runtime with `--env-file` or Docker secrets. Never bake them
-into the image.
+Pass DNS-provider credentials in at runtime with `--env-file` or Docker secrets. Never bake them into the image.
 
 ```sh
 docker run --env-file .env myapp:latest
@@ -110,9 +97,7 @@ docker run --env-file .env myapp:latest
 
 ## Volume ownership
 
-The store at `/var/lib/syscert` has to be owned by the uid syscert runs as. In the Dockerfile
-above, `adduser` creates uid `1001`, and `chown syscert:nginx` sets ownership so nginx (gid `101`)
-can read the distributed files.
+The store at `/var/lib/syscert` has to be owned by the uid syscert runs as. In the Dockerfile above, `adduser` creates uid `1001`, and `chown syscert:nginx` sets ownership so nginx (gid `101`) can read the distributed files.
 
 With a named volume (worth it for persistence), fix its owner first:
 
@@ -126,14 +111,11 @@ Use the embedded pattern when:
 - A **single-container constraint** is hard (PaaS, image registry policy, demo packaging).
 - You need to minimize the number of running containers (cost, orchestrator limits).
 
-Use the [sidecar](/docs/containerisation/sidecar/) or [scheduled](/docs/containerisation/scheduled/)
-pattern when:
+Use the [sidecar](/docs/containerisation/sidecar/) or [scheduled](/docs/containerisation/scheduled/) pattern when:
 - You want clear failure isolation between cert renewal and the application.
 - You need to update syscert or nginx independently.
 - You're operating at any scale past a single instance.
 
 ---
 
-Next: [Sidecar pattern](/docs/containerisation/sidecar/) ·
-[Scheduled pattern](/docs/containerisation/scheduled/) ·
-[Containerisation overview](/docs/containerisation/)
+Next: [Sidecar pattern](/docs/containerisation/sidecar/) · [Scheduled pattern](/docs/containerisation/scheduled/) · [Containerisation overview](/docs/containerisation/)

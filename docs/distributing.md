@@ -9,12 +9,7 @@ lede: syscert keeps one source of truth and copies the pieces each consumer need
 
 ## The canonical store
 
-Every issuance and renewal writes to one place: the canonical store at
-`/var/lib/syscert` (owned by the `syscert` user, `0700`; key-bearing files
-`0600`). That store is the source of truth. Distribution is a separate step that
-**copies** artifacts out to consumers instead of pointing every service at one
-shared directory. Each renewal re-copies the files and re-applies ownership, mode,
-and SELinux context.
+Every issuance and renewal writes to one place: the canonical store at `/var/lib/syscert` (owned by the `syscert` user, `0700`; key-bearing files `0600`). That store is the source of truth. Distribution is a separate step that **copies** artifacts out to consumers instead of pointing every service at one shared directory. Each renewal re-copies the files and re-applies ownership, mode, and SELinux context.
 
 ## The artifacts
 
@@ -28,17 +23,11 @@ Per certificate, syscert writes five PEM files with certbot-compatible names:
 | `fullchain` (fullchain.pem) | leaf + intermediates (what most servers want) | no |
 | `bundle` (bundle.pem) | configurable all-in-one (default leaf + chain + root + key) | **yes** |
 
-The first four come straight from the ACME response. The **root** in `bundle.pem`
-only comes from internal CAs like Vault or step-ca; public CAs don't provide one, so
-it's left out. Compose the bundle with `[bundle].order`, described in
-[Configuration](/docs/configuration/#bundle--all-in-one-file).
+The first four come straight from the ACME response. The **root** in `bundle.pem` only comes from internal CAs like Vault or step-ca; public CAs don't provide one, so it's left out. Compose the bundle with `[bundle].order`, described in [Configuration](/docs/configuration/#bundle--all-in-one-file).
 
 ## Delivery targets
 
-Each `[[distribute]]` block copies **one artifact** to a path with the ownership,
-mode, and (optionally) SELinux context that consumer needs. Writes are atomic.
-Key-bearing artifacts (`privkey`, `bundle`) can't be world-readable; a permissive
-mode gets rejected up front. Add as many blocks as you have consumers:
+Each `[[distribute]]` block copies **one artifact** to a path with the ownership, mode, and (optionally) SELinux context that consumer needs. Writes are atomic. Key-bearing artifacts (`privkey`, `bundle`) can't be world-readable; a permissive mode gets rejected up front. Add as many blocks as you have consumers:
 
 ```toml
 # nginx wants the fullchain + key
@@ -72,14 +61,8 @@ selinux_context = "cert_t"
 
 ## No reload hooks — consumers reload themselves
 
-syscert writes files, and it **never runs commands**: no reloads, no restarts, no
-hooks. That keeps this least-privilege service from having to poke at arbitrary
-daemons. Instead, each consumer watches its cert file and reloads itself, and a
-small `systemd.path` unit is the clean way to do it. See
-**[Reloading services](/docs/reloading/)** for the pattern and the reload command
-per service.
+syscert writes files, and it **never runs commands**: no reloads, no restarts, no hooks. That keeps this least-privilege service from having to poke at arbitrary daemons. Instead, each consumer watches its cert file and reloads itself, and a small `systemd.path` unit is the clean way to do it. See **[Reloading services](/docs/reloading/)** for the pattern and the reload command per service.
 
 ---
 
-Next: [Configuration → distribute](/docs/configuration/#distribute--delivering-to-consumers) ·
-[Troubleshooting](/docs/troubleshooting/)
+Next: [Configuration → distribute](/docs/configuration/#distribute--delivering-to-consumers) · [Troubleshooting](/docs/troubleshooting/)

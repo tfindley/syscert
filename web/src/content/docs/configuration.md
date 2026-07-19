@@ -7,17 +7,9 @@ eyebrow: "// docs · configuration"
 lede: Everything syscert reads from syscert.toml, section by section. Secrets are the one thing that never live here.
 ---
 
-Configuration is TOML. The default location is `/etc/syscert/syscert.toml`;
-override it with `--config <path>` or the `SYSCERT_CONFIG` environment variable
-(precedence: `--config` flag → `SYSCERT_CONFIG` → default). The shipped systemd
-unit reads `SYSCERT_CONFIG` from `/etc/default/syscert`, so you can point the
-service at a different file once, with no unit edit.
+Configuration is TOML. The default location is `/etc/syscert/syscert.toml`; override it with `--config <path>` or the `SYSCERT_CONFIG` environment variable (precedence: `--config` flag → `SYSCERT_CONFIG` → default). The shipped systemd unit reads `SYSCERT_CONFIG` from `/etc/default/syscert`, so you can point the service at a different file once, with no unit edit.
 
-Ready-to-edit files live in the repo's
-[examples/](https://github.com/tfindley/syscert/tree/main/examples): a
-fully-commented
-[full.toml](https://github.com/tfindley/syscert/blob/main/examples/full.toml)
-covering every option, plus focused starters for Let's Encrypt, Vault, and step-ca.
+Ready-to-edit files live in the repo's [examples/](https://github.com/tfindley/syscert/tree/main/examples): a fully-commented [full.toml](https://github.com/tfindley/syscert/blob/main/examples/full.toml) covering every option, plus focused starters for Let's Encrypt, Vault, and step-ca.
 
 > **Secrets never go in this file.** DNS-provider tokens, CA credentials and the
 > EAB HMAC are read from the environment (typically `/etc/syscert/secrets`, mode
@@ -88,14 +80,7 @@ Used only when `challenge` is `dns-01`.
 | `provider` | `""` | Any [lego DNS-provider id](https://go-acme.github.io/lego/dns/) (e.g. `cloudflare`, `gandiv5`, `route53`). |
 | `propagation_check` | `all` | `all` — visible on the local resolver *and* the authoritative NS (lego default). `authoritative` — verify only on the CA's authoritative NS; skip the local check (use on split-horizon/VPN/slow resolvers). `off` — skip the local pre-check entirely. |
 
-You supply credentials through the environment (or a restricted secrets file),
-**never in the config**. Each lego provider reads its own variables:
-`CLOUDFLARE_DNS_API_TOKEN` (cloudflare), `GANDIV5_PERSONAL_ACCESS_TOKEN` (Gandi
-LiveDNS), or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION`
-(route53). Check the [lego provider docs](https://go-acme.github.io/lego/dns/) for
-the exact names. The systemd unit loads these from `/etc/syscert/secrets`; for a
-manual run, pass `--env-file /etc/syscert/secrets` (repeatable; the existing
-environment wins) instead of exporting each one.
+You supply credentials through the environment (or a restricted secrets file), **never in the config**. Each lego provider reads its own variables: `CLOUDFLARE_DNS_API_TOKEN` (cloudflare), `GANDIV5_PERSONAL_ACCESS_TOKEN` (Gandi LiveDNS), or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` (route53). Check the [lego provider docs](https://go-acme.github.io/lego/dns/) for the exact names. The systemd unit loads these from `/etc/syscert/secrets`; for a manual run, pass `--env-file /etc/syscert/secrets` (repeatable; the existing environment wins) instead of exporting each one.
 
 ```toml
 [acme.dns]
@@ -105,20 +90,13 @@ propagation_check = "authoritative"   # only if the local resolver is slow to se
 
 ## `[acme.eab]` — External Account Binding
 
-Some CAs require **External Account Binding** to register an ACME account: they
-issue a Key ID + HMAC key out-of-band and the client proves possession at
-registration. Used by Vault (`eab_policy`), step-ca (`requireEAB`), and public CAs
-like ZeroSSL / Google / SSL.com.
+Some CAs require **External Account Binding** to register an ACME account: they issue a Key ID + HMAC key out-of-band and the client proves possession at registration. Used by Vault (`eab_policy`), step-ca (`requireEAB`), and public CAs like ZeroSSL / Google / SSL.com.
 
 | Key | Default | Description |
 |---|---|---|
 | `kid` | `""` | EAB Key ID. Setting it **enables EAB**. An identifier, not a secret — fine in this file. |
 
-The **HMAC key is a secret**, so supply it via `SYSCERT_EAB_HMAC` (the base64url key
-the CA gave you) in `/etc/syscert/secrets`, never in the TOML and never logged. The
-CA checks EAB only when the account is first created; syscert reuses its persistent
-account key after that. Requesting one from HashiCorp Vault?
-See [EAB](/docs/eab/), then [EAB → Vault](/docs/eab/vault/) to request one.
+The **HMAC key is a secret**, so supply it via `SYSCERT_EAB_HMAC` (the base64url key the CA gave you) in `/etc/syscert/secrets`, never in the TOML and never logged. The CA checks EAB only when the account is first created; syscert reuses its persistent account key after that. Requesting one from HashiCorp Vault? See [EAB](/docs/eab/), then [EAB → Vault](/docs/eab/vault/) to request one.
 
 ```toml
 [acme.eab]
@@ -152,15 +130,11 @@ Controls the composition of `bundle.pem`.
 order = ["key", "cert", "chain"]   # key first, no root
 ```
 
-The `root` is dropped automatically when the CA provides none (public CAs). If
-`key` is present, any target receiving `bundle` must use a non-world-readable mode.
+The `root` is dropped automatically when the CA provides none (public CAs). If `key` is present, any target receiving `bundle` must use a non-world-readable mode.
 
 ## `[[distribute]]` — delivering to consumers
 
-Zero or more blocks. Each copies **one artifact** to a path with the
-ownership/mode/context that consumer needs. syscert overwrites only the paths it
-manages, and it **does not reload consumers**. See
-[Distributing certs](/docs/distributing/).
+Zero or more blocks. Each copies **one artifact** to a path with the ownership/mode/context that consumer needs. syscert overwrites only the paths it manages, and it **does not reload consumers**. See [Distributing certs](/docs/distributing/).
 
 | Key | Description |
 |---|---|
@@ -194,11 +168,8 @@ mode     = "0600"
 | `logging.level` | `info` | `debug` · `info` · `warn` · `error`. |
 | `logging.format` | `text` | `text` (journald-friendly) · `json`. |
 
-Operational logs (events, errors, and lego's ACME output) go to **stderr**;
-command results and prompts go to **stdout**. Secret values are never logged.
+Operational logs (events, errors, and lego's ACME output) go to **stderr**; command results and prompts go to **stdout**. Secret values are never logged.
 
 ---
 
-Next: [Distributing certs](/docs/distributing/) ·
-[Troubleshooting](/docs/troubleshooting/) ·
-[full.toml on GitHub](https://github.com/tfindley/syscert/blob/main/examples/full.toml)
+Next: [Distributing certs](/docs/distributing/) · [Troubleshooting](/docs/troubleshooting/) · [full.toml on GitHub](https://github.com/tfindley/syscert/blob/main/examples/full.toml)

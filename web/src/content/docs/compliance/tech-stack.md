@@ -7,8 +7,7 @@ eyebrow: "// docs · compliance · tech stack"
 lede: Everything SysCert is made of — the binary, its dependencies, the runtime model, the docs site, and the build pipeline — in one place.
 ---
 
-A deliberately small, boring stack: a single static Go binary, a tiny systemd footprint, and a
-short dependency list. Nothing to babysit, little to attack.
+A deliberately small, boring stack: a single static Go binary, a tiny systemd footprint, and a short dependency list. Nothing to babysit, little to attack.
 
 ## The tool
 
@@ -21,19 +20,9 @@ short dependency list. Nothing to babysit, little to attack.
 | Logging | standard-library structured logging (`log/slog`) to stderr/journal |
 | Direct dependencies | **two** (`lego`, `toml`); the large transitive tree is lego's per-provider DNS SDKs |
 
-**Architecture.** A CLI (bare `syscert` = ensure, plus `issue|renew|void|destroy|distribute|status|trust|dry-run`)
-over small internal packages: config load + **fail-fast validation**, an ACME client wrapper
-(lego), an atomic certificate **store** (`/var/lib/syscert`), **distribution** to consumer paths
-with per-target owner/mode/SELinux context, **renewal** decisioning, and system **trust**
-management. The default model is **no long-running daemon**: a systemd **oneshot + timer** runs
-the binary on a schedule. `--interval <duration>` (env `SYSCERT_INTERVAL`) adds an in-process
-renewal loop for non-systemd contexts (containers, appliances) without changing the host model.
-One-shot (no flag) stays the default.
+**Architecture.** A CLI (bare `syscert` = ensure, plus `issue|renew|void|destroy|distribute|status|trust|dry-run`) over small internal packages: config load + **fail-fast validation**, an ACME client wrapper (lego), an atomic certificate **store** (`/var/lib/syscert`), **distribution** to consumer paths with per-target owner/mode/SELinux context, **renewal** decisioning, and system **trust** management. The default model is **no long-running daemon**: a systemd **oneshot + timer** runs the binary on a schedule. `--interval <duration>` (env `SYSCERT_INTERVAL`) adds an in-process renewal loop for non-systemd contexts (containers, appliances) without changing the host model. One-shot (no flag) stays the default.
 
-**Runtime model.** Runs as a dedicated, non-root **`syscert`** system user under a hardened
-systemd unit (`NoNewPrivileges`, `ProtectSystem=strict`, `MemoryDenyWriteExecute`, a single
-`CAP_CHOWN`). Outputs are certbot-compatible (`cert`/`privkey`/`chain`/`fullchain`/`bundle`).
-See the [Security assessment](/docs/compliance/security/) for the full control set.
+**Runtime model.** Runs as a dedicated, non-root **`syscert`** system user under a hardened systemd unit (`NoNewPrivileges`, `ProtectSystem=strict`, `MemoryDenyWriteExecute`, a single `CAP_CHOWN`). Outputs are certbot-compatible (`cert`/`privkey`/`chain`/`fullchain`/`bundle`). See the [Security assessment](/docs/compliance/security/) for the full control set.
 
 ## The documentation site
 
@@ -45,9 +34,7 @@ See the [Security assessment](/docs/compliance/security/) for the full control s
 | Runtime image | **`nginx:alpine-slim`** serving static files (TLS terminated upstream by Traefik) |
 | Registry / hosting | image published to **GHCR** (`ghcr.io/tfindley/syscert-web`), pulled by a self-managed host behind **Traefik** |
 
-The website is a *hosting artifact*, not the product. It documents the binary, which is the thing
-you install. Self-hosted fonts and the per-page CSP keep its origin self-contained; see the
-[Security assessment](/docs/compliance/security/) for the site's full header set.
+The website is a *hosting artifact*, not the product. It documents the binary, which is the thing you install. Self-hosted fonts and the per-page CSP keep its origin self-contained; see the [Security assessment](/docs/compliance/security/) for the site's full header set.
 
 ## Build, release & CI
 
@@ -58,8 +45,7 @@ you install. Self-hosted fonts and the per-page CSP keep its origin self-contain
 | **Release** | cross-compiled `amd64`/`arm64` with `-trimpath -ldflags "-s -w"`, `sha256sums.txt`, and a **SLSA build-provenance attestation** (GitHub OIDC) |
 | **Site** | container image built and pushed to GHCR on docs/site changes and after each release |
 
-Releases are reproducible (`-trimpath`, pinned `go.sum`, embedded VCS revision) and verifiable
-(`sha256sum --check` + `gh attestation verify`).
+Releases are reproducible (`-trimpath`, pinned `go.sum`, embedded VCS revision) and verifiable (`sha256sum --check` + `gh attestation verify`).
 
 ## Licensing
 
