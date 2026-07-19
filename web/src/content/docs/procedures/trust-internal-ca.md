@@ -16,35 +16,26 @@ lede: trust install adds the internal CA's root to the system trust store so cli
 
 ## Purpose
 
-Put an internal CA's root certificate into the system-wide trust store so standard clients
-(curl, wget, browsers, OpenSSL) accept that CA's certificates without you having to turn off
-verification. Pull it back out when the CA is retired or replaced.
+Put an internal CA's root certificate into the system-wide trust store so standard clients (curl, wget, browsers, OpenSSL) accept that CA's certificates without you having to turn off verification. Pull it back out when the CA is retired or replaced.
 
-For public CAs like Let's Encrypt, the system already trusts them, so `trust install` just
-exits with "nothing to do."
+For public CAs like Let's Encrypt, the system already trusts them, so `trust install` just exits with "nothing to do."
 
 ## Scope
 
-Covers `syscert trust install` (add the root) and `syscert trust remove` (pull SysCert-managed
-anchors back out). Both touch the system trust store, and both need `root`.
+Covers `syscert trust install` (add the root) and `syscert trust remove` (pull SysCert-managed anchors back out). Both touch the system trust store, and both need `root`.
 
-This is **separate from `acme.ca_bundle`**. That setting only trusts the CA for the ACME
-connection so issuance can bootstrap; it doesn't make clients trust the certificate you get out
-the other end. Use this procedure when you want issued certificates trusted end-to-end without
-extra flags.
+This is **separate from `acme.ca_bundle`**. That setting only trusts the CA for the ACME connection so issuance can bootstrap; it doesn't make clients trust the certificate you get out the other end. Use this procedure when you want issued certificates trusted end-to-end without extra flags.
 
 ## Prerequisites
 
 - Root access on the host.
-- The internal CA's root PEM available on disk, **or** `acme.ca_bundle` already pointing to
-  it in the config.
+- The internal CA's root PEM available on disk, **or** `acme.ca_bundle` already pointing to it in the config.
 
 ## Procedure
 
 ### Install the internal CA root
 
-syscert works out where to read the CA from in order: `--ca-file <pem>` if you pass it,
-otherwise `acme.ca_bundle` from the config. One of the two has to be set.
+syscert works out where to read the CA from in order: `--ca-file <pem>` if you pass it, otherwise `acme.ca_bundle` from the config. One of the two has to be set.
 
 **Option A — source from `acme.ca_bundle` (already in config):**
 
@@ -80,8 +71,7 @@ syscert writes the root into the system anchor directory and refreshes the trust
 sudo syscert trust remove
 ```
 
-This only removes anchors that `syscert trust install` put there. It leaves anchors managed by
-your OS or other tools alone.
+This only removes anchors that `syscert trust install` put there. It leaves anchors managed by your OS or other tools alone.
 
 On success:
 
@@ -91,8 +81,7 @@ OK: removed 1 SysCert-managed CA anchor(s) from /usr/local/share/ca-certificates
 
 ## Verification
 
-Once installed, check that a client trusts a certificate from that CA without you disabling
-verification:
+Once installed, check that a client trusts a certificate from that CA without you disabling verification:
 
 ```sh
 curl https://host.example.com
@@ -110,13 +99,11 @@ Expected output:
 /var/lib/syscert/cert.pem: OK
 ```
 
-After a remove, that same check should fail with an untrusted-anchor error, which tells you the
-root is gone.
+After a remove, that same check should fail with an untrusted-anchor error, which tells you the root is gone.
 
 ## Rollback / recovery
 
-To reinstall after a removal, run `trust install` again. To undo an install, run `trust
-remove`. Both are idempotent, so running them twice does no harm.
+To reinstall after a removal, run `trust install` again. To undo an install, run `trust remove`. Both are idempotent, so running them twice does no harm.
 
 ## Related procedures
 
@@ -124,5 +111,4 @@ remove`. Both are idempotent, so running them twice does no harm.
 - [SC-OPS-011 — Recover from a broken state](/docs/procedures/recover/) — destroy offers to remove managed CA anchors during a full teardown.
 - [SC-OPS-001 — Install & deploy](/docs/procedures/install-and-deploy/) — initial setup, where this may be needed for an internal CA.
 
-**Explanatory docs:** [Configuration → `acme.ca_bundle`](/docs/configuration/#acme--ca-and-challenge) ·
-[Troubleshooting → x509 unknown authority](/docs/troubleshooting/#x509-unknown-authority-against-an-internal-ca)
+**Explanatory docs:** [Configuration → `acme.ca_bundle`](/docs/configuration/#acme--ca-and-challenge) · [Troubleshooting → x509 unknown authority](/docs/troubleshooting/#x509-unknown-authority-against-an-internal-ca)

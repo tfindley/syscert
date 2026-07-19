@@ -16,14 +16,11 @@ lede: Renew the certificate right now, whatever's left on the clock. No config c
 
 ## Purpose
 
-Place a new ACME order and swap in the certificate immediately. No config change, and no waiting
-for the timer's expiry-driven renewal window.
+Place a new ACME order and swap in the certificate immediately. No config change, and no waiting for the timer's expiry-driven renewal window.
 
 ## Scope
 
-For when the certificate is still valid but you need a fresh one now. Maybe the CA had an
-incident, a distribution got missed, or a service restart reloaded stale cached material. The
-configuration does **not** change.
+For when the certificate is still valid but you need a fresh one now. Maybe the CA had an incident, a distribution got missed, or a service restart reloaded stale cached material. The configuration does **not** change.
 
 Does **not** cover:
 
@@ -45,8 +42,7 @@ Does **not** cover:
 sudo -u syscert syscert renew --force --staging --env-file /etc/syscert/secrets
 ```
 
-This orders against the CA's staging environment (Let's Encrypt only), which confirms the ACME
-round-trip works without burning production rate limits. Skip to step 2 once you're confident.
+This orders against the CA's staging environment (Let's Encrypt only), which confirms the ACME round-trip works without burning production rate limits. Skip to step 2 once you're confident.
 
 **2. Force a new ACME order.**
 
@@ -54,9 +50,7 @@ round-trip works without burning production rate limits. Skip to step 2 once you
 sudo -u syscert syscert renew --force --env-file /etc/syscert/secrets
 ```
 
-`--force` skips the expiry check and places a new order straight away. The new certificate and
-a fresh keypair land in the store (`/var/lib/syscert/`). If `[store] archive_keep` is set, the
-previous set is snapshotted first.
+`--force` skips the expiry check and places a new order straight away. The new certificate and a fresh keypair land in the store (`/var/lib/syscert/`). If `[store] archive_keep` is set, the previous set is snapshotted first.
 
 **3. Distribute to configured targets.**
 
@@ -64,8 +58,7 @@ previous set is snapshotted first.
 sudo -u syscert syscert distribute
 ```
 
-`renew --force` writes the store, but it won't push to the paths in your `[[distribute]]`
-blocks. This separate `distribute` step does that.
+`renew --force` writes the store, but it won't push to the paths in your `[[distribute]]` blocks. This separate `distribute` step does that.
 
 ## Verification
 
@@ -85,10 +78,7 @@ The `notAfter` date should match the certificate you just issued.
 
 ## Rollback / recovery
 
-The previous certificate is overwritten in the store. If `[store] archive_keep > 0`, its
-snapshot sits in `archive/<UTC-timestamp>/` inside the store, and you can copy it back by hand.
-Without an archive, re-run `renew --force` if the new certificate misbehaves, or restore from
-your own backup.
+The previous certificate is overwritten in the store. If `[store] archive_keep > 0`, its snapshot sits in `archive/<UTC-timestamp>/` inside the store, and you can copy it back by hand. Without an archive, re-run `renew --force` if the new certificate misbehaves, or restore from your own backup.
 
 ## Related procedures
 
@@ -96,5 +86,4 @@ your own backup.
 - [SC-OPS-004 — Rotate the private key](/docs/procedures/rotate-key/): the key-rotation specifics.
 - [SC-OPS-005 — Revoke and replace](/docs/procedures/revoke-and-replace/): when the old certificate has to be revoked first.
 
-**Explanatory docs:** [Configuration](/docs/configuration/) · [Distributing certs](/docs/distributing/) ·
-[Troubleshooting](/docs/troubleshooting/)
+**Explanatory docs:** [Configuration](/docs/configuration/) · [Distributing certs](/docs/distributing/) · [Troubleshooting](/docs/troubleshooting/)

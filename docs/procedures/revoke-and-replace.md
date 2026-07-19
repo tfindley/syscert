@@ -16,15 +16,11 @@ lede: void revokes the current certificate at the CA, reissues a replacement, an
 
 ## Purpose
 
-Revoke the current certificate at the CA (it goes invalid in OCSP/CRL), then reissue and
-distribute a replacement in the same run. You'd do this if the private key might be
-compromised. Also when a CA security event forces revocation, or when you simply need every
-client to stop accepting the old certificate.
+Revoke the current certificate at the CA (it goes invalid in OCSP/CRL), then reissue and distribute a replacement in the same run. You'd do this if the private key might be compromised. Also when a CA security event forces revocation, or when you simply need every client to stop accepting the old certificate.
 
 ## Scope
 
-Covers the `void` subcommand: one command that revokes, reissues, then distributes. The
-replacement is built from your current configuration with a fresh keypair.
+Covers the `void` subcommand: one command that revokes, reissues, then distributes. The replacement is built from your current configuration with a fresh keypair.
 
 Does **not** cover:
 
@@ -69,13 +65,9 @@ Enter `y` to proceed. To skip the prompt (automation or scripts):
 sudo -u syscert syscert void --force --env-file /etc/syscert/secrets
 ```
 
-`void` runs three steps in order: revoke the current cert at the CA → issue a new ACME order →
-distribute the new certificate to every `[[distribute]]` target.
+`void` runs three steps in order: revoke the current cert at the CA → issue a new ACME order → distribute the new certificate to every `[[distribute]]` target.
 
-**Partial-failure behaviour.** Say the revocation request fails because the CA is briefly
-unreachable. `void` prints a warning and keeps going: it still reissues and distributes the
-replacement. The exit code comes back non-zero (`1`) when that happens, so check stderr. And if
-you saw the warning, the old certificate was **not** revoked.
+**Partial-failure behaviour.** Say the revocation request fails because the CA is briefly unreachable. `void` prints a warning and keeps going: it still reissues and distributes the replacement. The exit code comes back non-zero (`1`) when that happens, so check stderr. And if you saw the warning, the old certificate was **not** revoked.
 
 ## Verification
 
@@ -85,21 +77,17 @@ Confirm the new certificate is in place:
 sudo -u syscert syscert status
 ```
 
-Check the serial or `notBefore` on the distributed certificate to confirm it's the freshly
-issued one:
+Check the serial or `notBefore` on the distributed certificate to confirm it's the freshly issued one:
 
 ```sh
 openssl x509 -in /etc/nginx/tls/fullchain.pem -noout -serial -dates   # adjust to your path
 ```
 
-To confirm the old certificate is actually revoked (assuming revocation went through), check
-your CA's OCSP or CRL endpoint. How you do that depends on the CA.
+To confirm the old certificate is actually revoked (assuming revocation went through), check your CA's OCSP or CRL endpoint. How you do that depends on the CA.
 
 ## Rollback / recovery
 
-There's no automated rollback after `void`. The old certificate is already revoked at the CA,
-and the store now holds the replacement. If something's wrong with the new certificate, run
-`renew --force` for another one:
+There's no automated rollback after `void`. The old certificate is already revoked at the CA, and the store now holds the replacement. If something's wrong with the new certificate, run `renew --force` for another one:
 
 ```sh
 sudo -u syscert syscert renew --force --env-file /etc/syscert/secrets

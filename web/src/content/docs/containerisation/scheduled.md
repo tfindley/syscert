@@ -7,12 +7,9 @@ eyebrow: "// docs · containerisation · scheduled"
 lede: The simplest pattern. syscert runs once, exits, and an external timer brings it back. Mirrors the systemd-timer model and maps directly to a Kubernetes CronJob.
 ---
 
-For most setups, the scheduled pattern is **recommended**. `syscert` runs without `--interval`,
-does one ensure cycle (issue if missing, renew if due, distribute), and exits. Something external
-re-runs it on a schedule: cron, a systemd timer on the host, or a Kubernetes CronJob.
+For most setups, the scheduled pattern is **recommended**. `syscert` runs without `--interval`, does one ensure cycle (issue if missing, renew if due, distribute), and exits. Something external re-runs it on a schedule: cron, a systemd timer on the host, or a Kubernetes CronJob.
 
-It mirrors the host systemd-timer model: a one-shot binary on a schedule. Easy to inspect, safe to
-restart, and every run gives you a clear success or failure signal.
+It mirrors the host systemd-timer model: a one-shot binary on a schedule. Easy to inspect, safe to restart, and every run gives you a clear success or failure signal.
 
 ## Docker Compose + cron
 
@@ -50,8 +47,7 @@ volumes:
     driver: local
 ```
 
-Full annotated file:
-[`examples/container/compose.scheduled.yml`](https://github.com/tfindley/syscert/blob/main/examples/container/compose.scheduled.yml)
+Full annotated file: [`examples/container/compose.scheduled.yml`](https://github.com/tfindley/syscert/blob/main/examples/container/compose.scheduled.yml)
 
 Run it on a schedule from the host's crontab:
 
@@ -107,8 +103,7 @@ spec:
                 claimName: syscert-cert-store
 ```
 
-Full annotated file (with PVC definition):
-[`examples/container/k8s-cronjob.yaml`](https://github.com/tfindley/syscert/blob/main/examples/container/k8s-cronjob.yaml)
+Full annotated file (with PVC definition): [`examples/container/k8s-cronjob.yaml`](https://github.com/tfindley/syscert/blob/main/examples/container/k8s-cronjob.yaml)
 
 The app `Deployment` mounts the same PVC read-only:
 
@@ -128,25 +123,18 @@ In Compose, fix the volume owner before you use it:
 docker run --rm -v <project>_certs:/vol alpine chown 1000:1000 /vol
 ```
 
-In Kubernetes, `securityContext.fsGroup` sets the group owner of a mounted PVC for you, so there's
-no manual step.
+In Kubernetes, `securityContext.fsGroup` sets the group owner of a mounted PVC for you, so there's no manual step.
 
 ## Secrets
 
-In Compose, put credentials in a `.env` file (`0600`). In Kubernetes, keep them in a `Secret` and
-project them as environment variables, like the example above. Never bake secrets into the image.
+In Compose, put credentials in a `.env` file (`0600`). In Kubernetes, keep them in a `Secret` and project them as environment variables, like the example above. Never bake secrets into the image.
 
 ## Why one-shot?
 
-A few things make one-shot nice. A failed run doesn't spin and hammer the CA; the next scheduled run
-just retries, so you stay rate-limit safe. Job history hands you a success or failure record per run.
-And re-running the job is safe, because `syscert` is idempotent.
+A few things make one-shot nice. A failed run doesn't spin and hammer the CA; the next scheduled run just retries, so you stay rate-limit safe. Job history hands you a success or failure record per run. And re-running the job is safe, because `syscert` is idempotent.
 
-The one thing `--interval` buys you over this pattern is that the sidecar schedules itself without an
-external timer. If you've already got cron or a Kubernetes CronJob, this pattern is simpler.
+The one thing `--interval` buys you over this pattern is that the sidecar schedules itself without an external timer. If you've already got cron or a Kubernetes CronJob, this pattern is simpler.
 
 ---
 
-Next: [Sidecar pattern](/docs/containerisation/sidecar/) ·
-[Embedded pattern](/docs/containerisation/embedded/) ·
-[Containerisation overview](/docs/containerisation/)
+Next: [Sidecar pattern](/docs/containerisation/sidecar/) · [Embedded pattern](/docs/containerisation/embedded/) · [Containerisation overview](/docs/containerisation/)

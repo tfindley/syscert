@@ -16,14 +16,11 @@ lede: --uninstall removes the binary and units but keeps config and certificates
 
 ## Purpose
 
-Take syscert off a host cleanly. Either keep the certificate state for a later reinstall
-(`--uninstall`), or wipe everything: the store, the config files, and the `syscert` system
-user (`--uninstall --purge`).
+Take syscert off a host cleanly. Either keep the certificate state for a later reinstall (`--uninstall`), or wipe everything: the store, the config files, and the `syscert` system user (`--uninstall --purge`).
 
 ## Scope
 
-Covers the two uninstall modes that `packaging/install.sh` drives. It does **not** revoke the
-certificate before removal, so do that first if you need it (see [SC-OPS-005](/docs/procedures/revoke-and-replace/)).
+Covers the two uninstall modes that `packaging/install.sh` drives. It does **not** revoke the certificate before removal, so do that first if you need it (see [SC-OPS-005](/docs/procedures/revoke-and-replace/)).
 
 ## Prerequisites
 
@@ -100,10 +97,8 @@ id syscert               # no such user
 
 ## Rollback / recovery
 
-- After `--uninstall` (data kept): run the installer again to bring back the binary and units.
-  Your existing config and certificates get reused.
-- After `--uninstall --purge`: there's no way back. The store is gone, so reinstall from
-  scratch with [SC-OPS-001](/docs/procedures/install-and-deploy/).
+- After `--uninstall` (data kept): run the installer again to bring back the binary and units. Your existing config and certificates get reused.
+- After `--uninstall --purge`: there's no way back. The store is gone, so reinstall from scratch with [SC-OPS-001](/docs/procedures/install-and-deploy/).
 
 ## Related procedures
 

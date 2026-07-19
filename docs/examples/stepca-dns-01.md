@@ -22,12 +22,8 @@ challenge     = "dns-01"
 provider = "cloudflare"            # creds via env: CLOUDFLARE_DNS_API_TOKEN
 ```
 
-The `directory_url` follows `https://<ca-host>:9000/acme/<provisioner>/directory`. Using dns-01
-keeps every inbound port closed, which pairs well with an internal CA and internal DNS. If the
-provisioner sets `requireEAB`, add `[acme.eab].kid` and `SYSCERT_EAB_HMAC`. Trust bootstraps the
-same way as Vault: point `ca_bundle` at the CA, then run `sudo syscert trust install`.
+The `directory_url` follows `https://<ca-host>:9000/acme/<provisioner>/directory`. Using dns-01 keeps every inbound port closed, which pairs well with an internal CA and internal DNS. If the provisioner sets `requireEAB`, add `[acme.eab].kid` and `SYSCERT_EAB_HMAC`. Trust bootstraps the same way as Vault: point `ca_bundle` at the CA, then run `sudo syscert trust install`.
 
 File: [`stepca-dns-01.toml`](https://github.com/tfindley/syscert/blob/main/examples/stepca-dns-01.toml)
 
-The `[store]`, `[[distribute]]` and `[logging]` tail is identical in every example; see
-[Sample configs](/docs/examples/).
+The `[store]`, `[[distribute]]` and `[logging]` tail is identical in every example; see [Sample configs](/docs/examples/).

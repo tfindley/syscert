@@ -16,16 +16,11 @@ lede: destroy wipes the cert artifacts and ACME account (or just the certs with 
 
 ## Purpose
 
-Wipe all certificate material and ACME account state from the store so syscert can start clean.
-Reach for this when the store is corrupted or inconsistent, when you're switching CA and want a
-clean break, or when you need to re-register an ACME account.
+Wipe all certificate material and ACME account state from the store so syscert can start clean. Reach for this when the store is corrupted or inconsistent, when you're switching CA and want a clean break, or when you need to re-register an ACME account.
 
 ## Scope
 
-Covers the `destroy` subcommand. It wipes the store and, optionally, offers to remove the
-system-trust anchors for an internal CA. It does **not** revoke the current certificate. If the
-certificate has to be revoked first, run [SC-OPS-005](/docs/procedures/revoke-and-replace/)
-**before** this procedure.
+Covers the `destroy` subcommand. It wipes the store and, optionally, offers to remove the system-trust anchors for an internal CA. It does **not** revoke the current certificate. If the certificate has to be revoked first, run [SC-OPS-005](/docs/procedures/revoke-and-replace/) **before** this procedure.
 
 ## Prerequisites
 
@@ -67,23 +62,20 @@ Enter `y`. To skip the prompt:
 sudo -u syscert syscert destroy --force
 ```
 
-**With `--keep-account`** (removes the cert artifacts only, and keeps the ACME account key and
-registration, so re-provisioning won't need a new EAB token):
+**With `--keep-account`** (removes the cert artifacts only, and keeps the ACME account key and registration, so re-provisioning won't need a new EAB token):
 
 ```sh
 sudo -u syscert syscert destroy --keep-account
 sudo -u syscert syscert destroy --keep-account --force
 ```
 
-**Internal CA only. Un-trust the CA root.** On a full destroy (without `--keep-account`), if
-the configured CA is internal (`ca = "custom"`), `destroy` asks:
+**Internal CA only. Un-trust the CA root.** On a full destroy (without `--keep-account`), if the configured CA is internal (`ca = "custom"`), `destroy` asks:
 
 ```
 Also remove the internal CA from the system trust store (requires root)? [y/N]
 ```
 
-This step needs `root`. If you ran `destroy` as the `syscert` user and want to un-trust the
-CA root on its own, use `trust remove`:
+This step needs `root`. If you ran `destroy` as the `syscert` user and want to un-trust the CA root on its own, use `trust remove`:
 
 ```sh
 sudo syscert trust remove
@@ -111,8 +103,7 @@ Run bare `syscert` (the `ensure` default: issue if no cert exists, then distribu
 sudo -u syscert syscert --env-file /etc/syscert/secrets
 ```
 
-syscert registers a new ACME account (unless you used `--keep-account`), places a new order,
-writes the certificate to the store, and distributes to every configured target.
+syscert registers a new ACME account (unless you used `--keep-account`), places a new order, writes the certificate to the store, and distributes to every configured target.
 
 ## Verification
 
@@ -120,8 +111,7 @@ writes the certificate to the store, and distributes to every configured target.
 sudo -u syscert syscert status
 ```
 
-Confirm the cert subject, expiry, account, and distribution targets look right. Check a
-distributed path too:
+Confirm the cert subject, expiry, account, and distribution targets look right. Check a distributed path too:
 
 ```sh
 openssl x509 -in /etc/nginx/tls/fullchain.pem -noout -dates   # adjust to your path
@@ -129,9 +119,7 @@ openssl x509 -in /etc/nginx/tls/fullchain.pem -noout -dates   # adjust to your p
 
 ## Rollback / recovery
 
-`destroy` is irreversible: it removes the store contents. Recovery means re-provisioning (step
-4). If you destroyed the previous ACME account and the new CA requires EAB, get a new EAB token
-before re-provisioning and update `/etc/syscert/secrets` with `SYSCERT_EAB_HMAC=<new>`.
+`destroy` is irreversible: it removes the store contents. Recovery means re-provisioning (step 4). If you destroyed the previous ACME account and the new CA requires EAB, get a new EAB token before re-provisioning and update `/etc/syscert/secrets` with `SYSCERT_EAB_HMAC=<new>`.
 
 ## Related procedures
 

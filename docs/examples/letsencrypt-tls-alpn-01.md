@@ -18,10 +18,8 @@ email     = "you@example.com"
 challenge = "tls-alpn-01"       # CA validates over :443
 ```
 
-Your host has to be reachable on port 443. Same `CAP_NET_BIND_SERVICE` and firewall dance as
-HTTP-01, only for :443 / `https` this time.
+Your host has to be reachable on port 443. Same `CAP_NET_BIND_SERVICE` and firewall dance as HTTP-01, only for :443 / `https` this time.
 
 File: [`letsencrypt-tls-alpn-01.toml`](https://github.com/tfindley/syscert/blob/main/examples/letsencrypt-tls-alpn-01.toml)
 
-The `[store]`, `[[distribute]]` and `[logging]` tail is identical in every example; see
-[Sample configs](/docs/examples/).
+The `[store]`, `[[distribute]]` and `[logging]` tail is identical in every example; see [Sample configs](/docs/examples/).

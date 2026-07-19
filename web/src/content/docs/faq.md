@@ -11,128 +11,79 @@ lede: Short answers to the things people ask most. For depth, follow the links i
 
 ### What is syscert?
 
-A small, least-privilege Linux service that gives a host its own TLS certificate,
-from Let's Encrypt or an internal HashiCorp Vault or Smallstep step-ca. It keeps
-that cert renewed with a systemd timer and delivers it to local consumers (nginx,
-HAProxy, Cockpit, databases…) with the exact ownership, mode, and SELinux context
-each one needs. One static binary, no daemon, no cron.
+A small, least-privilege Linux service that gives a host its own TLS certificate, from Let's Encrypt or an internal HashiCorp Vault or Smallstep step-ca. It keeps that cert renewed with a systemd timer and delivers it to local consumers (nginx, HAProxy, Cockpit, databases…) with the exact ownership, mode, and SELinux context each one needs. One static binary, no daemon, no cron.
 
 ### How is it different from certbot?
 
-syscert is independent of any host `certbot`. It talks ACME via
-[lego](https://go-acme.github.io/lego/) (a large DNS-provider set), runs as a
-dedicated non-root user, and works with internal CAs like Vault and step-ca, not
-just public ones.
+syscert is independent of any host `certbot`. It talks ACME via [lego](https://go-acme.github.io/lego/) (a large DNS-provider set), runs as a dedicated non-root user, and works with internal CAs like Vault and step-ca, not just public ones.
 
-The big difference is **how certs reach non-root services.** certbot keeps them
-in `/etc/letsencrypt/archive/<domain>/` at `0700 root` and symlinks `live/<domain>/`
-into it. So a non-root daemon that follows `live` lands in a root-only directory and
-**can't read its own cert** without group hacks or manual copies, and a renewal can
-silently re-break those permissions. syscert never symlinks. It keeps the store
-locked but **delivers a real file** to each consumer's own path with the exact
-owner/mode/SELinux it needs; the atomic overwrite gives you the stable path certbot
-uses symlinks for, without the read trap. See [Distributing](/docs/distributing/).
+The big difference is **how certs reach non-root services.** certbot keeps them in `/etc/letsencrypt/archive/<domain>/` at `0700 root` and symlinks `live/<domain>/` into it. So a non-root daemon that follows `live` lands in a root-only directory and **can't read its own cert** without group hacks or manual copies, and a renewal can silently re-break those permissions. syscert never symlinks. It keeps the store locked but **delivers a real file** to each consumer's own path with the exact owner/mode/SELinux it needs; the atomic overwrite gives you the stable path certbot uses symlinks for, without the read trap. See [Distributing](/docs/distributing/).
 
-For a side-by-side table and an honest "when to use which" (including where certbot,
-Caddy/Traefik, or cert-manager is the better pick), see the [Comparison](/docs/comparison/).
+For a side-by-side table and an honest "when to use which" (including where certbot, Caddy/Traefik, or cert-manager is the better pick), see the [Comparison](/docs/comparison/).
 
 ## CAs & challenges
 
 ### Which CAs are supported?
 
-Let's Encrypt (`ca = "letsencrypt"`), plus any internal or other ACME CA via
-`ca = "custom"` and `directory_url`. We've validated it against HashiCorp Vault PKI
-and Smallstep step-ca. See [Configuration](/docs/configuration/#which-directory_url-for-your-ca).
+Let's Encrypt (`ca = "letsencrypt"`), plus any internal or other ACME CA via `ca = "custom"` and `directory_url`. We've validated it against HashiCorp Vault PKI and Smallstep step-ca. See [Configuration](/docs/configuration/#which-directory_url-for-your-ca).
 
 ### Which challenge types work?
 
-`dns-01` (default, needs no inbound ports), `http-01` and `tls-alpn-01` (CA must
-reach :80/:443). Vault, step-ca, and Let's Encrypt all support
-`dns-01`/`http-01`/`tls-alpn-01`. Setting `ip_sans` auto-switches to
-http-01/tls-alpn-01 (RFC 8738).
+`dns-01` (default, needs no inbound ports), `http-01` and `tls-alpn-01` (CA must reach :80/:443). Vault, step-ca, and Let's Encrypt all support `dns-01`/`http-01`/`tls-alpn-01`. Setting `ip_sans` auto-switches to http-01/tls-alpn-01 (RFC 8738).
 
 ### What is EAB and do I need it?
 
-External Account Binding is an out-of-band Key ID + HMAC some CAs require to
-register an ACME account (Vault `eab_policy`, step-ca `requireEAB`,
-ZeroSSL/Google/SSL.com). Set `[acme.eab].kid` in the config and supply the HMAC via
-the `SYSCERT_EAB_HMAC` environment variable. See
-[Configuration](/docs/configuration/#acmeeab--external-account-binding).
+External Account Binding is an out-of-band Key ID + HMAC some CAs require to register an ACME account (Vault `eab_policy`, step-ca `requireEAB`, ZeroSSL/Google/SSL.com). Set `[acme.eab].kid` in the config and supply the HMAC via the `SYSCERT_EAB_HMAC` environment variable. See [Configuration](/docs/configuration/#acmeeab--external-account-binding).
 
 ## Delivery & output
 
 ### What files does syscert produce?
 
-Five certbot-compatible PEMs (`cert.pem`, `privkey.pem`, `chain.pem`,
-`fullchain.pem`), plus a configurable all-in-one `bundle.pem`. See
-[Distributing](/docs/distributing/#the-artifacts).
+Five certbot-compatible PEMs (`cert.pem`, `privkey.pem`, `chain.pem`, `fullchain.pem`), plus a configurable all-in-one `bundle.pem`. See [Distributing](/docs/distributing/#the-artifacts).
 
 ### Do I have to reload my services after renewal?
 
-No, and syscert won't do it for you. It writes files and never runs commands. Have
-each consumer watch its cert file and reload itself; a `systemd.path` unit is the
-clean way. See [Reloading services](/docs/reloading/).
+No, and syscert won't do it for you. It writes files and never runs commands. Have each consumer watch its cert file and reload itself; a `systemd.path` unit is the clean way. See [Reloading services](/docs/reloading/).
 
 ### Can multiple services share one certificate?
 
-Yes. Add one `[[distribute]]` block per consumer, each delivering the artifact it
-needs with its own owner/group/mode.
+Yes. Add one `[[distribute]]` block per consumer, each delivering the artifact it needs with its own owner/group/mode.
 
 ## Renewal & lifecycle
 
 ### How often does it renew?
 
-The timer runs daily (with jitter), and bare `syscert` renews only when the cert is
-due. By default the window comes from the cert's lifetime: short-lived and IP certs
-renew about daily, long-lived ones use a wide window. Override it with
-`[renewal].renew_before = "30d"`.
+The timer runs daily (with jitter), and bare `syscert` renews only when the cert is due. By default the window comes from the cert's lifetime: short-lived and IP certs renew about daily, long-lived ones use a wide window. Override it with `[renewal].renew_before = "30d"`.
 
 ### Can I renew or rotate right now?
 
-`sudo -u syscert syscert renew --force` renews immediately. To rotate a possibly
-compromised key, `syscert void` revokes then reissues. To wipe state for a provider
-switch, `syscert destroy`. See [Troubleshooting → reset](/docs/troubleshooting/#reset-revoke-or-switch-providers).
+`sudo -u syscert syscert renew --force` renews immediately. To rotate a possibly compromised key, `syscert void` revokes then reissues. To wipe state for a provider switch, `syscert destroy`. See [Troubleshooting → reset](/docs/troubleshooting/#reset-revoke-or-switch-providers).
 
 ## Trust store
 
 ### How do local services trust certs from an internal CA?
 
-Run `sudo syscert trust install` once to add the CA to the system trust store
-(root-only). That's separate from `acme.ca_bundle`, which trusts the CA only for the
-ACME connection while bootstrapping. Public CAs are already trusted, so neither is
-needed for Let's Encrypt. Details in
-[Troubleshooting](/docs/troubleshooting/#x509-unknown-authority-against-an-internal-ca).
+Run `sudo syscert trust install` once to add the CA to the system trust store (root-only). That's separate from `acme.ca_bundle`, which trusts the CA only for the ACME connection while bootstrapping. Public CAs are already trusted, so neither is needed for Let's Encrypt. Details in [Troubleshooting](/docs/troubleshooting/#x509-unknown-authority-against-an-internal-ca).
 
 ## Security & keys
 
 ### How are keys and secrets handled?
 
-Private keys live in the store at `0600` (owned by the `syscert` user) and go out
-with the tight mode each consumer specifies. By default syscert generates a fresh
-keypair on every renewal (`reuse_key` opts out). It reads provider and CA credentials
-from the environment, never from the TOML, and never logs them. The systemd service
-loads them from `/etc/syscert/secrets`; for a manual run, pass `--env-file
-/etc/syscert/secrets` (repeatable; the existing environment wins) rather than
-exporting each variable.
+Private keys live in the store at `0600` (owned by the `syscert` user) and go out with the tight mode each consumer specifies. By default syscert generates a fresh keypair on every renewal (`reuse_key` opts out). It reads provider and CA credentials from the environment, never from the TOML, and never logs them. The systemd service loads them from `/etc/syscert/secrets`; for a manual run, pass `--env-file /etc/syscert/secrets` (repeatable; the existing environment wins) rather than exporting each variable.
 
 ### Does it run as root?
 
-No. The service runs as the dedicated `syscert` user with only `CAP_CHOWN` (plus
-`CAP_NET_BIND_SERVICE` if you serve http-01/tls-alpn-01), under a hardened systemd
-unit. Only `syscert trust install/remove` needs root.
+No. The service runs as the dedicated `syscert` user with only `CAP_CHOWN` (plus `CAP_NET_BIND_SERVICE` if you serve http-01/tls-alpn-01), under a hardened systemd unit. Only `syscert trust install/remove` needs root.
 
 ## Platforms
 
 ### What's supported?
 
-Debian/Ubuntu and the RHEL family (others may work but aren't tested), on Linux
-amd64 and arm64. The host needs systemd.
+Debian/Ubuntu and the RHEL family (others may work but aren't tested), on Linux amd64 and arm64. The host needs systemd.
 
 ### Is there an Ansible role?
 
-Not yet. It's on the [roadmap](/docs/roadmap/) for fleet installs and will do the
-same steps as `install.sh`. syscert is pre-1.0, so expect rough edges, and please
-[report issues](https://github.com/tfindley/syscert/issues).
+Not yet. It's on the [roadmap](/docs/roadmap/) for fleet installs and will do the same steps as `install.sh`. syscert is pre-1.0, so expect rough edges, and please [report issues](https://github.com/tfindley/syscert/issues).
 
 ---
 

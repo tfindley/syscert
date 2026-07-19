@@ -7,15 +7,9 @@ eyebrow: "// docs · procedures"
 lede: Short, do-this-now SOPs for operating syscert. Each one stands alone and is built to drop into your own ops manual.
 ---
 
-These are formal operating procedures for syscert, the terse "do this now" layer. They don't replace
-the rest of the docs. The explanatory *what* and *why* live in [Quick start](/docs/quick-start/),
-[Configuration](/docs/configuration/), [Advanced install](/docs/advanced-install/),
-[Distributing certs](/docs/distributing/), and [Troubleshooting](/docs/troubleshooting/), and each
-procedure links back into those instead of repeating the detail.
+These are formal operating procedures for syscert, the terse "do this now" layer. They don't replace the rest of the docs. The explanatory *what* and *why* live in [Quick start](/docs/quick-start/), [Configuration](/docs/configuration/), [Advanced install](/docs/advanced-install/), [Distributing certs](/docs/distributing/), and [Troubleshooting](/docs/troubleshooting/), and each procedure links back into those instead of repeating the detail.
 
-Every procedure follows the same fixed structure: purpose, scope, prerequisites, numbered steps with
-exact commands, verification, and rollback. Copy one straight into a runbook, or reference it from
-your ops manual.
+Every procedure follows the same fixed structure: purpose, scope, prerequisites, numbered steps with exact commands, verification, and rollback. Copy one straight into a runbook, or reference it from your ops manual.
 
 > **Download all procedures:** [syscert-procedures.zip](/downloads/syscert-procedures.zip) gives you one Markdown file per procedure (named by Procedure ID, frontmatter stripped), ready to drop into your own ops manual.
 
