@@ -98,7 +98,7 @@ echo
 run go build -o /tmp/syscert.pre ./cmd/syscert && gate PASS "go build" || gate FAIL "go build" "$(tail -1 /tmp/pre.out)"
 run go test ./...   && gate PASS "go test"  || gate FAIL "go test" "$(tail -1 /tmp/pre.out)"
 run go vet ./...    && gate PASS "go vet"   || gate FAIL "go vet" "$(tail -1 /tmp/pre.out)"
-fmt=$(gofmt -l . 2>/dev/null); [ -z "$fmt" ] && gate PASS "gofmt" || gate FAIL "gofmt" "unformatted: $(echo "$fmt" | tr '\n' ' ')"
+fmt=$(git ls-files '*.go' | xargs -r gofmt -l 2>/dev/null); [ -z "$fmt" ] && gate PASS "gofmt" || gate FAIL "gofmt" "unformatted: $(echo "$fmt" | tr '\n' ' ')"
 
 if have shellcheck; then
   run shellcheck packaging/*.sh scripts/*.sh && gate PASS "shellcheck" || gate FAIL "shellcheck" "$(grep -c '\^' /tmp/pre.out 2>/dev/null) issue(s)"
@@ -126,6 +126,9 @@ if [ -x /tmp/syscert.pre ]; then
   # subdirs too (that bug lived in docs/advanced-install/cron.md); skips internal notes.
   allowed=" $(echo "$cmds" | tr '\n' ' ')version help syscert "  # space-join $cmds (awk emits one per line) so the case-match below works
   bogus=""
+  # Word-splitting is intentional: $(find …) is a file list passed to grep, and the
+  # loop iterates over command words.
+  # shellcheck disable=SC2013,SC2046
   for n in $(grep -hoE 'syscert [a-z][a-z0-9-]+ +-' README.md $(find docs -name '*.md' -not -path 'docs/internal/*') 2>/dev/null | awk '{print $2}' | sort -u); do
     case "$allowed" in *" $n "*) ;; *) bogus="$bogus $n" ;; esac
   done
@@ -180,7 +183,7 @@ else
   elif grep -qi 'vulnerab' /tmp/pre.out; then gate FAIL "govulncheck" "vulnerabilities found"
   else gate WARN "govulncheck" "could not run (network/tool)"; fi
 
-  if have gosec; then run gosec -quiet ./... && gate PASS "gosec" || gate FAIL "gosec" "findings"; else gate WARN "gosec" "not installed"; fi
+  if have gosec; then run gosec -quiet -exclude-dir=.venv ./... && gate PASS "gosec" || gate FAIL "gosec" "findings"; else gate WARN "gosec" "not installed"; fi
 
   if have syft; then syft packages dir:. -o spdx-json=dist/sbom.spdx.json >/dev/null 2>&1 && gate PASS "SBOM (syft)" "dist/sbom.spdx.json" || gate WARN "SBOM (syft)" "generation failed"
   else gate WARN "SBOM (syft)" "not installed"; fi
