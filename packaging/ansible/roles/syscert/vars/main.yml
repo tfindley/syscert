@@ -24,3 +24,14 @@ syscert_capabilities: >-
   {{ syscert_service_ambient_capabilities.split()
      if (syscert_service_ambient_capabilities | length > 0)
      else ['CAP_CHOWN'] + (['CAP_NET_BIND_SERVICE'] if syscert_serves_inbound else []) }}
+
+# Every directory outside the store that the service writes: each distribute
+# target's parent plus any enabled [observe] output. One definition, used by both
+# the directory/ACL tasks and the unit's ReadWritePaths, so the grant and the
+# thing being granted can never drift apart.
+syscert_observe_dirs: >-
+  {{ ([syscert_metrics_file | dirname] if syscert_metrics_enabled else [])
+     + ([syscert_ansible_facts_file | dirname] if syscert_ansible_facts_enabled else []) }}
+syscert_writable_dirs: >-
+  {{ ((syscert_distribute | map(attribute='path') | map('dirname') | list)
+      + syscert_observe_dirs) | unique | list }}

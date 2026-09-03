@@ -17,6 +17,7 @@ type Config struct {
 	Distribute []DistributeTarget `toml:"distribute"`
 	Renewal    RenewalConfig      `toml:"renewal"`
 	Logging    LoggingConfig      `toml:"logging"`
+	Observe    ObserveConfig      `toml:"observe"`
 }
 
 // CertConfig describes the certificate subject and key.
@@ -93,6 +94,19 @@ type DistributeTarget struct {
 // RenewalConfig controls the renewal window.
 type RenewalConfig struct {
 	RenewBefore string `toml:"renew_before"`
+}
+
+// ObserveConfig turns on optional machine-readable state files, written after
+// each ensure cycle. Both are OFF by default: an empty path means "don't write
+// it". Neither is read back by syscert — they exist purely for monitoring and
+// inventory to consume, so a write failure is logged and never fails the run.
+type ObserveConfig struct {
+	// MetricsFile is a Prometheus node_exporter textfile-collector target, e.g.
+	// /var/lib/node_exporter/textfile_collector/syscert.prom (must end .prom).
+	MetricsFile string `toml:"metrics_file"`
+	// AnsibleFactsFile is an Ansible local-facts target, e.g.
+	// /etc/ansible/facts.d/syscert.fact, read back as ansible_local.syscert.
+	AnsibleFactsFile string `toml:"ansible_facts_file"`
 }
 
 // LoggingConfig controls structured logging.

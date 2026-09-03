@@ -192,7 +192,10 @@ argument_specs:
             description: Optional SELinux type for the destination.
       syscert_manage_distribute_dirs:
         type: bool
-        description: Create each distribute target's parent directory and grant it in the unit's ReadWritePaths.
+        description: Create each distribute target's parent directory, ACL-grant the syscert user on it, and add it to the unit's ReadWritePaths.
+      syscert_install_acl_package:
+        type: bool
+        description: Install the acl package (setfacl) when granting target directories; needed on minimal Debian-family images.
 
       # ── [renewal] / [logging] ──
       syscert_renewal_renew_before:
@@ -212,6 +215,20 @@ argument_specs:
           - text
           - json
         description: Log format.
+
+      # ── [observe] ──
+      syscert_metrics_enabled:
+        type: bool
+        description: Write a Prometheus node_exporter textfile after each run.
+      syscert_metrics_file:
+        type: path
+        description: Path of the node_exporter textfile (must end .prom).
+      syscert_ansible_facts_enabled:
+        type: bool
+        description: Write an Ansible local-facts file after each run.
+      syscert_ansible_facts_file:
+        type: path
+        description: Path of the local-facts file (must end .fact); read back as ansible_local.syscert.
 
       # ── secrets / environment ──
       syscert_secrets:

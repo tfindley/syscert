@@ -170,6 +170,33 @@ mode     = "0600"
 
 Operational logs (events, errors, and lego's ACME output) go to **stderr**; command results and prompts go to **stdout**. Secret values are never logged.
 
+## `[observe]` — metrics and inventory facts
+
+Two optional state files, rewritten after every run. Both are **off by default**: an empty path means the file isn't written. Nothing reads them back, so neither can change how syscert behaves, and a write failure warns rather than failing the run — monitoring plumbing must never turn a successful renewal into a failed unit.
+
+| Key | Default | Description |
+|---|---|---|
+| `metrics_file` | `""` (off) | Prometheus [node_exporter textfile collector](https://github.com/prometheus/node_exporter#textfile-collector) target. **Must end in `.prom`** — the collector silently ignores anything else. Typically `/var/lib/node_exporter/textfile_collector/syscert.prom`. |
+| `ansible_facts_file` | `""` (off) | Ansible local-facts target. **Must end in `.fact`** and sit under a `facts.d` directory. Typically `/etc/ansible/facts.d/syscert.fact`, read back as `ansible_local.syscert`. |
+
+Both are written atomically (temp file plus rename), which node_exporter requires so it never reads a half-written file, and both are `0644` because the readers — node_exporter, Ansible — are not the syscert user.
+
+```toml
+[observe]
+metrics_file       = "/var/lib/node_exporter/textfile_collector/syscert.prom"
+ansible_facts_file = "/etc/ansible/facts.d/syscert.fact"
+```
+
+Those directories sit outside the store, so they need the same two grants a privileged distribute target does — the sandbox `ReadWritePaths` entry and write access for the syscert user. `install.sh` and the [Ansible role](/docs/advanced-install/ansible/) handle both automatically; see [Distributing → privileged target directories](/docs/distributing/#privileged-target-directories) if you wire it by hand.
+
+**Metrics.** `syscert_cert_not_after_seconds`, `syscert_cert_not_before_seconds`, `syscert_cert_renew_after_seconds`, `syscert_cert_renewal_due`, `syscert_cert_present`, `syscert_last_run_timestamp_seconds`, `syscert_distribute_targets`, `syscert_distribute_targets_present`, a per-target `syscert_distribute_target_present{path,artifact}`, and a labelled `syscert_cert_info`. Expiry is a plain unix-seconds gauge rather than a sample timestamp, so the usual alert reads:
+
+```promql
+(syscert_cert_not_after_seconds - time()) / 86400 < 14
+```
+
+**Facts.** JSON with `subject`, `ca`, `challenge`, `has_cert`, `key_type`, `issuer`, `serial`, `not_before`, `not_after`, `renew_after`, `renewal_due`, `targets[]` and `generated` — so an inventory play can report on expiry across a fleet with `ansible_local.syscert.not_after`.
+
 ---
 
 Next: [Distributing certs](/docs/distributing/) · [Troubleshooting](/docs/troubleshooting/) · [full.toml on GitHub](https://github.com/tfindley/syscert/blob/main/examples/full.toml)

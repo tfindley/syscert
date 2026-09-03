@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -55,19 +54,14 @@ func probeDir(dir string) error {
 	return os.Remove(name)
 }
 
-// checkDistributeTargets probes every distinct target directory and returns one
-// problem per unwritable directory. An empty result means delivery will work
-// *in the current context* — see distributeTargetsGuard for why that matters.
+// checkDistributeTargets probes every directory syscert must write outside the
+// store — distribute targets and any [observe] output — and returns one problem
+// per unwritable directory. An empty result means writing will work *in the
+// current context*; see warnDistributeTargets for why that caveat matters.
 func checkDistributeTargets(cfg *config.Config) []error {
-	seen := map[string]bool{}
 	runAs := ownerName(os.Geteuid())
 	var problems []error
-	for _, t := range cfg.Distribute {
-		dir := filepath.Dir(t.Path)
-		if dir == "" || seen[dir] {
-			continue
-		}
-		seen[dir] = true
+	for _, dir := range outputDirs(cfg) {
 		if err := targetAccessProblem(dir, probeDir(dir), runAs); err != nil {
 			problems = append(problems, err)
 		}
@@ -81,18 +75,13 @@ func checkDistributeTargets(cfg *config.Config) []error {
 // — dry-run is usually run interactively, where nothing is sandboxed, so a probe
 // that passes here says nothing about what the timer will be allowed to do.
 func reportDistributeTargets(cfg *config.Config, stdout io.Writer) {
-	if len(cfg.Distribute) == 0 {
+	dirs := outputDirs(cfg)
+	if len(dirs) == 0 {
 		return
 	}
-	seen := map[string]bool{}
 	runAs := ownerName(os.Geteuid())
-	fmt.Fprintln(stdout, "\ndistribute targets:")
-	for _, t := range cfg.Distribute {
-		dir := filepath.Dir(t.Path)
-		if dir == "" || seen[dir] {
-			continue
-		}
-		seen[dir] = true
+	fmt.Fprintln(stdout, "\nwritable directories needed:")
+	for _, dir := range dirs {
 		if err := targetAccessProblem(dir, probeDir(dir), runAs); err != nil {
 			fmt.Fprintf(stdout, "  BLOCKED  %s\n           %v\n", dir, err)
 			continue

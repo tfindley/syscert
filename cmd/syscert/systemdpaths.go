@@ -20,9 +20,13 @@ const (
 )
 
 // distributeDirs returns the directories the service must be able to write,
-// deduplicated and ordered: the store plus each distribute target's parent.
-// ProtectSystem=strict leaves everything else read-only, so this is exactly the
-// set that has to appear in ReadWritePaths.
+// deduplicated and ordered: the store, each distribute target's parent, and any
+// [observe] output directory. ProtectSystem=strict leaves everything else
+// read-only, so this is exactly the set that has to appear in ReadWritePaths.
+//
+// The observe outputs belong here for the same reason the targets do — a
+// node_exporter textfile directory or /etc/ansible/facts.d is just as far
+// outside the store, and just as root-owned, as /etc/cockpit/ws-certs.d.
 func distributeDirs(cfg *config.Config) []string {
 	seen := map[string]bool{}
 	var dirs []string
@@ -34,11 +38,36 @@ func distributeDirs(cfg *config.Config) []string {
 		dirs = append(dirs, d)
 	}
 	add(cfg.Store.Path)
-	for _, t := range cfg.Distribute {
-		add(filepath.Dir(t.Path))
+	for _, d := range outputDirs(cfg) {
+		add(d)
 	}
 	if len(dirs) > 1 {
 		sort.Strings(dirs[1:]) // keep the store first, order the rest for stable output
+	}
+	return dirs
+}
+
+// outputDirs is every directory syscert writes to OUTSIDE the store: each
+// distribute target's parent, plus any [observe] output. Shared by the sandbox
+// grant and the writability preflight so the two can never disagree about what
+// needs to be writable.
+func outputDirs(cfg *config.Config) []string {
+	seen := map[string]bool{}
+	var dirs []string
+	add := func(d string) {
+		if d == "" || d == "." || seen[d] {
+			return
+		}
+		seen[d] = true
+		dirs = append(dirs, d)
+	}
+	for _, t := range cfg.Distribute {
+		add(filepath.Dir(t.Path))
+	}
+	for _, p := range []string{cfg.Observe.MetricsFile, cfg.Observe.AnsibleFactsFile} {
+		if p != "" {
+			add(filepath.Dir(p))
+		}
 	}
 	return dirs
 }

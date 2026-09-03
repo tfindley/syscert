@@ -21,7 +21,7 @@
 - name: syscert.distribute - Create the distribute target directories
   when: syscert_manage_distribute_dirs
   become: true
-  loop: "{{ syscert_distribute | map(attribute='path') | map('dirname') | unique | list }}"
+  loop: "{{ syscert_writable_dirs }}"
   loop_control:
     label: "{{ item }}"
   ansible.builtin.file:
@@ -31,10 +31,24 @@
     group: root
     mode: "0755"
 
+# ansible.posix.acl shells out to setfacl, which lives in the `acl` package. RHEL
+# family images generally carry it; minimal Debian, Ubuntu cloud and Raspberry Pi
+# OS images often do not, and the ACL task would then fail outright. install.sh
+# degrades to a printed instruction in the same situation; the role can simply
+# install the two-hundred-kilobyte package.
+- name: syscert.distribute - Ensure the acl package is present (provides setfacl)
+  when:
+    - syscert_manage_distribute_dirs
+    - syscert_install_acl_package
+  become: true
+  ansible.builtin.package:
+    name: acl
+    state: present
+
 - name: syscert.distribute - Grant the syscert user write access to the target directories
   when: syscert_manage_distribute_dirs
   become: true
-  loop: "{{ syscert_distribute | map(attribute='path') | map('dirname') | unique | list }}"
+  loop: "{{ syscert_writable_dirs }}"
   loop_control:
     label: "{{ item }}"
   ansible.posix.acl:

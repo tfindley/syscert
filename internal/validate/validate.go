@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/tfindley/syscert/internal/config"
@@ -123,6 +124,27 @@ func Config(cfg *config.Config) []Problem {
 		}
 		if keyBearing[d.Artifact] && d.Mode != "" && worldReadable(d.Mode) {
 			add(where+".mode", fmt.Sprintf("artifact %q holds the private key; mode %q is world-readable", d.Artifact, d.Mode))
+		}
+	}
+
+	// Observability outputs. Both are optional, but a path with the wrong shape
+	// fails silently at the consumer — node_exporter's textfile collector only
+	// reads *.prom, and Ansible only reads *.fact under facts.d — so a typo would
+	// otherwise look like "syscert isn't writing metrics" forever.
+	if p := cfg.Observe.MetricsFile; p != "" {
+		if !filepath.IsAbs(p) {
+			add("observe.metrics_file", fmt.Sprintf("%q must be an absolute path", p))
+		}
+		if filepath.Ext(p) != ".prom" {
+			add("observe.metrics_file", fmt.Sprintf("%q must end in .prom — node_exporter's textfile collector ignores every other suffix", p))
+		}
+	}
+	if p := cfg.Observe.AnsibleFactsFile; p != "" {
+		if !filepath.IsAbs(p) {
+			add("observe.ansible_facts_file", fmt.Sprintf("%q must be an absolute path", p))
+		}
+		if filepath.Ext(p) != ".fact" {
+			add("observe.ansible_facts_file", fmt.Sprintf("%q must end in .fact — Ansible only reads *.fact from facts.d", p))
 		}
 	}
 
