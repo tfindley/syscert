@@ -9,9 +9,9 @@ import Base from "../layouts/Base.astro";
           <span class="dot dot-red"></span>
           <span class="dot dot-amber"></span>
           <span class="dot dot-green"></span>
-          <span class="cfg-path">syscert ensure</span>
+          <span class="cfg-path">syscert</span>
         </div>
-        <pre class="code nf-pre"><span class="c-str">$</span> syscert ensure --path "<span class="c-key">{Astro.url.pathname}</span>"
+        <pre class="code nf-pre"><span class="c-str">$</span> syscert --path "<span class="c-key">{Astro.url.pathname}</span>"
 <span class="nf-err">error:</span> no certificate here — <span class="c-cmt">HTTP 404</span>
 ==&gt; the page you asked for doesn't exist (yet).<span class="cursor"></span></pre>
       </div>

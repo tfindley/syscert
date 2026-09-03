@@ -28,6 +28,8 @@ A single machine needs **one OS-level TLS certificate** for that machine's **own
 | **Footprint** | Python interpreter + dependency tree (or a snap) | one static binary, nothing to install |
 | **Pre-flight** | fails at issuance time | `dry-run --config-only` — offline, fail-fast |
 | **Supply chain** | distro / pip package | SLSA build provenance, SBOM, gosec + govulncheck gates, a published [security assessment](/docs/compliance/security/) |
+| **Rolling it out to many hosts** | no first-party config-management story — you wrap it yourself | in-tree **Ansible role**, running the same steps as `install.sh` across an inventory |
+| **Monitoring** | exit codes and logs; the rest is yours to build | optional Prometheus node_exporter textfile + Ansible facts (`[observe]`), off by default |
 | **Ubiquity / maturity** | **the standard**, decade-proven | bespoke, pre-1.0 |
 
 certbot *gets you the cert*. For a single system certificate, you then own the glue: put it where each daemon reads it, with the right perms and SELinux, from root, then re-run a reload script. SysCert makes that part **declarative and least-privilege**, and it treats the **internal-CA source as the default** rather than an afterthought. The honest framing isn't that certbot can't do it. With certbot, this host accretes a pile of root deploy-hooks and copy scripts; with SysCert, it's one config file, running unprivileged, that never executes a command.
@@ -50,6 +52,8 @@ First, the disclosure that shapes everything below: SysCert doesn't compete with
 | **Output layout** | `.lego/certificates/` — `.crt` / `.key` / `.issuer.crt`, optional PFX | certbot-shaped five artifacts **plus** a configurable `bundle.pem` |
 | **Client breadth** | **wider**: multiple certs per host, CSR input, PFX, `--preferred-chain`, `--must-staple`, account key rollover | deliberately **one cert per host** — none of those, by design |
 | **Pre-flight / inspection** | `lego certificates list`; config problems surface at run time | offline `dry-run --config-only` and `status` — fail-fast, no network |
+| **Rolling it out to many hosts** | no first-party config-management story | in-tree **Ansible role**, variables mirroring the TOML one-for-one |
+| **Monitoring** | exit codes and logs | optional Prometheus textfile + Ansible facts (`[observe]`), off by default |
 | **Footprint** | one static Go binary | one static Go binary — genuinely **no difference** |
 
 The pattern is the certbot comparison again, only closer to home: the lego CLI *gets you the cert* — with the identical engine SysCert uses — and delivery is hook scripts you write and run yourself, usually as root. SysCert trades the CLI's breadth for the delivery, privilege, and lifecycle opinions this page is about. Where the engine is shared, the honest claim isn't "better ACME"; it's that the glue around the ACME is the product.
@@ -78,6 +82,7 @@ Where the lego CLI is the better call: it's simply the **more general client**. 
 - it's an **OS-level host certificate** consumed by one or more **local services**;
 - it must be **delivered with per-target owner / mode / SELinux**;
 - you want a **single static binary** that runs **unprivileged** and **never executes commands**;
+- you're doing this on **more than one host** and want the rollout itself managed (the Ansible role), not just the certificate;
 - **supply-chain / compliance posture** (attested builds, least privilege, no command-execution surface) matters.
 
 Where certbot's envelope fits, use certbot. Where the job is a host's own certificate from internal PKI, delivered to its services with strict permissions and a clean audit story, that's what SysCert is opinionated about.

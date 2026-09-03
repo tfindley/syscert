@@ -58,6 +58,7 @@ Uninstalling works the same way, no clone required: `curl -fsSL https://syscert.
 | `syscert trust install` / `trust remove` | Add/remove the internal CA in the **system** trust store (root). |
 | `syscert void [--force]` | Revoke the current cert, then reissue + distribute. |
 | `syscert destroy [--force]` | Wipe the stored cert + ACME account (provider switch). `--keep-account` drops only the cert — reissue with no new EAB token. |
+| `syscert systemd-paths [--write]` | Print (or install, as root) the unit drop-in granting the sandboxed service write access to its distribute targets. |
 | `syscert status` | Show config + the stored cert's dates (issued/expiry/renewal), account, and distribute targets. Offline. |
 
 `--config` defaults to `/etc/syscert/syscert.toml`, or `$SYSCERT_CONFIG` if you set it. Secrets — DNS and CA tokens — come from the environment, never the TOML, and never reach the logs. The systemd service reads them from `/etc/syscert/secrets`. For a one-off manual run, point `--env-file` at that same file instead of exporting each variable by hand.
