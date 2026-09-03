@@ -19,11 +19,11 @@ lede: Where syscert is and where it's going. It's pre-1.0, so treat this as the 
 - **Delivery.** A canonical store plus per-target distribution that sets the right owner, mode, and SELinux context; certbot-compatible artifacts plus `bundle.pem`.
 - **Least privilege.** Runs as a dedicated non-root `syscert` user under a hardened systemd timer, no daemon.
 - **Packaging.** `install.sh`, the one-line network installer, and pre-built static Linux binaries (amd64/arm64) with checksums and build provenance.
+- **Ansible role.** Fleet installs that run the same steps as `install.sh`, in-tree at [`packaging/ansible/`](https://github.com/tfindley/syscert/tree/main/packaging/ansible) and documented at [Install with Ansible](/docs/advanced-install/ansible/).
 - **This documentation site**, built from a single canonical Markdown source.
 
 ## Next
 
-- **Ansible role.** Fleet installs that run the same steps as `install.sh`, for managing many hosts at once.
 - **IP-SAN hardening.** The public-CA `shortlived` profile path and the Vault specifics for certificates with IP Subject Alternative Names (IPv4 is the supported path).
 - **Reissue on config drift.** When the certificate's configuration changes (SANs, IP-SANs, key type, or profile), reissue on the next scheduled run instead of waiting for expiry. Right now you apply a changed config by forcing a renewal (`renew --force`); this would let the timer spot the drift and act on its own. This is the headline of the direction of travel: the config *declares* the desired state, and the timer converges reality to it.
 - **Post-distribution verification (`syscert verify`).** syscert never reloads your services (by design — see [Reloading](/docs/reloading/)); `verify` closes that loop from the other side. It dials each configured consumer endpoint, compares the served certificate against the store, and flags any consumer still serving the old one. Read-only; it never acts.

@@ -102,4 +102,4 @@ Upgrading is the same shape as installing: build a fresh bundle for the new tag 
 
 ## A note on Ansible
 
-The [Ansible role](/docs/roadmap/) will grow a first-class offline mode later (it's being built on a separate branch). Until then, the offline bundle plus `packaging/install.sh` is the supported air-gapped path — and it's the same installer the role will wrap, so nothing you set up here is throwaway.
+The [Ansible role](/docs/advanced-install/ansible/) ships now, and it has a first-class offline mode: set `syscert_install_method: local` and point `syscert_local_binary` at a binary built or downloaded on the controller. Nothing on the target host needs to reach GitHub — it's the fleet equivalent of the bundle-and-carry-in path above, replicating the same `packaging/install.sh` steps natively (user, store, binary, config, units) instead of shelling out to the script.

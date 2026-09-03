@@ -25,7 +25,7 @@ Covers Debian/Ubuntu and the RHEL family (amd64/arm64). Two supported install me
 - **(A)** the one-line network installer, the normal path.
 - **(B)** manual verified-binary install, for air-gapped or inspect-first environments.
 
-**Not covered:** compile-from-source (see [Compile from source](/docs/advanced-install/compile-from-source/)), cron-only installs (see [As a cron job](/docs/advanced-install/cron/)), and Ansible fleet installs (planned; see [roadmap](/docs/roadmap/)).
+**Not covered:** compile-from-source (see [Compile from source](/docs/advanced-install/compile-from-source/)), cron-only installs (see [As a cron job](/docs/advanced-install/cron/)), and Ansible fleet installs (see [Install with Ansible](/docs/advanced-install/ansible/)).
 
 ## Prerequisites
 

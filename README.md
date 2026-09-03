@@ -8,9 +8,9 @@ Under the hood it speaks ACME through [lego](https://go-acme.github.io/lego/) an
 
 > **Project status: early (pre-1.0).** Working today: the full `syscert` CLI (the default *ensure*
 > plus `issue` / `renew` / `distribute` / `void` / `destroy` / `dry-run` / `trust install`/`remove`),
-> the systemd units, `install.sh`, and **pre-built Linux binaries** (amd64/arm64) on the
-> [releases page](https://github.com/tfindley/syscert/releases). Not built yet: the Ansible role
-> (see the [roadmap](docs/roadmap.md)).
+> the systemd units, `install.sh`, **pre-built Linux binaries** (amd64/arm64) on the
+> [releases page](https://github.com/tfindley/syscert/releases), and an
+> [Ansible role](docs/advanced-install/ansible.md) for fleet installs.
 
 ## Why
 
@@ -70,6 +70,7 @@ Full, canonical docs live in [`docs/`](docs/) and render on the website at **<ht
 - [Configuration reference](docs/configuration.md) — every `syscert.toml` option
 - [Sample configurations](docs/examples.md) — a starter per CA + challenge, plus annotated [`examples/full.toml`](examples/full.toml)
 - [Advanced install](docs/advanced-install.md) — verify checksums, build from source, manual systemd
+- [Install with Ansible](docs/advanced-install/ansible.md) — fleet installs with the in-tree role
 - [Distributing certs](docs/distributing.md) — artifacts, ownership/mode/SELinux, no reload hooks
 - [Troubleshooting](docs/troubleshooting.md) · [FAQ](docs/faq.md) · [Roadmap](docs/roadmap.md) · [Changelog](CHANGELOG.md)
 

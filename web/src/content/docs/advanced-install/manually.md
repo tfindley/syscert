@@ -72,7 +72,7 @@ ExecStart=/usr/local/bin/syscert         # bare syscert = issue/renew as needed,
 # Hardening (abridged)
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=/var/lib/syscert
+ReadWritePaths=/var/lib/syscert         # add each [[distribute]] target's directory too
 PrivateTmp=true
 MemoryDenyWriteExecute=true
 
@@ -93,8 +93,8 @@ Persistent=true
 ```
 
 > Once you've edited the config, start it: `sudo systemctl start syscert.timer`, then
-> check with `systemctl list-timers syscert.timer`. An **Ansible role** for fleet
-> installs is on the [roadmap](/docs/roadmap/), and it runs these same steps.
+> check with `systemctl list-timers syscert.timer`. Installing a fleet instead of one
+> host? The [Ansible role](/docs/advanced-install/ansible/) runs these same steps.
 
 Removing it later? See [Uninstall](/docs/advanced-install/#uninstall).
 

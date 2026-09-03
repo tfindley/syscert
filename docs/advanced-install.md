@@ -12,8 +12,10 @@ Supported targets are Debian/Ubuntu and the RHEL family, on amd64 and arm64. Oth
 ## Pick an install route
 
 - **[Manually](/docs/advanced-install/manually/)** — download a verified release binary and run the systemd install by hand. The closest equivalent to the one-liner, step by step.
+- **[Install offline (air-gapped)](/docs/advanced-install/offline/)** — build a verified bundle on a connected machine, carry it in, and install with no target-host internet access.
 - **[Compile from source](/docs/advanced-install/compile-from-source/)** — build the binary yourself with Go, then install it.
 - **[As a cron job](/docs/advanced-install/cron/)** — for appliances and NAS boxes **without systemd** (e.g. Asustor ADM): schedule `syscert` from cron instead of the systemd timer.
+- **[Install with Ansible](/docs/advanced-install/ansible/)** — fleet installs with the in-tree role: same steps as `install.sh`, across as many hosts as your inventory covers.
 
 If syscert's already installed, [Upgrading](/docs/advanced-install/upgrading/) covers the in-place binary swap that keeps your config and certificates.
 

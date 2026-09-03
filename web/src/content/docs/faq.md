@@ -83,7 +83,7 @@ Debian/Ubuntu and the RHEL family (others may work but aren't tested), on Linux 
 
 ### Is there an Ansible role?
 
-Not yet. It's on the [roadmap](/docs/roadmap/) for fleet installs and will do the same steps as `install.sh`. syscert is pre-1.0, so expect rough edges, and please [report issues](https://github.com/tfindley/syscert/issues).
+Yes. [`packaging/ansible/`](https://github.com/tfindley/syscert/tree/main/packaging/ansible) ships a `syscert` role that does the same steps as `install.sh`, natively, across a fleet — see [Install with Ansible](/docs/advanced-install/ansible/). syscert is pre-1.0, so expect rough edges, and please [report issues](https://github.com/tfindley/syscert/issues).
 
 ---
 

@@ -17,9 +17,11 @@ This assessment is published for transparency. It covers the **Go application an
 | **Distribution** | Public |
 | **Overall posture** | **Low risk.** Memory-safe Go, no CGO, least-privilege runtime, secrets never logged, fail-fast validation, signed-provenance releases. Zero findings from `go vet`, `gosec`, and `govulncheck`. |
 
-> Scope note: the Ansible role lives in a separate repository and is **out of scope** here.
-> `install.sh`/`net-install.sh` (shell) and the systemd units are covered only where they define
-> the binary's runtime privilege/permissions context.
+> Scope note: the Ansible role ships in-tree at `packaging/ansible/` and is **in scope** for
+> the deployment-surface review in §5 only — it is configuration management, not part of the
+> audited Go binary, and it is not covered by the static analysis above. `install.sh`/
+> `net-install.sh` (shell) and the systemd units are covered only where they define the
+> binary's runtime privilege/permissions context.
 
 ## 1. Executive summary
 
@@ -48,7 +50,7 @@ The findings below are predominantly **hardening / defence-in-depth** items and 
 | Build-pipeline review | `.github/workflows/release.yml` |
 | Manual code review | secrets, crypto, file modes, privilege, input handling, `exec` use |
 
-**Out of scope:** the Ansible role (separate repo); the operator's host hardening, disk encryption, backup security, DNS-provider account security, and CA server security; penetration testing / dynamic analysis against a live CA.
+**Out of scope:** the operator's host hardening, disk encryption, backup security, DNS-provider account security, and CA server security; penetration testing / dynamic analysis against a live CA. The in-tree Ansible role is reviewed as a deployment surface in §5, not as part of the binary's static analysis.
 
 ## 3. Architecture & trust boundaries
 
@@ -100,7 +102,7 @@ The findings below are predominantly **hardening / defence-in-depth** items and 
 | **Memory safety** | Pure Go, GC, bounds-checked; `CGO_ENABLED=0` (no C) | ✅ Strong |
 | **Secrets** | Credentials + EAB HMAC from env / `0640` file; never in TOML; never logged or printed (test-enforced); parse errors cite line numbers only | ✅ Strong |
 | **Private key protection** | `account.key`/`privkey.pem` `0600`; bundle-with-key `0600`; key-bearing distribute targets rejected if world-readable | ✅ Strong |
-| **Key management** | ECDSA P-256 default; **fresh keypair every renewal** (`reuse_key` opt-in); `crypto/rand` | ✅ Strong |
+| **Key management** | ECDSA P-256 default; **fresh keypair every renewal** (unconditionally — `reuse_key` is accepted but not yet applied); `crypto/rand` | ✅ Strong |
 | **Privilege model** | Dedicated non-root `syscert` user; `CAP_CHOWN` only; refuses to run when the store is owned by another user (incl. root over a syscert store) | ✅ Strong |
 | **Process isolation** | systemd: `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`, `Protect*`, `RestrictNamespaces/Realtime/SUIDSGID`, `LockPersonality`, `MemoryDenyWriteExecute`, `RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX`, `CapabilityBoundingSet=CAP_CHOWN` | ✅ Strong |
 | **SELinux** | Binary relabelled `bin_t`; per-target `selinux_context` via `chcon`; enforcing-mode supported | ✅ Good |
@@ -110,6 +112,9 @@ The findings below are predominantly **hardening / defence-in-depth** items and 
 | **Supply chain** | 2 direct deps; `go.sum` pinned; `govulncheck` gate; SLSA provenance + checksums | ⚠️ F-01 |
 | **Build integrity** | `CGO_ENABLED=0 -trimpath -ldflags "-s -w"`, provenance attestation | ⚠️ F-02, F-05 |
 | **Logging** | stderr→journal; secrets never logged; `status` is read-only and never prints the HMAC | ✅ Strong |
+| **Fleet deployment (Ansible role)** | In-tree at `packaging/ansible/`; release binary always checksum-verified against `sha256sums.txt` with no opt-out; secrets rendered `0640 root:syscert` under `no_log`; renders the same hardened unit and derives `ReadWritePaths` from the declared distribute targets; validates the rendered config with `dry-run --config-only` before enabling the timer; `ansible-lint` (production profile) gated in CI | ⚠️ See note |
+
+On that last row: the role fetches the binary and its checksum file from the same origin (`syscert_download_base_url`), so verification proves integrity, not provenance — an operator pointing it at a hostile mirror gets a matching pair. The unattended-install path is therefore only as trustworthy as that origin, and `syscert_install_method: local` (stage and verify on the controller) is the stronger route for high-assurance fleets. The role also does not run `syscert trust install`, so internal-CA roots remain a documented manual step.
 
 ## 6. Findings
 
