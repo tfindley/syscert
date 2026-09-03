@@ -40,6 +40,19 @@ Let's Encrypt needs neither; the system already trusts it.
 
 Confirm the target directory exists and the `syscert` user can write to it. When the target is owned by a different user, the copy needs `CAP_CHOWN`, which the shipped systemd unit grants (`AmbientCapabilities=CAP_CHOWN`). A **rejected world-readable mode** on `privkey`/`bundle` is intentional: key-bearing artifacts have to use a tight mode such as `0600`.
 
+If the certificate is issued and only the *copy* fails — typically with a **read-only file system** error — the cause is the unit's own sandbox rather than permissions. `ProtectSystem=strict` makes the whole filesystem read-only, and the shipped unit can only name the store in `ReadWritePaths`, because a static unit can't know your targets. Grant each target's directory with a drop-in:
+
+```sh
+sudo systemctl edit syscert.service
+```
+
+```ini
+[Service]
+ReadWritePaths=/etc/nginx/tls
+```
+
+It works by hand and fails under the timer precisely because a manual run isn't sandboxed. The [Ansible role](/docs/advanced-install/ansible/) derives this list from your `syscert_distribute` targets, so it doesn't arise there.
+
 ## A service still serves the old certificate after renewal
 
 syscert delivers files but **never reloads consumers**. The service has to watch its cert file and reload itself, and the clean way is a `systemd.path` unit. See [Reloading services](/docs/reloading/) for the pattern and per-service reload commands.

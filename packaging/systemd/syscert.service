@@ -32,6 +32,19 @@ ExecStart=/usr/local/bin/syscert
 # --- Hardening (ADR-0028) ---
 NoNewPrivileges=true
 ProtectSystem=strict
+# ProtectSystem=strict makes the WHOLE filesystem read-only, so this list must name
+# every directory syscert writes to — the store, AND the directory of each
+# [[distribute]] target. Only the store can be named here, because a static unit
+# cannot know your targets. If you distribute anywhere else (the usual case, e.g.
+# /etc/nginx/tls), ADD THOSE DIRECTORIES or `ensure` will issue the certificate and
+# then fail at the distribute step with a read-only filesystem error.
+#
+# Don't edit this file — drop in an override that appends to the list:
+#   sudo systemctl edit syscert.service
+#   [Service]
+#   ReadWritePaths=/etc/nginx/tls
+#
+# (The Ansible role derives this automatically from syscert_distribute.)
 ReadWritePaths=/var/lib/syscert
 ProtectHome=true
 PrivateTmp=true
