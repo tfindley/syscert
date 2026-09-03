@@ -20,6 +20,7 @@ lede: Where syscert is and where it's going. It's pre-1.0, so treat this as the 
 - **Least privilege.** Runs as a dedicated non-root `syscert` user under a hardened systemd timer, no daemon.
 - **Packaging.** `install.sh`, the one-line network installer, and pre-built static Linux binaries (amd64/arm64) with checksums and build provenance.
 - **Ansible role.** Fleet installs that run the same steps as `install.sh`, in-tree at [`packaging/ansible/`](https://github.com/tfindley/syscert/tree/main/packaging/ansible) and documented at [Install with Ansible](/docs/advanced-install/ansible/).
+- **Observability.** Optional Prometheus node_exporter textfile and Ansible local-facts outputs (`[observe]`), off by default, rewritten after every run.
 - **This documentation site**, built from a single canonical Markdown source.
 
 ## Next
@@ -27,7 +28,7 @@ lede: Where syscert is and where it's going. It's pre-1.0, so treat this as the 
 - **IP-SAN hardening.** The public-CA `shortlived` profile path and the Vault specifics for certificates with IP Subject Alternative Names (IPv4 is the supported path).
 - **Reissue on config drift.** When the certificate's configuration changes (SANs, IP-SANs, key type, or profile), reissue on the next scheduled run instead of waiting for expiry. Right now you apply a changed config by forcing a renewal (`renew --force`); this would let the timer spot the drift and act on its own. This is the headline of the direction of travel: the config *declares* the desired state, and the timer converges reality to it.
 - **Post-distribution verification (`syscert verify`).** syscert never reloads your services (by design — see [Reloading](/docs/reloading/)); `verify` closes that loop from the other side. It dials each configured consumer endpoint, compares the served certificate against the store, and flags any consumer still serving the old one. Read-only; it never acts.
-- **Machine-readable status + metrics.** `status --json` and a node_exporter textfile (expiry, renewal-due, per-target sync) so monitoring and compliance evidence come from the tool itself rather than scripts around it.
+- **`status --json`.** Machine-readable status output, completing the observability picture alongside the metrics and facts files that shipped.
 - **ARI-aware renewal (RFC 9773).** A parity item, not a differentiator: honour the CA's renewal-timing hints via the embedded lego engine. The [comparison](/docs/comparison/) page concedes this to the lego CLI until it ships.
 
 ## Planned for 1.0

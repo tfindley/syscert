@@ -145,3 +145,20 @@ renew_before = ""
 [logging]
 level  = "info"     # debug | info (default) | warn | error
 format = "text"     # text (default, journald-friendly) | json
+
+
+# ── Observability (optional, OFF by default) ────────────────────────────────────
+# Machine-readable state, rewritten after every run. Nothing reads these back —
+# they exist for monitoring and inventory. Leave a path empty to keep it off.
+# Both directories are created, ACL-granted to the syscert user and added to the
+# unit's ReadWritePaths by install.sh / the Ansible role, exactly like a
+# distribute target — they are just as far outside the store.
+[observe]
+# Prometheus node_exporter textfile collector. MUST end in .prom, or the
+# collector silently ignores it. Alert on:
+#   (syscert_cert_not_after_seconds - time()) / 86400 < 14
+# metrics_file = "/var/lib/node_exporter/textfile_collector/syscert.prom"
+
+# Ansible local facts. MUST end in .fact, and live under a facts.d directory;
+# read back as ansible_local.syscert (e.g. ansible_local.syscert.not_after).
+# ansible_facts_file = "/etc/ansible/facts.d/syscert.fact"

@@ -1,19 +1,27 @@
 ---
 # Destination directories for the [[distribute]] targets.
 #
-# Two reasons this is not optional housekeeping. syscert writes the artefact but
-# never creates its parent directory, and the hardened unit lists those parents in
-# ReadWritePaths — where systemd refuses to start a unit naming a path that does
-# not exist. So a missing directory is either a failed distribution or a failed
-# unit, both after a successful issuance.
+# Two barriers stand between the service and a target file, and both bite only
+# after a successful issuance — the certificate is obtained, then cannot be
+# delivered. See ADR-0048.
 #
-# Only the directories are created here (traversable, root-owned). The artefacts
-# themselves get the owner/group/mode each target declares, applied by syscert.
+#   1. The unit runs under ProtectSystem=strict, so every directory outside the
+#      store is read-only unless named in ReadWritePaths. syscert.service.j2
+#      derives that list from syscert_distribute.
+#   2. Ordinary permissions. syscert runs as a non-root user with CAP_CHOWN only,
+#      and CAP_CHOWN does not grant *directory* write — creating a file needs
+#      write+execute on the directory itself. A root-owned 0755 directory such as
+#      /etc/cockpit/ws-certs.d therefore refuses it outright.
+#
+# The ACL is what answers (2). It grants exactly one user on exactly one
+# directory and leaves owner/group as the owning package set them, which chgrp
+# + g+w would not. Only the directory is granted; the artefacts themselves keep
+# the owner/group/mode each target declares, applied by syscert.
 
 - name: syscert.distribute - Create the distribute target directories
   when: syscert_manage_distribute_dirs
   become: true
-  loop: "{{ syscert_distribute | map(attribute='path') | map('dirname') | unique | list }}"
+  loop: "{{ syscert_writable_dirs }}"
   loop_control:
     label: "{{ item }}"
   ansible.builtin.file:
@@ -22,3 +30,30 @@
     owner: root
     group: root
     mode: "0755"
+
+# ansible.posix.acl shells out to setfacl, which lives in the `acl` package. RHEL
+# family images generally carry it; minimal Debian, Ubuntu cloud and Raspberry Pi
+# OS images often do not, and the ACL task would then fail outright. install.sh
+# degrades to a printed instruction in the same situation; the role can simply
+# install the two-hundred-kilobyte package.
+- name: syscert.distribute - Ensure the acl package is present (provides setfacl)
+  when:
+    - syscert_manage_distribute_dirs
+    - syscert_install_acl_package
+  become: true
+  ansible.builtin.package:
+    name: acl
+    state: present
+
+- name: syscert.distribute - Grant the syscert user write access to the target directories
+  when: syscert_manage_distribute_dirs
+  become: true
+  loop: "{{ syscert_writable_dirs }}"
+  loop_control:
+    label: "{{ item }}"
+  ansible.posix.acl:
+    path: "{{ item }}"
+    entity: "{{ syscert_user }}"
+    etype: user
+    permissions: rwx
+    state: present

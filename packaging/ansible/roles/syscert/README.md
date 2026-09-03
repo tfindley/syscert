@@ -10,7 +10,7 @@ the timer.
 
 ## Requirements
 
-- **ansible-core ≥ 2.21** (Ansible 14). The role uses only `ansible.builtin`.
+- **ansible-core ≥ 2.21** (Ansible 14), plus the `ansible.posix` collection (one task: the ACL granting the service write access to a distribute target directory). Everything else is `ansible.builtin`.
 - Targets: EL 9/10, Debian 12, Ubuntu 22.04/24.04 (systemd hosts).
 - The controller reaches the GitHub releases (default `download` method) — or supply a binary
   with the `local` method.
@@ -29,7 +29,12 @@ by `tasks/assert.yml`. Full annotated defaults: [`defaults/main.yml`](defaults/m
 | `syscert_version` | _(required for download)_ | Release tag, e.g. `v0.4.0`. Pin it. |
 | `syscert_local_binary` | _(required for local)_ | Controller path to a pre-built binary. |
 | `syscert_download_base_url` | GitHub releases URL | Override for an internal mirror. |
-| `syscert_manage_distribute_dirs` | `true` | Create each distribute target's parent directory and grant it in the unit's `ReadWritePaths`. |
+| `syscert_manage_distribute_dirs` | `true` | Create each writable directory, ACL-grant the syscert user on it, and add it to the unit's `ReadWritePaths`. |
+| `syscert_install_acl_package` | `true` | Install the `acl` package (setfacl). Minimal Debian/Ubuntu/Raspberry Pi OS images lack it. |
+| `syscert_metrics_enabled` | `false` | Write a Prometheus node_exporter textfile after each run. |
+| `syscert_metrics_file` | `/var/lib/node_exporter/textfile_collector/syscert.prom` | Where to write it (must end `.prom`). |
+| `syscert_ansible_facts_enabled` | `false` | Write an Ansible local-facts file after each run. |
+| `syscert_ansible_facts_file` | `/etc/ansible/facts.d/syscert.fact` | Where to write it (must end `.fact`); read back as `ansible_local.syscert`. |
 | `syscert_bin_path` | `/usr/local/bin/syscert` | Install location. |
 | `syscert_user` / `syscert_group` | `syscert` | Service account. |
 | `syscert_manage_user` | `true` | Create the system user/group. |

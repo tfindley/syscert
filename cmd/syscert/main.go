@@ -109,6 +109,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdDestroy(rest, stdout, stderr)
 	case "status":
 		return cmdStatus(rest, stdout, stderr)
+	case "systemd-paths":
+		return cmdSystemdPaths(rest, stdout, stderr)
 	default:
 		if strings.HasPrefix(cmd, "-") {
 			return cmdEnsure(args, stdout, stderr) // bare flags → ensure with options
@@ -140,6 +142,8 @@ Commands:
   destroy      Wipe the stored cert + ACME account (--keep-account drops only the cert)
   status       Show config + stored cert (issued/expiry/renewal), account, targets
   trust        Add/remove the internal CA in the system trust store (root)
+  systemd-paths Print (or --write, as root) the unit drop-in granting the
+               sandboxed service write access to its distribute targets
   version      Print the version
 
 Common flags:

@@ -1,8 +1,11 @@
 package distribute
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/tfindley/syscert/internal/config"
@@ -130,5 +133,72 @@ func TestRunRelabelsWhenActiveAndContextSet(t *testing.T) {
 	d.Run([]config.DistributeTarget{{Artifact: "cert", Path: out, SELinuxContext: "cert_t"}})
 	if len(sp.relabels) != 1 || sp.relabels[0].ctx != "cert_t" || sp.relabels[0].path != out {
 		t.Errorf("relabels = %+v, want one call ctx=cert_t path=%s", sp.relabels, out)
+	}
+}
+
+func TestExplainWriteErrorClassifiesSandboxAndPermission(t *testing.T) {
+	dir := "/etc/cockpit/ws-certs.d"
+	tests := []struct {
+		name string
+		err  error
+		want []string // substrings the message must carry
+	}{
+		{
+			name: "read-only sandbox names the systemd remedy",
+			err:  &os.PathError{Op: "open", Path: dir + "/.syscert-1.tmp", Err: syscall.EROFS},
+			want: []string{dir, "ProtectSystem=strict", "systemd-paths --write"},
+		},
+		{
+			name: "permission denied names the ACL remedy",
+			err:  &os.PathError{Op: "open", Path: dir + "/.syscert-1.tmp", Err: syscall.EACCES},
+			want: []string{dir, "setfacl -m u:", "CAP_CHOWN does not grant"},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := explainWriteError(dir, tc.err).Error()
+			for _, want := range tc.want {
+				if !strings.Contains(got, want) {
+					t.Errorf("message %q does not contain %q", got, want)
+				}
+			}
+			if !errors.Is(explainWriteError(dir, tc.err), tc.err) {
+				t.Error("wrapped error lost the original cause")
+			}
+		})
+	}
+}
+
+func TestExplainWriteErrorPassesOtherErrorsThrough(t *testing.T) {
+	orig := errors.New("disk on fire")
+	if got := explainWriteError("/etc/x", orig); got != orig {
+		t.Errorf("got %v, want the original error unchanged", got)
+	}
+}
+
+// A target the service cannot write must not deny the remaining targets their
+// renewed certificate — but the run must still report failure.
+func TestRunAttemptsEveryTargetAndJoinsFailures(t *testing.T) {
+	store := storeWith(t, map[string]string{"cert.pem": "CERT", "fullchain.pem": "FULL"})
+	good := filepath.Join(t.TempDir(), "good.pem")
+	blocked := filepath.Join(t.TempDir(), "missing-dir", "blocked.pem") // parent does not exist
+	d := newTest(store, &spies{})
+
+	err := d.Run([]config.DistributeTarget{
+		{Artifact: "cert", Path: blocked},
+		{Artifact: "fullchain", Path: good},
+	})
+	if err == nil {
+		t.Fatal("Run returned nil, want the blocked target to be reported")
+	}
+	if !strings.Contains(err.Error(), blocked) {
+		t.Errorf("error %q does not mention the blocked target", err)
+	}
+	data, readErr := os.ReadFile(good)
+	if readErr != nil {
+		t.Fatalf("the writable target was skipped after an earlier failure: %v", readErr)
+	}
+	if string(data) != "FULL" {
+		t.Errorf("content = %q, want FULL", data)
 	}
 }

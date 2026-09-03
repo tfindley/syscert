@@ -59,6 +59,31 @@ selinux_context = "cert_t"
 > unit grants. On the RHEL family, set `selinux_context` (e.g. `cert_t`) so the
 > consumer's domain can read the file; syscert relabels after writing.
 
+## Privileged target directories
+
+Most interesting targets are directories another package owns — `/etc/cockpit/ws-certs.d`, `/etc/nginx/tls`, `/etc/pki/…`. Two things stand between the service and a file there, and both bite *after* a successful issuance: the certificate is obtained, then can't be delivered. The failure looks like a bare `read-only file system` or `permission denied` in the journal, which is why syscert now names the remedy in the error itself.
+
+**First, the sandbox.** The unit runs under `ProtectSystem=strict`, so the whole filesystem is read-only except what `ReadWritePaths=` grants. A static unit can't know your targets, so syscert derives the list from your config:
+
+```sh
+sudo syscert systemd-paths --write     # writes /etc/systemd/system/syscert.service.d/10-distribute-paths.conf
+sudo systemctl daemon-reload
+```
+
+Run `syscert systemd-paths` without `--write` to see the file first. Re-run it after adding or moving a target — [`install.sh`](/docs/advanced-install/manually/) does this for you on every run, and the [Ansible role](/docs/advanced-install/ansible/) derives it from `syscert_distribute`.
+
+**Second, ordinary permissions.** syscert runs as a non-root user with `CAP_CHOWN` and nothing else. Creating a file needs write and execute on the *directory*, and `CAP_CHOWN` does not grant that — it only lets syscert set the owner of a file it has already created, which is how a delivered file still ends up `root:root 0644`. A directory like `/etc/cockpit/ws-certs.d`, typically `root:root 0755`, therefore refuses it. Grant that one user on that one directory:
+
+```sh
+sudo setfacl -m u:syscert:rwx /etc/cockpit/ws-certs.d
+```
+
+An ACL is preferable to `chgrp syscert … && chmod g+w …` because it leaves the owner and group exactly as the owning package set them, so nothing else notices. Both are fine; pick the ACL unless the filesystem doesn't support one. `install.sh` and the Ansible role apply this for you; the manual route is the command above.
+
+Test through the timer, not by hand — `sudo systemctl start syscert.service` then `journalctl -u syscert -n 30`. An interactive `sudo -u syscert syscert distribute` isn't sandboxed, so it exercises the permissions but not the first barrier, and can pass while the timer still fails.
+
+If a target is still unwritable, syscert delivers to every *other* target anyway and then exits non-zero: one misconfigured consumer doesn't deny the rest their renewed certificate.
+
 ## No reload hooks — consumers reload themselves
 
 syscert writes files, and it **never runs commands**: no reloads, no restarts, no hooks. That keeps this least-privilege service from having to poke at arbitrary daemons. Instead, each consumer watches its cert file and reloads itself, and a small `systemd.path` unit is the clean way to do it. See **[Reloading services](/docs/reloading/)** for the pattern and the reload command per service.

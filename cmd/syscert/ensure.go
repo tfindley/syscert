@@ -58,6 +58,10 @@ func cmdEnsure(args []string, stdout, stderr io.Writer) int {
 	if !storeAccessGuard("syscert", cfg.Store.Path, stderr) {
 		return 1
 	}
+	// Report unwritable targets before any network work, so the cause is at the
+	// top of the journal rather than buried behind an errno at the end. This does
+	// not stop the run: see warnDistributeTargets.
+	warnDistributeTargets("syscert", cfg, stderr)
 
 	cycle := func(ctx context.Context) error {
 		return ensureCycle(ctx, cfg, subject, *staging, stdout, stderr)
@@ -113,8 +117,15 @@ func ensureCycle(ctx context.Context, cfg *config.Config, subject string, stagin
 	}
 
 	// Always distribute, so targets stay in sync even when nothing was obtained.
-	if err := distribute.New(cfg.Store.Path).Run(cfg.Distribute); err != nil {
-		return err
+	distErr := distribute.New(cfg.Store.Path).Run(cfg.Distribute)
+
+	// Written before the error is returned, and regardless of it: a delivery that
+	// failed is precisely the state monitoring and inventory need to see. No-op
+	// unless [observe] configures an output.
+	writeObservations(cfg, subject, time.Now(), stderr)
+
+	if distErr != nil {
+		return distErr
 	}
 	fmt.Fprintf(stdout, "OK: %s ensured; distributed to %d target(s)\n", subject, len(cfg.Distribute))
 	if s := certLine(cfg, time.Now()); s != "" { // surfaces in `systemctl status syscert`

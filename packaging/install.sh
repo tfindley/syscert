@@ -92,6 +92,8 @@ install_syscert() {
     restorecon -R "$BIN_DEST" "$STORE_DIR" "$CONF_DIR" || warn "restorecon failed (continuing)"
   fi
 
+  grant_distribute_paths
+
   # Enable (not --now): don't run against the unconfigured starter config. The
   # operator starts the timer after editing the config (step 4 below).
   log "Enabling syscert.timer (not started — start it after configuring)"
@@ -149,6 +151,9 @@ uninstall_syscert() {
   log "Disabling syscert.timer"
   systemctl disable --now syscert.timer 2>/dev/null || true
 
+  # Before the binary goes: it is what derives the granted directory list.
+  revoke_distribute_paths
+
   log "Removing units + binary"
   rm -f "${UNIT_DIR}/syscert.timer" "${UNIT_DIR}/syscert.service" "$BIN_DEST"
   systemctl daemon-reload
@@ -163,6 +168,86 @@ uninstall_syscert() {
     log "Kept ${STORE_DIR}, ${CONF_DIR}, and ${DEFAULTS_FILE} (use --purge to remove)"
   fi
   log "Uninstalled."
+}
+
+# grant_distribute_paths makes the configured [[distribute]] targets actually
+# writable by the sandboxed, non-root service. Two separate barriers, both of
+# which produce a confusing errno at renewal time if left in place:
+#
+#   1. ProtectSystem=strict leaves everything outside ReadWritePaths read-only.
+#      The binary derives the directory list from the config (shell must not
+#      parse TOML) and writes a drop-in.
+#   2. A target directory owned by root, e.g. /etc/cockpit/ws-certs.d at 0755,
+#      denies the syscert user outright — creating a file needs write on the
+#      directory, and CAP_CHOWN does not grant that. A POSIX ACL grants exactly
+#      this one user on this one directory, leaving the owner/group the owning
+#      package expects untouched.
+#
+# On a first install the config is the starter template with no real targets, so
+# this is close to a no-op; re-run the installer after editing the config. Never
+# fatal: a host without ACL support still installs, it just needs the manual step.
+grant_distribute_paths() {
+  local dirs d
+  [ -e "$CONF_FILE" ] || return 0
+
+  if ! "$BIN_DEST" systemd-paths --write --config "$CONF_FILE" >/dev/null 2>&1; then
+    warn "could not write the systemd drop-in — run 'syscert systemd-paths --write' after fixing the config"
+    return 0
+  fi
+  log "Wrote ${UNIT_DIR}/syscert.service.d/10-distribute-paths.conf (sandbox grant)"
+
+  dirs=$("$BIN_DEST" systemd-paths --dirs --config "$CONF_FILE" 2>/dev/null) || return 0
+  [ -n "$dirs" ] || return 0
+
+  if ! command -v setfacl >/dev/null 2>&1; then
+    warn "setfacl not found — grant ${SVC_USER} write on each distribute target directory yourself:"
+    printf '%s\n' "$dirs" | while IFS= read -r d; do
+      if [ -n "$d" ] && [ "$d" != "$STORE_DIR" ]; then
+        warn "  chgrp ${SVC_GROUP} $d && chmod g+w $d"
+      fi
+    done
+    return 0
+  fi
+
+  printf '%s\n' "$dirs" | while IFS= read -r d; do
+    # The store is already syscert-owned; only the foreign directories need this.
+    if [ -n "$d" ] && [ "$d" != "$STORE_DIR" ]; then
+      # A mistyped target such as path = "/etc/x.pem" yields the directory /etc.
+      # Granting the service write across a whole top-level tree is never what
+      # was meant, so refuse it and make the operator fix the path.
+      if ! printf '%s' "$d" | grep -Eq '^(/[^/]+){2,}/?$'; then
+        warn "refusing to grant $d — too broad; check the [[distribute]] path in $CONF_FILE"
+      elif [ ! -d "$d" ]; then
+        warn "distribute target dir $d does not exist yet — create it, then re-run"
+      elif setfacl -m "u:${SVC_USER}:rwx" "$d" 2>/dev/null; then
+        log "Granted ${SVC_USER} write on $d (POSIX ACL)"
+      else
+        warn "could not set an ACL on $d — grant it manually: chgrp ${SVC_GROUP} $d && chmod g+w $d"
+      fi
+    fi
+  done
+  return 0
+}
+
+# revoke_distribute_paths undoes grant_distribute_paths on uninstall. The config
+# is still readable at this point, so the same directory list can be re-derived.
+revoke_distribute_paths() {
+  rm -rf "${UNIT_DIR}/syscert.service.d"
+  [ -e "$CONF_FILE" ] && [ -x "$BIN_DEST" ] || return 0
+  command -v setfacl >/dev/null 2>&1 || return 0
+
+  local dirs d
+  dirs=$("$BIN_DEST" systemd-paths --dirs --config "$CONF_FILE" 2>/dev/null) || return 0
+  # Every branch must succeed: a directory with no ACL to strip is the normal
+  # case, and under `set -e` a bare `setfacl && log` would abort the uninstall.
+  printf '%s\n' "$dirs" | while IFS= read -r d; do
+    if [ -n "$d" ] && [ "$d" != "$STORE_DIR" ] && [ -d "$d" ]; then
+      if setfacl -x "u:${SVC_USER}" "$d" 2>/dev/null; then
+        log "Removed the ${SVC_USER} ACL from $d"
+      fi
+    fi
+  done
+  return 0
 }
 
 write_config_template() {

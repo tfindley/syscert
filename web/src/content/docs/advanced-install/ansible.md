@@ -7,7 +7,7 @@ eyebrow: "// docs · advanced install · ansible"
 lede: One host at a time gets old fast. The syscert Ansible role does what install.sh does, natively, across a fleet — with variables that mirror syscert.toml and secrets you keep in ansible-vault.
 ---
 
-Everything so far on this page's siblings installs **one host**. The `syscert` Ansible role does the same work — user, store, binary, config, secrets, systemd units, timer — for as many hosts as your inventory covers, in one run. It lives in-tree at [`packaging/ansible/`](https://github.com/tfindley/syscert/tree/main/packaging/ansible) and needs **ansible-core ≥ 2.21** (Ansible 14); it uses only `ansible.builtin`, so there's no collection to install first.
+Everything so far on this page's siblings installs **one host**. The `syscert` Ansible role does the same work — user, store, binary, config, secrets, systemd units, timer — for as many hosts as your inventory covers, in one run. It lives in-tree at [`packaging/ansible/`](https://github.com/tfindley/syscert/tree/main/packaging/ansible) and needs **ansible-core ≥ 2.21** (Ansible 14) plus one collection — `ansible.posix`, for the ACL that lets the service write into a privileged target directory. Install it with `ansible-galaxy collection install -r packaging/ansible/requirements.yml`; if you run the full `ansible` package rather than bare ansible-core, you already have it.
 
 ## Quick start
 

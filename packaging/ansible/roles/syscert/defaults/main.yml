@@ -82,10 +82,15 @@ syscert_bundle_order:
 # artifact: cert | privkey | chain | fullchain | bundle. Optional selinux_context.
 # Key-bearing artifacts (privkey, bundle) must NOT be world-readable.
 syscert_distribute: []
-# Create each target's parent directory (root:root 0755) and add it to the unit's
-# ReadWritePaths. Turn this off only if you manage those directories elsewhere —
-# they must still exist, or the hardened unit refuses to start.
+# Create each target's parent directory (root:root 0755), grant the syscert user
+# write access to it with a POSIX ACL, and add it to the unit's ReadWritePaths.
+# Turn this off only if you manage those directories elsewhere — they must still
+# exist and be writable by the service, or delivery fails after issuance.
 syscert_manage_distribute_dirs: true
+# Install the `acl` package (provides setfacl) when granting those directories.
+# Minimal Debian/Ubuntu/Raspberry Pi OS images usually lack it; most RHEL-family
+# images have it. Set false if your image build owns package installation.
+syscert_install_acl_package: true
 
 # ── [renewal] ────────────────────────────────────────────────────────────────────
 syscert_renewal_renew_before: ""   # "" = auto window from the cert lifetime; or a duration like "30d"
@@ -100,6 +105,15 @@ syscert_logging_format: text       # text | json
 # renders /etc/default/syscert (non-secret operator settings, e.g. SYSCERT_CONFIG).
 syscert_secrets: {}
 syscert_environment: {}
+
+# ── [observe] — optional machine-readable state files ────────────────────────
+# Both OFF by default. When enabled, syscert rewrites the file after every run;
+# nothing reads it back. The directories are created, ACL-granted and added to
+# the unit's ReadWritePaths automatically, exactly like a distribute target.
+syscert_metrics_enabled: false
+syscert_metrics_file: /var/lib/node_exporter/textfile_collector/syscert.prom
+syscert_ansible_facts_enabled: false
+syscert_ansible_facts_file: /etc/ansible/facts.d/syscert.fact
 
 # ── Timer / unit ─────────────────────────────────────────────────────────────────
 syscert_timer_enabled: true

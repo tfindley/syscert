@@ -3,12 +3,15 @@
 package distribute
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"syscall"
 
 	"github.com/tfindley/syscert/internal/atomicfile"
 	"github.com/tfindley/syscert/internal/config"
@@ -50,13 +53,20 @@ func New(storeDir string) *Distributor {
 // Run places every target's artifact. It writes each file atomically with its
 // mode + ownership; if SELinux is active and the target has a context, it
 // relabels the file. SELinux is skipped entirely on hosts without it.
+//
+// Every target is attempted even when an earlier one fails, and the failures are
+// returned joined. One target the service cannot write — a privileged directory
+// that has not been granted, say — must not deny every other consumer its
+// renewed certificate. The caller still sees a non-nil error and still exits
+// non-zero, so a broken target remains loud.
 func (d *Distributor) Run(targets []config.DistributeTarget) error {
+	var errs []error
 	for _, t := range targets {
 		if err := d.one(t); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 func (d *Distributor) one(t config.DistributeTarget) error {
@@ -115,9 +125,39 @@ func (d *Distributor) writeAtomic(path string, data []byte, mode os.FileMode, ui
 		}
 	}
 	if err := atomicfile.Write(path, data, mode, chown); err != nil {
-		return fmt.Errorf("distribute %s: %w", path, err)
+		return fmt.Errorf("distribute %s: %w", path, explainWriteError(filepath.Dir(path), err))
 	}
 	return nil
+}
+
+// explainWriteError turns the raw errno from an atomic write into something the
+// operator can act on. Two failures account for essentially every report, and
+// both look like an opaque errno without this: the service sandbox
+// (ProtectSystem=strict leaves everything outside ReadWritePaths read-only) and
+// plain directory permissions (creating a file needs write on the *directory*,
+// which CAP_CHOWN does not grant — that only re-owns a file already created).
+// Anything else is returned unchanged rather than guessed at.
+func explainWriteError(dir string, err error) error {
+	switch {
+	case errors.Is(err, syscall.EROFS):
+		return fmt.Errorf("%s is read-only under the service sandbox (ProtectSystem=strict); "+
+			"grant it with 'sudo syscert systemd-paths --write' then 'sudo systemctl daemon-reload': %w", dir, err)
+	case errors.Is(err, fs.ErrPermission):
+		u := runningUser()
+		return fmt.Errorf("%s is not writable by user %s (creating a file needs write on the directory; "+
+			"CAP_CHOWN does not grant that); grant it with 'sudo setfacl -m u:%s:rwx %s': %w", dir, u, u, dir, err)
+	}
+	return err
+}
+
+// runningUser names the effective user for an error message, falling back to the
+// numeric uid so the message is always concrete.
+func runningUser() string {
+	uid := os.Geteuid()
+	if u, err := user.LookupId(strconv.Itoa(uid)); err == nil {
+		return u.Username
+	}
+	return strconv.Itoa(uid)
 }
 
 func defaultMode(artifact string) os.FileMode {

@@ -81,3 +81,13 @@ renew_before = "{{ syscert_renewal_renew_before }}"
 [logging]
 level = "{{ syscert_logging_level }}"
 format = "{{ syscert_logging_format }}"
+
+{% if syscert_metrics_enabled or syscert_ansible_facts_enabled %}
+[observe]
+{% if syscert_metrics_enabled %}
+metrics_file = "{{ syscert_metrics_file }}"
+{% endif %}
+{% if syscert_ansible_facts_enabled %}
+ansible_facts_file = "{{ syscert_ansible_facts_file }}"
+{% endif %}
+{% endif %}

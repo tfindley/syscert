@@ -25,7 +25,7 @@ ProtectSystem=strict
 # Miss one and `ensure` issues the cert fine, then fails at the distribute step with
 # a read-only filesystem error. The static unit can only name the store; the role
 # knows syscert_distribute, so it derives the rest (and creates those directories).
-ReadWritePaths={{ ([syscert_store_path] + (syscert_distribute | map(attribute='path') | map('dirname') | list)) | unique | join(' ') }}
+ReadWritePaths={{ ([syscert_store_path] + syscert_writable_dirs) | unique | join(' ') }}
 ProtectHome=true
 PrivateTmp=true
 ProtectKernelTunables=true
