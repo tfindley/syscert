@@ -12,12 +12,12 @@
 # pattern when a single container is a hard requirement (e.g. a constrained PaaS).
 #
 # Build:
-#   docker build --build-arg SYSCERT_VERSION=v0.3.1 -t myapp:latest .
+#   docker build --build-arg SYSCERT_VERSION=v0.4.0 -t myapp:latest .
 # ------------------------------------------------------------------------------
 
 FROM nginx:alpine
 
-ARG SYSCERT_VERSION=v0.3.1
+ARG SYSCERT_VERSION=v0.4.0
 ARG TARGETARCH=amd64
 
 # Download and verify the syscert binary.

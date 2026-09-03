@@ -60,7 +60,7 @@ const release = await getRelease();
           <div class="term-out">==&gt; issue   leaf + chain + bundle <span class="ok">✓</span></div>
           <div class="term-out">==&gt; deploy  nginx · haproxy · cockpit <span class="ok">✓</span></div>
           <div class="term-out">==&gt; renew   <span class="ok">valid 90d</span> · auto-renew in 60d</div>
-          <div class="term-out">==&gt; timer   armed · next check 12h<span class="cursor"></span></div>
+          <div class="term-out">==&gt; timer   armed · daily ±12h jitter<span class="cursor"></span></div>
         </div>
       </div>
       {release.sha256?.amd64 && (

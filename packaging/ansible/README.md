@@ -41,7 +41,9 @@ Minimal play:
 
 ## Requirements
 
-- **ansible-core ≥ 2.21** (Ansible 14); the role uses only `ansible.builtin`.
+- **ansible-core ≥ 2.21** (Ansible 14), plus the `ansible.posix` collection for the ACL that grants
+  the service write access to a target directory. Install it first:
+  `ansible-galaxy collection install -r requirements.yml` (the full `ansible` package already has it).
 - Targets EL 9/10, Debian 12, Ubuntu 22.04/24.04.
 - Controller reaches the GitHub releases (default `download`), or set
   `syscert_install_method: local` with `syscert_local_binary`.

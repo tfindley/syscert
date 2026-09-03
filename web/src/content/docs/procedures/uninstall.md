@@ -52,17 +52,23 @@ sudo packaging/install.sh --uninstall --purge
 
 ### Confirmation and automation
 
-`--purge` asks you to confirm before it removes the store and user:
+`--purge` warns and asks you to confirm before it removes anything. It wants the whole word — `y` aborts:
 
 ```
-Remove /var/lib/syscert, /etc/syscert, and the syscert user? [y/N]
+WARNING: --purge will PERMANENTLY delete:
+    /var/lib/syscert   (private keys + certificates)
+    /etc/syscert        (config + secrets)
+    the syscert system user and group
+Type 'yes' to continue:
 ```
 
-To skip the prompt in automation:
+To skip the prompt in automation, the variable has to reach the shell running the script, not `curl` — `sudo` also resets the environment, so set it after `sudo`:
 
 ```sh
-SYSCERT_ASSUME_YES=1 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo sh -s -- --uninstall --purge
+curl -fsSL https://syscert.tfindley.dev/install.sh | sudo SYSCERT_ASSUME_YES=1 sh -s -- --uninstall --purge
 ```
+
+With no terminal to confirm on and no `SYSCERT_ASSUME_YES`, `--purge` refuses rather than guessing.
 
 ## What each mode removes
 
@@ -71,7 +77,7 @@ SYSCERT_ASSUME_YES=1 curl -fsSL https://syscert.tfindley.dev/install.sh | sudo s
 | `/usr/local/bin/syscert` | removed | removed |
 | `/etc/systemd/system/syscert.service` | removed | removed |
 | `/etc/systemd/system/syscert.timer` | removed | removed |
-| `/etc/default/syscert` | removed | removed |
+| `/etc/default/syscert` | **kept** | removed |
 | `/etc/syscert/syscert.toml` | **kept** | removed |
 | `/etc/syscert/secrets` | **kept** | removed |
 | `/var/lib/syscert/` (store, certs, account) | **kept** | removed |

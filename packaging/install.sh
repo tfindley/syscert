@@ -218,7 +218,7 @@ grant_distribute_paths() {
       if ! printf '%s' "$d" | grep -Eq '^(/[^/]+){2,}/?$'; then
         warn "refusing to grant $d — too broad; check the [[distribute]] path in $CONF_FILE"
       elif [ ! -d "$d" ]; then
-        warn "distribute target dir $d does not exist yet — create it, then re-run"
+        warn "$d does not exist yet — create it, then re-run (syscert writes there)"
       elif setfacl -m "u:${SVC_USER}:rwx" "$d" 2>/dev/null; then
         log "Granted ${SVC_USER} write on $d (POSIX ACL)"
       else
@@ -289,7 +289,7 @@ write_secrets_template() {
   umask 077
   cat > "$SECRETS_FILE" <<'EOF'
 # DNS provider / CA credentials, sourced by the systemd unit (EnvironmentFile).
-# This file is 0600 and must never be world-readable.
+# This file is 0640 root:syscert and must never be world-readable.
 #
 # Set the variables your DNS provider needs (one KEY=value per line). Find the
 # exact names for your provider at: https://go-acme.github.io/lego/dns/
@@ -326,7 +326,7 @@ main() {
     case "$arg" in
       --uninstall) action="uninstall" ;;
       --purge)     purge="purge" ;;
-      -h|--help)   sed -n '2,12p' "$0"; exit 0 ;;
+      -h|--help)   sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
       -*)          die "unknown flag: $arg" ;;
       *)           binary="$arg" ;;
     esac

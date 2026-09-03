@@ -27,10 +27,12 @@ profile = "{{ syscert_acme_profile }}"
 {% if syscert_acme_ca_bundle | length > 0 %}
 ca_bundle = "{{ syscert_acme_ca_bundle }}"
 {% endif %}
-{% if syscert_acme_dns_provider | length > 0 %}
+{% if syscert_acme_dns_provider | length > 0 or syscert_acme_dns_propagation_check | length > 0 %}
 
 [acme.dns]
+{% if syscert_acme_dns_provider | length > 0 %}
 provider = "{{ syscert_acme_dns_provider }}"
+{% endif %}
 {% if syscert_acme_dns_propagation_check | length > 0 %}
 propagation_check = "{{ syscert_acme_dns_propagation_check }}"
 {% endif %}

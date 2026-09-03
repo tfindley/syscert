@@ -28,15 +28,5 @@ export const NAV = [
   { label: "FAQ", href: "/docs/faq/" },
 ] as const;
 
-// Install routes, shown on /install and in the footer. Keep in step with
-// docs/advanced-install.md — that page is the canonical list.
-export const INSTALL_ROUTES = [
-  { label: "One-line installer", href: "/install/" },
-  { label: "Manual / verified binary", href: "/docs/advanced-install/manually/" },
-  { label: "Offline (air-gapped)", href: "/docs/advanced-install/offline/" },
-  { label: "Ansible (fleet)", href: "/docs/advanced-install/ansible/" },
-  { label: "Compile from source", href: "/docs/advanced-install/compile-from-source/" },
-] as const;
-
 // The docs sidebar is derived from the docs content collection (sorted by
 // frontmatter `order`) in DocsLayout — see web/src/layouts/DocsLayout.astro.

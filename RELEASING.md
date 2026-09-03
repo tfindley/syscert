@@ -23,7 +23,7 @@ The binary gets its version stamped from the tag (`-ldflags -X main.version`), s
 
 The tool versions off a `vX.Y.Z` git tag that drives `release.yml`, plain Semantic Versioning.
 
-The website carries its own semver in `web/package.json`, which becomes the image tag `ghcr.io/<owner>/syscert-web:site-vX.Y.Z` (alongside `latest` and `sha-<short>`). Bump that when the site changes; it doesn't have to match the tool. The site keeps up with the tool by content rather than by number, fetching and showing the latest tool release at build time and rebuilding whenever a `release: published` event fires. The `version` in `web/src/consts.ts` is just the offline fallback for that fetch, so you don't need to bump it every release.
+The website carries its own semver in `web/package.json`, which becomes the image tag `ghcr.io/<owner>/syscert-web:site-vX.Y.Z` (alongside `latest` and `sha-<short>`). Bump that when the site changes; it doesn't have to match the tool. The site keeps up with the tool by content rather than by number, fetching and showing the latest tool release at build time and rebuilding after the Release workflow completes (web.yml chains off `workflow_run`; a release made with the default `GITHUB_TOKEN` emits no `release` event). The `version` in `web/src/consts.ts` is just the offline fallback for that fetch, so you don't need to bump it every release.
 
 ## Conventional Commits
 

@@ -43,12 +43,26 @@ What has **no TOML equivalent** — the install/system variables — is worth a 
 | `syscert_install_method` | `download` | `download` (GitHub release, checksum-verified) or `local` (copy a binary from the controller). |
 | `syscert_version` | *(required for `download`)* | Release tag to install, e.g. `v0.4.0`. Pin it — there's no implicit latest. |
 | `syscert_local_binary` | *(required for `local`)* | Controller path to a pre-built binary. |
-| `syscert_manage_distribute_dirs` | `true` | Create each `[[distribute]]` target's parent directory and grant it in the unit's `ReadWritePaths`. |
+| `syscert_manage_distribute_dirs` | `true` | Create each writable directory the service needs, grant the syscert user on it with a POSIX ACL, and add it to the unit's `ReadWritePaths`. |
+| `syscert_install_acl_package` | `true` | Install the `acl` package (provides `setfacl`). Minimal Debian, Ubuntu cloud and Raspberry Pi OS images do not ship it. |
 | `syscert_bin_path` | `/usr/local/bin/syscert` | Install location on the host. |
 | `syscert_user` / `syscert_group` | `syscert` | The service account the role creates and runs as. |
 | `syscert_manage_user` | `true` | Whether the role creates the system user and group at all. |
 | `syscert_state` | `present` | `present` installs/configures; `absent` uninstalls. |
 | `syscert_purge` | `false` | With `absent`, also remove the store, config, secrets, and the service user. |
+
+### Observability
+
+Both outputs are off by default and map onto the [`[observe]`](/docs/configuration/#observe--metrics-and-inventory-facts) section. Enabling either one is enough for the role to create its directory, ACL-grant it, and add it to the unit's `ReadWritePaths` — the same treatment a privileged distribute target gets, because it is the same problem.
+
+| Variable | Default | Description |
+|---|---|---|
+| `syscert_metrics_enabled` | `false` | Write a Prometheus node_exporter textfile after every run. |
+| `syscert_metrics_file` | `/var/lib/node_exporter/textfile_collector/syscert.prom` | Where to write it. Must end `.prom`. |
+| `syscert_ansible_facts_enabled` | `false` | Write an Ansible local-facts file after every run. |
+| `syscert_ansible_facts_file` | `/etc/ansible/facts.d/syscert.fact` | Where to write it. Must end `.fact`; read back as `ansible_local.syscert`. |
+
+The facts file is the reason this is worth turning on for a fleet: once it is in place, `ansible_local.syscert.not_after` reports expiry for every host in the inventory without syscert being involved.
 
 ## Secrets
 
@@ -62,9 +76,9 @@ DNS-provider credentials and the EAB HMAC go in `syscert_secrets` — an open-en
 
 ## What it does on a host
 
-For each host in scope, the role: creates the `syscert` system user and the `/var/lib/syscert` store; installs the (checksum-verified, for `download`) binary; renders `syscert.toml`, the secrets `EnvironmentFile`, and `/etc/default/syscert`; creates each `[[distribute]]` target's directory; installs the hardened `syscert.service` and `syscert.timer` units; and — before it ever enables the timer — **validates the rendered config** by running `syscert dry-run --config-only` as the `syscert` user. A host that fails that check fails the play, not a 3 a.m. renewal. Only once that passes does it enable (and, by default, start) the timer.
+For each host in scope, the role: creates the `syscert` system user and the `/var/lib/syscert` store; installs the (checksum-verified, for `download`) binary; renders `syscert.toml`, the secrets `EnvironmentFile`, and `/etc/default/syscert`; creates each writable directory it needs and grants the syscert user on it; installs the hardened `syscert.service` and `syscert.timer` units; and — before it ever enables the timer — **validates the rendered config** by running `syscert dry-run --config-only` as the `syscert` user. A host that fails that check fails the play, not a 3 a.m. renewal. Only once that passes does it enable (and, by default, start) the timer.
 
-One of those steps is worth calling out, because it's the step people miss when they wire the units by hand. The unit runs under `ProtectSystem=strict`, which makes the entire filesystem read-only except the paths named in `ReadWritePaths` — so a certificate can be issued perfectly and then fail to *land*, with a read-only filesystem error, if a target's directory isn't granted. A static unit can't know your targets; the role does, so it derives that list from `syscert_distribute` and creates the directories to match. Set `syscert_manage_distribute_dirs: false` if you manage those directories elsewhere — they still have to exist, or the unit won't start.
+One of those steps is worth calling out, because it's the step people miss when they wire the units by hand. The unit runs under `ProtectSystem=strict`, which makes the entire filesystem read-only except the paths named in `ReadWritePaths` — so a certificate can be issued perfectly and then fail to *land*, with a read-only filesystem error, if a target's directory isn't granted. A static unit can't know your targets; the role does, so it derives that list from your `syscert_distribute` targets **and** any enabled `[observe]` output, creates the directories, and grants the syscert user on each with a POSIX ACL — because being *allowed* by the sandbox is only half of it, and a root-owned `0755` directory would still refuse a non-root service. Set `syscert_manage_distribute_dirs: false` if you manage those directories elsewhere — they still have to exist, or the unit won't start.
 
 ## Uninstall
 

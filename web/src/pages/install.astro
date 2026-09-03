@@ -55,7 +55,10 @@ curl -fsSL https://github.com/tfindley/syscert/releases/latest/download/syscert-
 curl -fsSL https://github.com/tfindley/syscert/releases/latest/download/sha256sums.txt -o sha256sums.txt
 sha256sum --check --ignore-missing sha256sums.txt   <span class="c-cmt"># syscert: OK</span>
 chmod +x syscert
-sudo packaging/install.sh ./syscert</pre>
+
+<span class="c-cmt"># the installer lives in the repo — clone it (no Go needed), then point it at your binary</span>
+git clone https://github.com/tfindley/syscert.git syscert-src
+sudo syscert-src/packaging/install.sh ./syscert</pre>
           {release.sha256 && (
             <div class="ins-sums">
               <p class="ins-sums-h">

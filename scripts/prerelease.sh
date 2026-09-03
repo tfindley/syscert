@@ -113,9 +113,14 @@ else gate WARN "web build" "npm not installed"; fi
 if [ -x /tmp/syscert.pre ]; then
   cmds=$(/tmp/syscert.pre --help 2>&1 | awk '/^Commands:/{f=1;next} f&&/^$/{f=0} f&&/^  [a-z]/{print $1}')
   miss=""
-  # documented = mentioned in the canonical user docs (README or docs/*.md)
+  # documented = mentioned in the canonical user docs (README or any docs page).
+  # Recursive: docs has sub-pages (advanced-install/, procedures/, containerisation/),
+  # and a flag or command documented only there was previously invisible here.
+  # shellcheck disable=SC2046
+  docfiles="README.md $(find docs -name '*.md' -not -path 'docs/internal/*' | tr '\n' ' ')"
+  # shellcheck disable=SC2086
   for c in $cmds; do
-    grep -q "$c" README.md docs/*.md 2>/dev/null || miss="$miss $c"
+    grep -q "$c" $docfiles 2>/dev/null || miss="$miss $c"
   done
   [ -z "$miss" ] && gate PASS "cmd↔docs parity" "$(echo "$cmds" | wc -w | tr -d ' ') commands" \
                  || gate FAIL "cmd↔docs parity" "undocumented:$miss"
@@ -136,8 +141,9 @@ if [ -x /tmp/syscert.pre ]; then
                  || gate FAIL "docs→cmd parity (backward)" "docs name non-commands:$bogus"
 
   fmiss=""
-  for f in --config --staging --force --config-only; do
-    grep -q -- "$f" README.md docs/*.md 2>/dev/null || fmiss="$fmiss $f"
+  # shellcheck disable=SC2086
+  for f in --config --staging --force --config-only --env-file --interval --keep-account --ca-file --write --dirs; do
+    grep -q -- "$f" $docfiles 2>/dev/null || fmiss="$fmiss $f"
   done
   [ -z "$fmiss" ] && gate PASS "flag↔docs parity" || gate WARN "flag↔docs parity" "check:$fmiss"
 else

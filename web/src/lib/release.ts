@@ -8,13 +8,15 @@
 // build never breaks and components simply omit the live bits.
 //
 // Freshness: a new release's sha256sums.txt only exists once CI has finished
-// building, so the site is rebuilt on `release: published` (see web.yml) — that
-// build is what picks up the new digest.
+// building, so the site is rebuilt after the Release workflow completes — web.yml
+// chains off `workflow_run`, NOT `release: published`, because a release created
+// with the default GITHUB_TOKEN deliberately emits no `release` event. That
+// rebuild is what picks up the new digest.
 
 import { SITE, LINKS } from "../consts";
 
 export interface ReleaseInfo {
-  /** e.g. "v0.0.6" — falls back to SITE.version when the live lookup fails. */
+  /** e.g. "v0.4.0" — falls back to SITE.version when the live lookup fails. */
   version: string;
   /** Per-arch sha256 of syscert-linux-<arch>, or null when unavailable. */
   sha256: { amd64?: string; arm64?: string } | null;
@@ -38,14 +40,25 @@ export function shortSha(hex: string): string {
 }
 
 async function load(): Promise<ReleaseInfo> {
-  try {
-    const signal = AbortSignal.timeout(TIMEOUT_MS);
-    const [version, sha256] = await Promise.all([resolveVersion(signal), fetchSums(signal)]);
-    return { version, sha256 };
-  } catch (err) {
-    console.warn(`[release] live lookup failed, using static fallback (${SITE.version}): ${err}`);
-    return { version: SITE.version, sha256: null };
+  const signal = AbortSignal.timeout(TIMEOUT_MS);
+  // Settled, not Promise.all: these two lookups are independent, and joining them
+  // meant ANY checksum failure (asset not uploaded yet, a blip, a slow response)
+  // threw away a perfectly good version — including the deterministic SITE_VERSION
+  // the CI build injects — and fell back to the static literal. The hero renders
+  // that literal under the word "Latest:", so the coupling turned an unrelated
+  // network hiccup into a confidently wrong version on the page.
+  const [v, s] = await Promise.allSettled([resolveVersion(signal), fetchSums(signal)]);
+
+  if (v.status === "rejected") {
+    console.warn(`[release] version lookup failed, using static fallback (${SITE.version}): ${v.reason}`);
   }
+  if (s.status === "rejected") {
+    console.warn(`[release] checksum lookup failed, omitting digests: ${s.reason}`);
+  }
+  return {
+    version: v.status === "fulfilled" ? v.value : SITE.version,
+    sha256: s.status === "fulfilled" ? s.value : null,
+  };
 }
 
 async function resolveVersion(signal: AbortSignal): Promise<string> {

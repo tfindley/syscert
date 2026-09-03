@@ -150,9 +150,10 @@ format = "text"     # text (default, journald-friendly) | json
 # ── Observability (optional, OFF by default) ────────────────────────────────────
 # Machine-readable state, rewritten after every run. Nothing reads these back —
 # they exist for monitoring and inventory. Leave a path empty to keep it off.
-# Both directories are created, ACL-granted to the syscert user and added to the
-# unit's ReadWritePaths by install.sh / the Ansible role, exactly like a
-# distribute target — they are just as far outside the store.
+# Both directories are ACL-granted to the syscert user and added to the unit's
+# ReadWritePaths, exactly like a distribute target — they are just as far outside
+# the store. The Ansible role also CREATES them; install.sh does not, so create
+# the directory yourself first (it warns and skips if it is missing).
 [observe]
 # Prometheus node_exporter textfile collector. MUST end in .prom, or the
 # collector silently ignores it. Alert on:

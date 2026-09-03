@@ -7,6 +7,31 @@
     enabled: false
     state: stopped
 
+# install.sh's uninstall reverses both grants (packaging/install.sh
+# revoke_distribute_paths); the role must too, or a removed host keeps
+# u:syscert:rwx ACLs on every target directory. With syscert_purge the user is
+# deleted as well, so those entries decay into bare numeric-UID grants that a
+# future user with the same UID would silently inherit.
+- name: syscert.uninstall - Remove the syscert ACL from the granted directories
+  when: syscert_manage_distribute_dirs
+  become: true
+  failed_when: false
+  loop: "{{ syscert_grantable_dirs }}"
+  loop_control:
+    label: "{{ item }}"
+  ansible.posix.acl:
+    path: "{{ item }}"
+    entity: "{{ syscert_user }}"
+    etype: user
+    state: absent
+
+- name: syscert.uninstall - Remove the generated sandbox drop-in
+  become: true
+  notify: syscert.handlers - Reload systemd
+  ansible.builtin.file:
+    path: /etc/systemd/system/syscert.service.d
+    state: absent
+
 - name: syscert.uninstall - Remove the systemd units
   become: true
   notify: syscert.handlers - Reload systemd
@@ -37,6 +62,8 @@
     - "{{ syscert_store_path }}"
     - "{{ syscert_config_dir }}"
     - "{{ syscert_defaults_path }}"
+    - "{{ syscert_secrets_path }}"
+    - "{{ syscert_download_dir }}"
   loop_control:
     label: "{{ item }}"
   ansible.builtin.assert:
@@ -57,6 +84,8 @@
     - "{{ syscert_store_path }}"
     - "{{ syscert_config_dir }}"
     - "{{ syscert_defaults_path }}"
+    - "{{ syscert_secrets_path }}"
+    - "{{ syscert_download_dir }}"
   loop_control:
     label: "{{ item }}"
   ansible.builtin.file:

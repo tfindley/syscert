@@ -13,7 +13,7 @@ lede: Where syscert is and where it's going. It's pre-1.0, so treat this as the 
 
 ## Shipped
 
-- **Full CLI.** The `ensure` default plus `issue`, `renew`, `distribute`, `dry-run`, `void`, `destroy`, and `trust install`/`remove`.
+- **Full CLI.** The `ensure` default plus `issue`, `renew`, `distribute`, `dry-run`, `void`, `destroy`, `status`, `systemd-paths`, and `trust install`/`remove`.
 - **CAs.** Let's Encrypt (public), plus HashiCorp Vault PKI and Smallstep step-ca (internal) via `ca = "custom"` + `directory_url`.
 - **Challenges.** `dns-01`, `http-01`, and `tls-alpn-01`, with EAB support for the CAs that need it.
 - **Delivery.** A canonical store plus per-target distribution that sets the right owner, mode, and SELinux context; certbot-compatible artifacts plus `bundle.pem`.
