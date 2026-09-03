@@ -212,7 +212,12 @@ grant_distribute_paths() {
   printf '%s\n' "$dirs" | while IFS= read -r d; do
     # The store is already syscert-owned; only the foreign directories need this.
     if [ -n "$d" ] && [ "$d" != "$STORE_DIR" ]; then
-      if [ ! -d "$d" ]; then
+      # A mistyped target such as path = "/etc/x.pem" yields the directory /etc.
+      # Granting the service write across a whole top-level tree is never what
+      # was meant, so refuse it and make the operator fix the path.
+      if ! printf '%s' "$d" | grep -Eq '^(/[^/]+){2,}/?$'; then
+        warn "refusing to grant $d — too broad; check the [[distribute]] path in $CONF_FILE"
+      elif [ ! -d "$d" ]; then
         warn "distribute target dir $d does not exist yet — create it, then re-run"
       elif setfacl -m "u:${SVC_USER}:rwx" "$d" 2>/dev/null; then
         log "Granted ${SVC_USER} write on $d (POSIX ACL)"
