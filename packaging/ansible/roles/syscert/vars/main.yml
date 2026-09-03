@@ -35,3 +35,18 @@ syscert_observe_dirs: >-
 syscert_writable_dirs: >-
   {{ ((syscert_distribute | map(attribute='path') | map('dirname') | list)
       + syscert_observe_dirs) | unique | list }}
+
+# Of those, the ones an ACL may be applied to. Excludes the store (already
+# syscert-owned; granting there would fight tasks/user.yml and the 0700 that
+# assert.yml protects) and anything shallower than two path components — a
+# mistyped `path: /etc/x.pem` yields /etc, and granting write across a whole
+# top-level tree is never what was meant. packaging/install.sh refuses the same
+# shape, so the two install routes agree.
+syscert_grantable_dirs: >-
+  {{ syscert_writable_dirs
+     | reject('equalto', syscert_store_path)
+     | select('match', '^(/[^/]+){2,}/?$') | list }}
+syscert_ungrantable_dirs: >-
+  {{ syscert_writable_dirs
+     | reject('equalto', syscert_store_path)
+     | reject('match', '^(/[^/]+){2,}/?$') | list }}

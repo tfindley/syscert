@@ -1,54 +1,92 @@
 ---
-# Destination directories for the [[distribute]] targets.
+# Directories syscert writes outside its store: each [[distribute]] target's
+# parent, plus any [observe] output. See ADR-0048.
 #
-# Two barriers stand between the service and a target file, and both bite only
-# after a successful issuance — the certificate is obtained, then cannot be
-# delivered. See ADR-0048.
+# Two barriers stand between the service and a file there, and both bite only
+# after a successful issuance — the certificate is obtained, then cannot land.
 #
 #   1. The unit runs under ProtectSystem=strict, so every directory outside the
 #      store is read-only unless named in ReadWritePaths. syscert.service.j2
-#      derives that list from syscert_distribute.
+#      derives that list from syscert_writable_dirs.
 #   2. Ordinary permissions. syscert runs as a non-root user with CAP_CHOWN only,
 #      and CAP_CHOWN does not grant *directory* write — creating a file needs
 #      write+execute on the directory itself. A root-owned 0755 directory such as
-#      /etc/cockpit/ws-certs.d therefore refuses it outright.
+#      /etc/cockpit/ws-certs.d therefore refuses it.
 #
-# The ACL is what answers (2). It grants exactly one user on exactly one
-# directory and leaves owner/group as the owning package set them, which chgrp
-# + g+w would not. Only the directory is granted; the artefacts themselves keep
-# the owner/group/mode each target declares, applied by syscert.
+# The ACL answers (2). It grants exactly one user on exactly one directory and
+# leaves owner/group as the owning package set them, which chgrp + g+w would not.
+# Only the directory is granted; the artefacts keep the owner/group/mode each
+# target declares, applied by syscert.
 
-- name: syscert.distribute - Create the distribute target directories
+- name: syscert.distribute - Stat the writable directories
   when: syscert_manage_distribute_dirs
   become: true
   loop: "{{ syscert_writable_dirs }}"
   loop_control:
     label: "{{ item }}"
-  ansible.builtin.file:
+  changed_when: false
+  register: syscert_dir_stat
+  ansible.builtin.stat:
     path: "{{ item }}"
+
+# Only MISSING directories are created. Enforcing owner/group/mode on one that
+# already exists would undo the very thing the ACL is chosen for — leaving
+# /var/lib/node_exporter/textfile_collector (often node_exporter-owned) and
+# package-owned targets exactly as their owner set them. install.sh behaves the
+# same way: it grants, it never re-owns.
+- name: syscert.distribute - Create any writable directory that is missing
+  when:
+    - syscert_manage_distribute_dirs
+    - not item.stat.exists
+  become: true
+  loop: "{{ syscert_dir_stat.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item }}"
+  ansible.builtin.file:
+    path: "{{ item.item }}"
     state: directory
     owner: root
     group: root
     mode: "0755"
 
-# ansible.posix.acl shells out to setfacl, which lives in the `acl` package. RHEL
-# family images generally carry it; minimal Debian, Ubuntu cloud and Raspberry Pi
-# OS images often do not, and the ACL task would then fail outright. install.sh
-# degrades to a printed instruction in the same situation; the role can simply
-# install the two-hundred-kilobyte package.
-- name: syscert.distribute - Ensure the acl package is present (provides setfacl)
+# ansible.posix.acl shells out to setfacl, from the `acl` package. RHEL-family
+# images generally carry it; minimal Debian, Ubuntu cloud and Raspberry Pi OS
+# images often do not, and the ACL task would then fail outright. Split by family
+# because apt needs a primed cache and ansible.builtin.package cannot pass
+# update_cache — a fresh image frequently has an empty /var/lib/apt/lists.
+- name: syscert.distribute - Ensure the acl package is present (Debian family)
   when:
     - syscert_manage_distribute_dirs
     - syscert_install_acl_package
+    - syscert_grantable_dirs | length > 0
+    - ansible_facts.os_family | default('') == 'Debian'
+  become: true
+  ansible.builtin.apt:
+    name: acl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: syscert.distribute - Ensure the acl package is present (other families)
+  when:
+    - syscert_manage_distribute_dirs
+    - syscert_install_acl_package
+    - syscert_grantable_dirs | length > 0
+    - ansible_facts.os_family | default('') != 'Debian'
   become: true
   ansible.builtin.package:
     name: acl
     state: present
 
-- name: syscert.distribute - Grant the syscert user write access to the target directories
+# syscert_grantable_dirs excludes the store (already syscert-owned; an ACL there
+# would fight tasks/user.yml and the 0700 that assert.yml protects) and refuses
+# anything shallower than two path components — a mistyped `path: /etc/x.pem`
+# yields /etc, and granting the service write across a whole top-level tree is
+# never what was meant. install.sh refuses exactly the same shape.
+- name: syscert.distribute - Grant the syscert user write access to those directories
   when: syscert_manage_distribute_dirs
   become: true
-  loop: "{{ syscert_writable_dirs }}"
+  loop: "{{ syscert_grantable_dirs }}"
   loop_control:
     label: "{{ item }}"
   ansible.posix.acl:
@@ -57,3 +95,13 @@
     etype: user
     permissions: rwx
     state: present
+
+- name: syscert.distribute - Refuse target directories that are too broad
+  when:
+    - syscert_manage_distribute_dirs
+    - syscert_ungrantable_dirs | length > 0
+  ansible.builtin.fail:
+    msg: >-
+      Refusing to grant {{ syscert_ungrantable_dirs | join(', ') }} — a target directory
+      must be at least two path components deep. Check the [[distribute]] paths and any
+      [observe] output path; a value like "/etc/x.pem" yields the directory "/etc".

@@ -1,0 +1,9 @@
+---
+# Molecule's galaxy dependency resolves this relative to the scenario directory,
+# so the role-level packaging/ansible/requirements.yml two levels up is not
+# picked up. Without this, `molecule test` dies at the ACL task with
+# "couldn't resolve module/action 'ansible.posix.acl'" on any machine that does
+# not already have the collection. Keep in step with packaging/ansible/requirements.yml.
+collections:
+  - name: ansible.posix
+    version: ">=1.5.4"

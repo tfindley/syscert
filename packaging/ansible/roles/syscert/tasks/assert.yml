@@ -108,6 +108,21 @@
       not contain newlines (an EnvironmentFile is strictly one KEY=value per line).
     quiet: true
 
+# internal/validate/validate.go rejects these suffixes, but only once the binary
+# runs — by then the user, binary and config are already on the host. Both
+# consumers ignore a wrong suffix SILENTLY, so catch it in the preflight.
+- name: syscert.assert - Assert the observability output paths have usable suffixes
+  become: false
+  ansible.builtin.assert:
+    that:
+      - not syscert_metrics_enabled or syscert_metrics_file.endswith('.prom')
+      - not syscert_ansible_facts_enabled or syscert_ansible_facts_file.endswith('.fact')
+    fail_msg: >-
+      syscert_metrics_file must end in .prom (node_exporter's textfile collector ignores
+      anything else) and syscert_ansible_facts_file must end in .fact (Ansible only reads
+      *.fact from facts.d).
+    quiet: true
+
 - name: syscert.assert - Assert a version is set for the download install method
   when: syscert_install_method == 'download'
   become: false

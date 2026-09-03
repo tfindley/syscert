@@ -61,7 +61,7 @@ selinux_context = "cert_t"
 
 ## Privileged target directories
 
-Most interesting targets are directories another package owns — `/etc/cockpit/ws-certs.d`, `/etc/nginx/tls`, `/etc/pki/…`. Two things stand between the service and a file there, and both bite *after* a successful issuance: the certificate is obtained, then can't be delivered. The failure looks like a bare `read-only file system` or `permission denied` in the journal, which is why syscert now names the remedy in the error itself.
+This applies to every directory syscert writes outside its store — each `[[distribute]]` target and any `[observe]` output. Most interesting ones are directories another package owns — `/etc/cockpit/ws-certs.d`, `/etc/nginx/tls`, `/etc/pki/…`. Two things stand between the service and a file there, and both bite *after* a successful issuance: the certificate is obtained, then can't be delivered. The failure looks like a bare `read-only file system` or `permission denied` in the journal, which is why syscert now names the remedy in the error itself.
 
 **First, the sandbox.** The unit runs under `ProtectSystem=strict`, so the whole filesystem is read-only except what `ReadWritePaths=` grants. A static unit can't know your targets, so syscert derives the list from your config:
 
@@ -70,7 +70,7 @@ sudo syscert systemd-paths --write     # writes /etc/systemd/system/syscert.serv
 sudo systemctl daemon-reload
 ```
 
-Run `syscert systemd-paths` without `--write` to see the file first. Re-run it after adding or moving a target — [`install.sh`](/docs/advanced-install/manually/) does this for you on every run, and the [Ansible role](/docs/advanced-install/ansible/) derives it from `syscert_distribute`.
+Run `syscert systemd-paths` without `--write` to see the file first, or `syscert systemd-paths --dirs` to print just the directory list, one per line — that is the list to grant if you are wiring the permissions below by hand. Re-run it after adding or moving a target — [`install.sh`](/docs/advanced-install/manually/) does this for you on every run, and the [Ansible role](/docs/advanced-install/ansible/) derives it from your distribute targets and any [`[observe]`](/docs/configuration/#observe--metrics-and-inventory-facts) output directory.
 
 **Second, ordinary permissions.** syscert runs as a non-root user with `CAP_CHOWN` and nothing else. Creating a file needs write and execute on the *directory*, and `CAP_CHOWN` does not grant that — it only lets syscert set the owner of a file it has already created, which is how a delivered file still ends up `root:root 0644`. A directory like `/etc/cockpit/ws-certs.d`, typically `root:root 0755`, therefore refuses it. Grant that one user on that one directory:
 

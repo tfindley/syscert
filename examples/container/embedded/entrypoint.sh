@@ -37,6 +37,14 @@ if command -v inotifywait >/dev/null 2>&1; then
   ) &
 fi
 
-# Wait for either process to exit; exit this script when either does, so Docker
-# restarts the container.
-wait -n "$NGINX_PID" "$SYSCERT_PID" 2>/dev/null || wait "$NGINX_PID" "$SYSCERT_PID"
+# Wait for EITHER process to exit, then exit so Docker restarts the container.
+#
+# Not `wait -n`: this runs under /bin/sh, which on nginx:alpine is BusyBox ash,
+# where -n is undefined (shellcheck SC3045). The tempting
+# `wait -n … || wait …` fallback is worse than useless — it silently waits for
+# BOTH processes, so a dead nginx alongside a live syscert would never restart
+# the container, which is the exact failure this entrypoint exists to catch.
+# Polling with kill -0 is plain POSIX and behaves identically everywhere.
+while kill -0 "$NGINX_PID" 2>/dev/null && kill -0 "$SYSCERT_PID" 2>/dev/null; do
+  sleep 5
+done

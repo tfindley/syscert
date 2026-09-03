@@ -2,8 +2,10 @@
 const groups = [
   { label: "Certificate authorities", items: ["Let's Encrypt", "HashiCorp Vault", "Smallstep step-ca", "any ACME CA"] },
   { label: "Consumers", items: ["nginx", "HAProxy", "Cockpit", "PostgreSQL", "Redis", "syslog / metrics"] },
-  { label: "Operating systems", items: ["Debian", "Ubuntu", "RHEL family", "Rocky", "Alma", "Fedora"] },
+  { label: "Operating systems", items: ["Debian", "Ubuntu", "RHEL family", "Rocky", "Alma"] },
   { label: "Architectures", items: ["linux/amd64", "linux/arm64"] },
+  { label: "Provisioning", items: ["install.sh", "Ansible role", "offline bundle", "cron (no systemd)", "containers"] },
+  { label: "Monitoring", items: ["Prometheus node_exporter", "Ansible facts"] },
 ];
 ---
 <section class="sec" id="compatibility">

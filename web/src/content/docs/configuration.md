@@ -1,7 +1,7 @@
 ---
 title: Configuration reference
 navLabel: Configuration
-description: The full syscert.toml reference — [cert], [acme], [acme.dns], [acme.eab], [store], [bundle], [[distribute]], [renewal] and [logging], plus secrets handling and CA support.
+description: The full syscert.toml reference — [cert], [acme], [acme.dns], [acme.eab], [store], [bundle], [[distribute]], [renewal], [logging] and [observe], plus secrets handling and CA support.
 order: 3
 eyebrow: "// docs · configuration"
 lede: Everything syscert reads from syscert.toml, section by section. Secrets are the one thing that never live here.
@@ -187,7 +187,7 @@ metrics_file       = "/var/lib/node_exporter/textfile_collector/syscert.prom"
 ansible_facts_file = "/etc/ansible/facts.d/syscert.fact"
 ```
 
-Those directories sit outside the store, so they need the same two grants a privileged distribute target does — the sandbox `ReadWritePaths` entry and write access for the syscert user. `install.sh` and the [Ansible role](/docs/advanced-install/ansible/) handle both automatically; see [Distributing → privileged target directories](/docs/distributing/#privileged-target-directories) if you wire it by hand.
+Those directories sit outside the store, so they need the same two grants a privileged distribute target does — the sandbox `ReadWritePaths` entry and write access for the syscert user. Both `install.sh` and the [Ansible role](/docs/advanced-install/ansible/) apply those grants; the role additionally **creates** the directory, whereas `install.sh` warns and skips a directory that does not exist yet, so create it first. See [Distributing → privileged target directories](/docs/distributing/#privileged-target-directories) if you wire it by hand.
 
 **Metrics.** `syscert_cert_not_after_seconds`, `syscert_cert_not_before_seconds`, `syscert_cert_renew_after_seconds`, `syscert_cert_renewal_due`, `syscert_cert_present`, `syscert_last_run_timestamp_seconds`, `syscert_distribute_targets`, `syscert_distribute_targets_present`, a per-target `syscert_distribute_target_present{path,artifact}`, and a labelled `syscert_cert_info`. Expiry is a plain unix-seconds gauge rather than a sample timestamp, so the usual alert reads:
 

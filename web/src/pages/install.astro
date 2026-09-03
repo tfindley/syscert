@@ -8,7 +8,7 @@ const release = await getRelease();
 ---
 <Base
   title="Install syscert"
-  description="Install syscert on any Linux + systemd host (amd64/arm64): the one-line installer, inspect-first, checksum-verified binaries, or build from source."
+  description="Install syscert on any Linux + systemd host (amd64/arm64): the one-line installer, inspect-first, checksum-verified binaries, build from source, or the Ansible role for a whole fleet."
   path="/install/"
 >
   <section class="sec install-hero">
@@ -17,7 +17,8 @@ const release = await getRelease();
       <h1 class="ins-h1">Install <span class="grad-ink">syscert</span></h1>
       <p class="ins-lede">
         One static binary and a systemd timer. Pick the path you trust — the fast one-liner, or
-        verify every byte first.
+        verify every byte first. More than one host? Skip to the
+        <a href="/docs/advanced-install/ansible/">Ansible role</a>.
       </p>
       <div class="ins-cmd"><CopyCommand command={INSTALL_CMD} size="lg" /></div>
       <p class="ins-meta">
@@ -54,7 +55,10 @@ curl -fsSL https://github.com/tfindley/syscert/releases/latest/download/syscert-
 curl -fsSL https://github.com/tfindley/syscert/releases/latest/download/sha256sums.txt -o sha256sums.txt
 sha256sum --check --ignore-missing sha256sums.txt   <span class="c-cmt"># syscert: OK</span>
 chmod +x syscert
-sudo packaging/install.sh ./syscert</pre>
+
+<span class="c-cmt"># the installer lives in the repo — clone it (no Go needed), then point it at your binary</span>
+git clone https://github.com/tfindley/syscert.git syscert-src
+sudo syscert-src/packaging/install.sh ./syscert</pre>
           {release.sha256 && (
             <div class="ins-sums">
               <p class="ins-sums-h">
@@ -87,6 +91,25 @@ sudo packaging/install.sh ./syscert</pre>
         </div>
       </article>
 
+      <article class="card ins-block">
+        <div class="ins-num">D</div>
+        <div class="ins-content">
+          <h2 class="ins-h2">A whole fleet</h2>
+          <p class="ins-p">
+            The in-tree Ansible role does everything <code>install.sh</code> does — user, store,
+            checksum-verified binary, config, secrets, timer — across as many hosts as your
+            inventory covers, and validates the rendered config on each one before enabling the
+            timer.
+          </p>
+          <pre class="code ins-code">ansible-galaxy collection install -r packaging/ansible/requirements.yml
+ansible-playbook -i inventory.ini playbook.yml --ask-vault-pass</pre>
+          <p class="ins-p">
+            Variables mirror <code>syscert.toml</code> one-for-one. See
+            <a href="/docs/advanced-install/ansible/">Install with Ansible</a>.
+          </p>
+        </div>
+      </article>
+
       <article class="card ins-block ins-uninstall">
         <div class="ins-num">↺</div>
         <div class="ins-content">
@@ -104,6 +127,7 @@ sudo packaging/install.sh --uninstall --purge  <span class="c-cmt"># + data, con
       <p class="ins-foot">
         Supported &amp; tested on Debian/Ubuntu and the RHEL family; other systemd hosts may work.
         Full details in the <a href="/docs/quick-start/">Quick start</a> ·
+        every route in <a href="/docs/advanced-install/">Advanced install</a> ·
         <a href={LINKS.releases} target="_blank" rel="noopener">all releases ↗</a>.
       </p>
     </div>

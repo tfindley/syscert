@@ -58,7 +58,7 @@ A supervisor gives you per-process restart policies (restart syscert on failure 
 ```dockerfile
 FROM nginx:alpine
 
-ARG SYSCERT_VERSION=v0.3.1
+ARG SYSCERT_VERSION=v0.4.0
 ARG TARGETARCH=amd64
 
 RUN apk add --no-cache curl && \
@@ -85,7 +85,7 @@ Full annotated files: [`examples/container/embedded/Dockerfile`](https://github.
 
 ## Challenge
 
-Use `challenge = "dns-01"` in `syscert.toml`. No inbound ports, and nothing to fight nginx over `:80`/`:443`. See [Containerisation overview → Challenge selection](/docs/containerisation/#challenge-selection----dns-01-is-the-right-choice-in-containers).
+Use `challenge = "dns-01"` in `syscert.toml`. No inbound ports, and nothing to fight nginx over `:80`/`:443`. See [Containerisation overview → Challenge selection](/docs/containerisation/#challenge-selection--dns-01-is-the-right-choice-in-containers).
 
 ## Secrets
 

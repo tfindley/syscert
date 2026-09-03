@@ -5,9 +5,9 @@ export const SITE = {
   domain: "syscert.tfindley.dev",
   tagline: "Set-and-forget TLS for every machine.",
   description:
-    "syscert is a small, least-privilege Linux service that gives every host its own auto-renewing TLS certificate, from Let's Encrypt, HashiCorp Vault, or Smallstep step-ca, and delivers it to local consumers with the exact ownership, mode, and SELinux context each one needs. One static binary and a systemd timer. No cron, no renewal scripts to babysit.",
+    "syscert is a small, least-privilege Linux service that gives every host its own auto-renewing TLS certificate, from Let's Encrypt, HashiCorp Vault, or Smallstep step-ca, and delivers it to local consumers with the exact ownership, mode, and SELinux context each one needs. One static binary and a systemd timer. No cron, no renewal scripts to babysit — on one host, or across a fleet with the Ansible role.",
   status: "early · pre-1.0",
-  version: "v0.0.6", // build-time fetch from GitHub Releases later; static fallback here
+  version: "v0.4.0", // static fallback; the live value comes from GitHub Releases at build time (src/lib/release.ts)
 } as const;
 
 export const INSTALL_CMD = `curl -fsSL https://${SITE.domain}/install.sh | sudo sh`;

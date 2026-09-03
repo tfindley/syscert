@@ -7,7 +7,8 @@
 Under the hood it speaks ACME through [lego](https://go-acme.github.io/lego/) and writes the certbot-compatible files you already expect (`cert.pem`, `privkey.pem`, `chain.pem`, `fullchain.pem`), plus one `bundle.pem` with the lot in it.
 
 > **Project status: early (pre-1.0).** Working today: the full `syscert` CLI (the default *ensure*
-> plus `issue` / `renew` / `distribute` / `void` / `destroy` / `dry-run` / `trust install`/`remove`),
+> plus `issue` / `renew` / `distribute` / `void` / `destroy` / `dry-run` / `status` /
+> `trust install`/`remove` / `systemd-paths`),
 > the systemd units, `install.sh`, **pre-built Linux binaries** (amd64/arm64) on the
 > [releases page](https://github.com/tfindley/syscert/releases), and an
 > [Ansible role](docs/advanced-install/ansible.md) for fleet installs.
@@ -58,6 +59,8 @@ Uninstalling works the same way, no clone required: `curl -fsSL https://syscert.
 | `syscert trust install` / `trust remove` | Add/remove the internal CA in the **system** trust store (root). |
 | `syscert void [--force]` | Revoke the current cert, then reissue + distribute. |
 | `syscert destroy [--force]` | Wipe the stored cert + ACME account (provider switch). `--keep-account` drops only the cert — reissue with no new EAB token. |
+| `syscert version` | Print the version and build info. |
+| `syscert systemd-paths [--write]` | Print (or install, as root) the unit drop-in granting the sandboxed service write access to its distribute targets. |
 | `syscert status` | Show config + the stored cert's dates (issued/expiry/renewal), account, and distribute targets. Offline. |
 
 `--config` defaults to `/etc/syscert/syscert.toml`, or `$SYSCERT_CONFIG` if you set it. Secrets — DNS and CA tokens — come from the environment, never the TOML, and never reach the logs. The systemd service reads them from `/etc/syscert/secrets`. For a one-off manual run, point `--env-file` at that same file instead of exporting each variable by hand.

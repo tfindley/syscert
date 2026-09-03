@@ -152,7 +152,11 @@ Common flags:
   --env-file <path> Load DNS/CA credentials from a systemd EnvironmentFile before
                     issuing (repeatable; the environment wins). For manual runs.
   --staging         Use the CA's staging environment (issue/renew/void/ensure).
-  --force           Skip the interactive confirmation (renew/void/destroy).
+  --interval <dur>  Bare syscert only: loop, sleeping this long between cycles,
+                    until SIGTERM/SIGINT (e.g. 12h; min 1m; env SYSCERT_INTERVAL).
+                    For containers/appliances with no systemd timer.
+  --force           void/destroy: skip the interactive confirmation.
+                    renew: renew even if the certificate is not yet due.
   --config-only     dry-run only: check config, skip the live ACME test.
 
 Credentials (DNS-provider / CA tokens) come from the environment, never the
