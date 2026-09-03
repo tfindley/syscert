@@ -23,7 +23,7 @@ Ready-to-edit files live in the repo's [examples/](https://github.com/tfindley/s
 | `sans` | `[]` | Extra DNS Subject Alternative Names. |
 | `ip_sans` | `[]` | IP SANs. Setting this **forces the challenge to http-01/tls-alpn-01** (RFC 8738 forbids DNS-01 for IPs) and the CA must reach the host on :80/:443. Private (RFC 1918) IPs require an internal CA — a public CA is rejected up front. |
 | `key_type` | `ec256` | `ec256` · `ec384` · `rsa2048` · `rsa4096`. A **fresh keypair is generated each renewal**. |
-| `reuse_key` | `false` | Keep the same keypair across renewals — only needed if a consumer pins the public key. |
+| `reuse_key` | `false` | Keep the same keypair across renewals — only needed if a consumer pins the public key. **Accepted but not yet applied:** the current release generates a fresh keypair on every renewal regardless, so don't rely on it for key pinning until it ships. |
 
 ```toml
 [cert]

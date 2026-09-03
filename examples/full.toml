@@ -29,7 +29,7 @@
 # ip_sans  = ["192.0.2.10"]
 
 key_type  = "ec256"     # ec256 (default) | ec384 | rsa2048 | rsa4096
-reuse_key = false       # true only if a consumer pins the public key (keeps the keypair across renewals)
+reuse_key = false       # accepted but NOT YET APPLIED — every renewal currently generates a fresh keypair; leave false until key-pinning ships
 
 
 # ── ACME / CA ────────────────────────────────────────────────────────────────
