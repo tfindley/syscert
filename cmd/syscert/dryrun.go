@@ -43,6 +43,8 @@ func cmdDryRun(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stdout, "  challenge: %s\n", eff)
 	}
 
+	reportDistributeTargets(cfg, stdout)
+
 	if *configOnly {
 		return 0
 	}

@@ -40,18 +40,22 @@ Let's Encrypt needs neither; the system already trusts it.
 
 Confirm the target directory exists and the `syscert` user can write to it. When the target is owned by a different user, the copy needs `CAP_CHOWN`, which the shipped systemd unit grants (`AmbientCapabilities=CAP_CHOWN`). A **rejected world-readable mode** on `privkey`/`bundle` is intentional: key-bearing artifacts have to use a tight mode such as `0600`.
 
-If the certificate is issued and only the *copy* fails — typically with a **read-only file system** error — the cause is the unit's own sandbox rather than permissions. `ProtectSystem=strict` makes the whole filesystem read-only, and the shipped unit can only name the store in `ReadWritePaths`, because a static unit can't know your targets. Grant each target's directory with a drop-in:
+If the certificate is issued and only the *copy* fails, the cause is usually one of two things the error message now names for you.
+
+A **read-only file system** error is the unit's sandbox, not permissions. `ProtectSystem=strict` makes the whole filesystem read-only, and a static unit can't know your targets, so grant them from your config:
 
 ```sh
-sudo systemctl edit syscert.service
+sudo syscert systemd-paths --write
+sudo systemctl daemon-reload
 ```
 
-```ini
-[Service]
-ReadWritePaths=/etc/nginx/tls
+A **permission denied** error is ordinary directory permissions: syscert runs unprivileged, and creating a file needs write on the directory, which `CAP_CHOWN` does not grant. Grant that one user on that one directory:
+
+```sh
+sudo setfacl -m u:syscert:rwx /etc/cockpit/ws-certs.d
 ```
 
-It works by hand and fails under the timer precisely because a manual run isn't sandboxed. The [Ansible role](/docs/advanced-install/ansible/) derives this list from your `syscert_distribute` targets, so it doesn't arise there.
+It works by hand and fails under the timer precisely because a manual run isn't sandboxed — so reproduce with `sudo systemctl start syscert.service`, not `sudo -u syscert syscert distribute`. Both grants are applied for you by `install.sh` and by the [Ansible role](/docs/advanced-install/ansible/). See [Distributing → privileged target directories](/docs/distributing/#privileged-target-directories) for the full picture.
 
 ## A service still serves the old certificate after renewal
 

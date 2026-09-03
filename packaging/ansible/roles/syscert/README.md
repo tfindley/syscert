@@ -10,7 +10,7 @@ the timer.
 
 ## Requirements
 
-- **ansible-core ≥ 2.21** (Ansible 14). The role uses only `ansible.builtin`.
+- **ansible-core ≥ 2.21** (Ansible 14), plus the `ansible.posix` collection (one task: the ACL granting the service write access to a distribute target directory). Everything else is `ansible.builtin`.
 - Targets: EL 9/10, Debian 12, Ubuntu 22.04/24.04 (systemd hosts).
 - The controller reaches the GitHub releases (default `download` method) — or supply a binary
   with the `local` method.

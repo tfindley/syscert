@@ -39,12 +39,13 @@ ProtectSystem=strict
 # /etc/nginx/tls), ADD THOSE DIRECTORIES or `ensure` will issue the certificate and
 # then fail at the distribute step with a read-only filesystem error.
 #
-# Don't edit this file — drop in an override that appends to the list:
-#   sudo systemctl edit syscert.service
-#   [Service]
-#   ReadWritePaths=/etc/nginx/tls
+# Don't edit this file — generate the grant from your config instead:
+#   sudo syscert systemd-paths --write && sudo systemctl daemon-reload
 #
-# (The Ansible role derives this automatically from syscert_distribute.)
+# That writes syscert.service.d/10-distribute-paths.conf. install.sh runs it, and
+# the Ansible role derives the same list from syscert_distribute. Note the second
+# barrier: a root-owned target directory also needs the syscert user granted on
+# it (sudo setfacl -m u:syscert:rwx <dir>) — see docs/distributing.md.
 ReadWritePaths=/var/lib/syscert
 ProtectHome=true
 PrivateTmp=true

@@ -95,6 +95,8 @@ The findings below are predominantly **hardening / defence-in-depth** items and 
 - `G204` (subprocess) ×2 — the OS-detected trust-store update command and a fixed `chcon -t <ctx> <path>`; no shell, arguments are not attacker-controlled.
 - `G306` (file perms) ×1 — CA trust anchors written `0644` **intentionally** (public certs must be world-readable in the system trust store).
 
+Two further suppressions were added after the version assessed above, both for the `systemd-paths` drop-in writer and both the same class of intentional world-readability: `G306` on the drop-in file (`0644`) and `G301` on its directory (`0755`) — systemd must be able to read and traverse them. `gosec` reports **0 issues** with those in place.
+
 ## 5. Security controls — by domain
 
 | Domain | Control in place | Status |
@@ -113,6 +115,8 @@ The findings below are predominantly **hardening / defence-in-depth** items and 
 | **Build integrity** | `CGO_ENABLED=0 -trimpath -ldflags "-s -w"`, provenance attestation | ⚠️ F-02, F-05 |
 | **Logging** | stderr→journal; secrets never logged; `status` is read-only and never prints the HMAC | ✅ Strong |
 | **Fleet deployment (Ansible role)** | In-tree at `packaging/ansible/`; release binary always checksum-verified against `sha256sums.txt` with no opt-out; secrets rendered `0640 root:syscert` under `no_log`; renders the same hardened unit and derives `ReadWritePaths` from the declared distribute targets; validates the rendered config with `dry-run --config-only` before enabling the timer; `ansible-lint` (production profile) gated in CI | ⚠️ See note |
+
+One deployment behaviour worth stating explicitly: to deliver into a directory another package owns, both `install.sh` and the Ansible role apply a POSIX ACL (`setfacl -m u:syscert:rwx <dir>`) to each configured `[[distribute]]` target directory, and install a systemd drop-in granting those same directories in `ReadWritePaths`. This is a deliberate, minimal alternative to `CAP_DAC_OVERRIDE` or a relaxed `ProtectSystem=` (see ADR-0048): one user, one directory, owner and group untouched. It is applied by the **installer**, logged per directory, and reversed on `--uninstall`; the binary itself changes no permissions and `systemd-paths --write` prints `systemctl daemon-reload` rather than running it, so the two-`exec.Command`-site property above still holds.
 
 On that last row: the role fetches the binary and its checksum file from the same origin (`syscert_download_base_url`), so verification proves integrity, not provenance — an operator pointing it at a hostile mirror gets a matching pair. The unattended-install path is therefore only as trustworthy as that origin, and `syscert_install_method: local` (stage and verify on the controller) is the stronger route for high-assurance fleets. The role also does not run `syscert trust install`, so internal-CA roots remain a documented manual step.
 

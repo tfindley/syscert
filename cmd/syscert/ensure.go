@@ -58,6 +58,10 @@ func cmdEnsure(args []string, stdout, stderr io.Writer) int {
 	if !storeAccessGuard("syscert", cfg.Store.Path, stderr) {
 		return 1
 	}
+	// Report unwritable targets before any network work, so the cause is at the
+	// top of the journal rather than buried behind an errno at the end. This does
+	// not stop the run: see warnDistributeTargets.
+	warnDistributeTargets("syscert", cfg, stderr)
 
 	cycle := func(ctx context.Context) error {
 		return ensureCycle(ctx, cfg, subject, *staging, stdout, stderr)

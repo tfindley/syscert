@@ -57,6 +57,12 @@ jobs:
       - name: Install ansible-lint
         run: pip install --disable-pip-version-check ansible-core ansible-lint
 
+      # ansible.posix supplies the acl module the role uses to grant the syscert
+      # user write access to a distribute target directory (see ADR-0048).
+      - name: Install collection dependencies
+        working-directory: packaging/ansible
+        run: ansible-galaxy collection install -r requirements.yml
+
       # The config lives beside the role, not at the repo root, so run from there.
       - name: ansible-lint
         working-directory: packaging/ansible

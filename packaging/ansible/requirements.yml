@@ -1,5 +1,14 @@
 ---
-# The syscert role uses only ansible.builtin (shipped with ansible-core ≥ 2.21),
-# so there are no external collection dependencies. This file is a placeholder for
-# anyone who vendors collections into their control node.
-collections: []
+# The role is otherwise ansible.builtin only. ansible.posix is required for one
+# thing: granting the syscert user write access to a [[distribute]] target
+# directory with a POSIX ACL (see roles/syscert/tasks/distribute.yml). An ACL is
+# used rather than chgrp + g+w because it grants one user on one directory and
+# leaves the owner/group the owning package set — /etc/cockpit/ws-certs.d and
+# friends stay as their package expects them.
+#
+# Install with:  ansible-galaxy collection install -r requirements.yml
+# (ansible.posix already ships inside the full `ansible` package; this matters
+# only on a control node running bare ansible-core.)
+collections:
+  - name: ansible.posix
+    version: ">=1.5.4"

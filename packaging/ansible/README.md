@@ -11,7 +11,7 @@ systemd service + timer (enabled and started by default).
 packaging/ansible/
   ansible.cfg            # roles_path = roles
   .ansible-lint          # profile: production
-  requirements.yml       # no external collections (ansible.builtin only)
+  requirements.yml       # ansible.posix (ACL on distribute target dirs)
   playbook.example.yml   # Let's Encrypt + Vault/EAB examples
   roles/syscert/         # the role (see roles/syscert/README.md for all variables)
 ```
