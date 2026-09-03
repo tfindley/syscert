@@ -20,7 +20,12 @@ ExecStart={{ syscert_bin_path }}{{ (' ' ~ syscert_service_exec_extra_args) if sy
 # Hardening (ADR-0028)
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths={{ syscert_store_path }}
+# ProtectSystem=strict makes the WHOLE hierarchy read-only, so every path syscert
+# writes must be listed here — the store AND each distribute target's directory.
+# Miss one and `ensure` issues the cert fine, then fails at the distribute step with
+# a read-only filesystem error. The static unit can only name the store; the role
+# knows syscert_distribute, so it derives the rest (and creates those directories).
+ReadWritePaths={{ ([syscert_store_path] + (syscert_distribute | map(attribute='path') | map('dirname') | list)) | unique | join(' ') }}
 ProtectHome=true
 PrivateTmp=true
 ProtectKernelTunables=true

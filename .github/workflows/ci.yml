@@ -37,6 +37,35 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+  # The Ansible role ships in-tree but is not Go, so nothing above looks at it.
+  # ansible-lint runs the `production` profile (see packaging/ansible/.ansible-lint)
+  # and the syntax check parses the example playbook. Molecule is deliberately NOT
+  # here: it needs systemd-in-container under privileged podman and fetches a real
+  # release, so it stays a local/opt-in check (see packaging/ansible/README.md).
+  ansible:
+    name: ansible-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ansible-lint
+        run: pip install --disable-pip-version-check ansible-core ansible-lint
+
+      # The config lives beside the role, not at the repo root, so run from there.
+      - name: ansible-lint
+        working-directory: packaging/ansible
+        run: ansible-lint
+
+      - name: Playbook syntax check
+        working-directory: packaging/ansible
+        run: ansible-playbook --syntax-check playbook.example.yml
+
   test:
     name: Tests
     runs-on: ubuntu-latest

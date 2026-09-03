@@ -26,10 +26,10 @@ by `tasks/assert.yml`. Full annotated defaults: [`defaults/main.yml`](defaults/m
 | Variable | Default | Description |
 |---|---|---|
 | `syscert_install_method` | `download` | `download` (GitHub release, checksum-verified) or `local` (copy from controller). |
-| `syscert_version` | _(required for download)_ | Release tag, e.g. `v0.3.1`. Pin it. |
+| `syscert_version` | _(required for download)_ | Release tag, e.g. `v0.4.0`. Pin it. |
 | `syscert_local_binary` | _(required for local)_ | Controller path to a pre-built binary. |
 | `syscert_download_base_url` | GitHub releases URL | Override for an internal mirror. |
-| `syscert_checksum_verify` | `true` | Verify against the release `sha256sums.txt`. |
+| `syscert_manage_distribute_dirs` | `true` | Create each distribute target's parent directory and grant it in the unit's `ReadWritePaths`. |
 | `syscert_bin_path` | `/usr/local/bin/syscert` | Install location. |
 | `syscert_user` / `syscert_group` | `syscert` | Service account. |
 | `syscert_manage_user` | `true` | Create the system user/group. |
@@ -45,7 +45,7 @@ by `tasks/assert.yml`. Full annotated defaults: [`defaults/main.yml`](defaults/m
 | `syscert_cert_sans` | `[]` | `[cert] sans` |
 | `syscert_cert_ip_sans` | `[]` | `[cert] ip_sans` |
 | `syscert_cert_key_type` | `ec256` | `[cert] key_type` |
-| `syscert_cert_reuse_key` | `false` | `[cert] reuse_key` |
+| `syscert_cert_reuse_key` | `false` | `[cert] reuse_key` — accepted but **not yet applied** by syscert; every renewal still generates a fresh keypair. |
 | `syscert_acme_ca` | `letsencrypt` | `[acme] ca` |
 | `syscert_acme_email` | _(required)_ | `[acme] email` |
 | `syscert_acme_directory_url` | `""` (required when `ca=custom`) | `[acme] directory_url` |
@@ -92,7 +92,7 @@ config (`syscert.toml`) is non-secret but still rendered `0640` (it carries the 
   become: true
   roles:
     - role: syscert
-      syscert_version: v0.3.1
+      syscert_version: v0.4.0
       syscert_acme_email: tls@example.com
       syscert_acme_dns_provider: cloudflare
       syscert_secrets:

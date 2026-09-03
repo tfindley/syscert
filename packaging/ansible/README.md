@@ -32,7 +32,7 @@ Minimal play:
   become: true
   roles:
     - role: syscert
-      syscert_version: v0.3.1
+      syscert_version: v0.4.0
       syscert_acme_email: tls@example.com
       syscert_acme_dns_provider: cloudflare
       syscert_secrets:

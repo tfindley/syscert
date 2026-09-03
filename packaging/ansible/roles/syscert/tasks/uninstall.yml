@@ -27,6 +27,29 @@
 - name: syscert.uninstall - Apply unit removal
   ansible.builtin.meta: flush_handlers
 
+# tasks/assert.yml only runs for state=present, so the purge paths have never been
+# validated by the time we get here. An empty or mistyped variable would hand
+# `state: absent` something like "/" with become — guard it before deleting anything.
+- name: syscert.uninstall - Assert the purge paths are sane before deleting
+  when: syscert_purge
+  become: false
+  loop:
+    - "{{ syscert_store_path }}"
+    - "{{ syscert_config_dir }}"
+    - "{{ syscert_defaults_path }}"
+  loop_control:
+    label: "{{ item }}"
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - item | length > 1
+      - item is match('^/.+')
+      - item | regex_replace('/+$', '') | split('/') | length > 2
+    fail_msg: >-
+      Refusing to purge {{ item | default('<undefined>') }} — purge paths must be
+      absolute and below the filesystem root.
+    quiet: true
+
 - name: syscert.uninstall - Purge the store, config, and operator environment
   when: syscert_purge
   become: true
@@ -34,6 +57,8 @@
     - "{{ syscert_store_path }}"
     - "{{ syscert_config_dir }}"
     - "{{ syscert_defaults_path }}"
+  loop_control:
+    label: "{{ item }}"
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent

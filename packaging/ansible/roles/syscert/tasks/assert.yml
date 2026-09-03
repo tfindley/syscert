@@ -22,7 +22,7 @@
 
 - name: syscert.assert - Assert a DNS provider is set for a DNS challenge
   when:
-    - syscert_acme_challenge in ['dns-01', 'dns-persist-01']
+    - syscert_acme_challenge == 'dns-01'
     - syscert_cert_ip_sans | length == 0
   become: false
   ansible.builtin.assert:
@@ -91,6 +91,23 @@
     fail_msg: "A privkey/bundle distribute target is world-readable; use a tight mode such as 0600."
     quiet: true
 
+# The secrets file is consumed by two parsers with slightly different rules: systemd's
+# EnvironmentFile= (the timer) and syscert's own --env-file reader (manual runs). Tested
+# against systemd directly: spaces, '#', '$' and quotes all survive unquoted, so they need
+# no escaping. A newline does NOT — it silently splits one credential into a junk line, so
+# reject it here rather than write a corrupt file. Keys are checked because anything but a
+# plain identifier cannot round-trip either.
+- name: syscert.assert - Assert secret keys and values are EnvironmentFile-safe
+  become: false
+  ansible.builtin.assert:
+    that:
+      - syscert_secrets.keys() | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
+      - syscert_secrets.values() | map('string') | select('search', '[\n\r]') | list | length == 0
+    fail_msg: >-
+      syscert_secrets keys must be plain environment-variable identifiers and values must
+      not contain newlines (an EnvironmentFile is strictly one KEY=value per line).
+    quiet: true
+
 - name: syscert.assert - Assert a version is set for the download install method
   when: syscert_install_method == 'download'
   become: false
@@ -99,7 +116,7 @@
       - syscert_version | default('') | length > 0
       - syscert_arch | length > 0
     fail_msg: >-
-      syscert_install_method is 'download', so syscert_version (e.g. 'v0.3.1') is
+      syscert_install_method is 'download', so syscert_version (e.g. 'v0.4.0') is
       required and {{ ansible_architecture }} must map to a release asset.
     quiet: true
 

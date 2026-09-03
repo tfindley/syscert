@@ -21,16 +21,13 @@ argument_specs:
         description: Obtain the binary from a GitHub release (download) or copy one from the controller (local).
       syscert_version:
         type: str
-        description: Release tag to install (e.g. "v0.3.1"). Required for the download method (asserted).
+        description: Release tag to install (e.g. "v0.4.0"). Required for the download method (asserted).
       syscert_local_binary:
         type: str
         description: Controller path to a pre-built binary. Required for the local method (asserted).
       syscert_download_base_url:
         type: str
         description: Base URL for release downloads.
-      syscert_checksum_verify:
-        type: bool
-        description: Verify the downloaded binary against the release sha256sums.txt.
       syscert_bin_path:
         type: path
         description: Where the binary is installed on the host.
@@ -112,7 +109,9 @@ argument_specs:
           - dns-01
           - http-01
           - tls-alpn-01
-          - dns-persist-01
+        # dns-persist-01 is deliberately NOT a choice: syscert recognises the keyword
+        # but refuses it (blocked on upstream lego + CA support), so offering it here
+        # would only fail later, after the binary and user were already installed.
         description: ACME challenge type.
       syscert_acme_profile:
         type: str
@@ -191,6 +190,9 @@ argument_specs:
           selinux_context:
             type: str
             description: Optional SELinux type for the destination.
+      syscert_manage_distribute_dirs:
+        type: bool
+        description: Create each distribute target's parent directory and grant it in the unit's ReadWritePaths.
 
       # ── [renewal] / [logging] ──
       syscert_renewal_renew_before:

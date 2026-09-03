@@ -14,12 +14,21 @@
     # get_url verifies against the release sums file itself (matching the asset by
     # the dest basename) and skips the download when the cached file already matches —
     # no separate fetch/slurp/parse needed.
+    #
+    # Verification is NOT optional and has no opt-out variable: net-install.sh dies
+    # rather than install unverified, and the offline bundle verifies unconditionally,
+    # so the fleet path must not be the weak one. A mirror that cannot serve
+    # sha256sums.txt is a reason to use syscert_install_method: local (stage the
+    # binary on the controller, verify it there once), not to skip the check.
+    # Note the sums file comes from the same origin as the binary, so this is
+    # integrity against corruption and truncation, not proof of provenance — pin
+    # syscert_download_base_url to an origin you trust.
     - name: syscert.install - Download and verify the release binary
       become: true
       ansible.builtin.get_url:
         url: "{{ syscert_release_url }}"
         dest: "{{ syscert_download_dir }}/{{ syscert_release_filename }}"
-        checksum: "{{ ('sha256:' ~ syscert_sums_url) if syscert_checksum_verify else omit }}"
+        checksum: "sha256:{{ syscert_sums_url }}"
         owner: root
         group: root
         mode: "0755"

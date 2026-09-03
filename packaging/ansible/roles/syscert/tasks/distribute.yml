@@ -1,0 +1,24 @@
+---
+# Destination directories for the [[distribute]] targets.
+#
+# Two reasons this is not optional housekeeping. syscert writes the artefact but
+# never creates its parent directory, and the hardened unit lists those parents in
+# ReadWritePaths — where systemd refuses to start a unit naming a path that does
+# not exist. So a missing directory is either a failed distribution or a failed
+# unit, both after a successful issuance.
+#
+# Only the directories are created here (traversable, root-owned). The artefacts
+# themselves get the owner/group/mode each target declares, applied by syscert.
+
+- name: syscert.distribute - Create the distribute target directories
+  when: syscert_manage_distribute_dirs
+  become: true
+  loop: "{{ syscert_distribute | map(attribute='path') | map('dirname') | unique | list }}"
+  loop_control:
+    label: "{{ item }}"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"

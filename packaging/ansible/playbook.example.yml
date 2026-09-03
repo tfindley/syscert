@@ -8,7 +8,7 @@
   become: true
   roles:
     - role: syscert
-      syscert_version: v0.3.1
+      syscert_version: v0.4.0
       syscert_acme_ca: letsencrypt
       syscert_acme_email: tls@example.com
       syscert_acme_challenge: dns-01
@@ -32,7 +32,7 @@
   become: true
   roles:
     - role: syscert
-      syscert_version: v0.3.1
+      syscert_version: v0.4.0
       syscert_acme_ca: custom
       syscert_acme_email: tls@corp.example.com
       syscert_acme_directory_url: "https://vault.corp.example.com:8200/v1/pki_dcauth/roles/web/acme/directory"

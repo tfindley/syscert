@@ -4,7 +4,7 @@
   become: true
   vars:
     syscert_install_method: download
-    syscert_version: v0.3.1
+    syscert_version: v0.4.0
     syscert_acme_email: molecule@example.com
     syscert_acme_ca: letsencrypt
     syscert_acme_challenge: dns-01

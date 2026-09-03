@@ -8,15 +8,18 @@
 # How to obtain the binary: "download" (a release from GitHub, checksum-verified)
 # or "local" (copy a binary from the controller, see syscert_local_binary).
 syscert_install_method: download
-# Release tag to install, e.g. "v0.3.1". Required when syscert_install_method is
+# Release tag to install, e.g. "v0.4.0". Required when syscert_install_method is
 # "download" and syscert_state is "present" (asserted). Pin it — no implicit latest.
-# syscert_version: "v0.3.1"
+# syscert_version: "v0.4.0"
 # Path to a pre-built binary on the CONTROLLER, copied to the host (local method).
 # syscert_local_binary: "files/syscert"
-# Base URL for release downloads (override for an internal mirror).
+# Base URL for release downloads (override for an internal mirror). The binary AND
+# its sha256sums.txt are both fetched from here, so point it only at an origin you
+# trust — a matching pair from a hostile mirror still verifies.
 syscert_download_base_url: "https://github.com/tfindley/syscert/releases/download"
-# Verify the downloaded binary against the release sha256sums.txt.
-syscert_checksum_verify: true
+# There is deliberately no "skip the checksum" variable: the download is always
+# verified against the release sha256sums.txt. Use syscert_install_method: local
+# if your mirror cannot serve one.
 # Where the binary is installed and where the directory cache lives on the host.
 syscert_bin_path: /usr/local/bin/syscert
 syscert_download_dir: /var/cache/syscert
@@ -40,13 +43,13 @@ syscert_cert_hostname: ""          # "" = use the system FQDN; the binary errors
 syscert_cert_sans: []              # extra DNS SANs
 syscert_cert_ip_sans: []           # IP SANs (forces http-01/tls-alpn-01; private IP needs an internal CA)
 syscert_cert_key_type: ec256       # ec256 | ec384 | rsa2048 | rsa4096
-syscert_cert_reuse_key: false      # keep the keypair across renewals (only if a consumer pins the key)
+syscert_cert_reuse_key: false      # accepted but NOT YET APPLIED by syscert — every renewal still rotates the key
 
 # ── [acme] ───────────────────────────────────────────────────────────────────────
 syscert_acme_ca: letsencrypt       # letsencrypt | custom (custom = Vault / step-ca / any internal ACME CA)
 # syscert_acme_email: "you@example.com"   # REQUIRED (no default) — ACME account contact
 syscert_acme_directory_url: ""     # REQUIRED when syscert_acme_ca is "custom"
-syscert_acme_challenge: dns-01     # dns-01 | http-01 | tls-alpn-01 | dns-persist-01
+syscert_acme_challenge: dns-01     # dns-01 | http-01 | tls-alpn-01
 syscert_acme_profile: ""           # e.g. "shortlived" (required for public-CA IP certs)
 syscert_acme_ca_bundle: ""         # host path to a CA bundle trusted for the ACME connection only
 
@@ -79,6 +82,10 @@ syscert_bundle_order:
 # artifact: cert | privkey | chain | fullchain | bundle. Optional selinux_context.
 # Key-bearing artifacts (privkey, bundle) must NOT be world-readable.
 syscert_distribute: []
+# Create each target's parent directory (root:root 0755) and add it to the unit's
+# ReadWritePaths. Turn this off only if you manage those directories elsewhere —
+# they must still exist, or the hardened unit refuses to start.
+syscert_manage_distribute_dirs: true
 
 # ── [renewal] ────────────────────────────────────────────────────────────────────
 syscert_renewal_renew_before: ""   # "" = auto window from the cert lifetime; or a duration like "30d"

@@ -38,6 +38,12 @@
     - syscert_secrets
   ansible.builtin.import_tasks: secrets.yml
 
+- name: syscert.main - Create the distribute target directories
+  when: syscert_state == 'present'
+  tags:
+    - syscert_distribute
+  ansible.builtin.import_tasks: distribute.yml
+
 - name: syscert.main - Install and manage the syscert systemd units
   when: syscert_state == 'present'
   tags:
