@@ -55,22 +55,49 @@ jobs:
         with:
           subject-path: dist/syscert-linux-*
 
+      # The curated CHANGELOG entry IS the release note — including the hand-written
+      # "Risk & Security" section that scripts/prerelease.sh requires before a
+      # release can go out. Previously the published release showed only the asset
+      # table plus GitHub's auto-generated commit list, so none of that reached
+      # anyone reading the release page.
+      - name: Compose release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Extract FIRST and check it on its own: the boilerplate above is far
+          # larger than any sane threshold, so measuring the finished file would
+          # never catch a missing section.
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[v" ver "\\]" { grab = 1; next }
+            grab && /^## \[v/ { exit }
+            grab { print }
+          ' CHANGELOG.md > changelog-section.md
+          if [ ! -s changelog-section.md ]; then
+            echo "::error::CHANGELOG.md has no section for v$VERSION — run scripts/prerelease.sh first"
+            exit 1
+          fi
+          if grep -q 'TODO: summarise the security impact' changelog-section.md; then
+            echo "::error::the Risk & Security note for v$VERSION is still the TODO placeholder"
+            exit 1
+          fi
+          {
+            printf '## SysCert v%s\n\n' "$VERSION"
+            printf 'Static Linux binaries (no runtime dependencies).\n\n'
+            printf '| Arch | Asset |\n|---|---|\n'
+            printf '| x86-64 | `syscert-linux-amd64` |\n'
+            printf '| arm64  | `syscert-linux-arm64` |\n\n'
+            printf 'Verify downloads against `sha256sums.txt`. See the '
+            printf '[README](https://github.com/%s/blob/main/README.md) for setup.\n\n' "$REPO"
+            cat changelog-section.md
+          } > release-notes.md
+          echo "release notes: $(wc -l < release-notes.md) lines"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "SysCert v${{ steps.version.outputs.version }}"
-          body: |
-            ## SysCert v${{ steps.version.outputs.version }}
-
-            Static Linux binaries (no runtime dependencies).
-
-            | Arch | Asset |
-            |---|---|
-            | x86-64 | `syscert-linux-amd64` |
-            | arm64  | `syscert-linux-arm64` |
-
-            Verify downloads against `sha256sums.txt`. See the
-            [README](https://github.com/${{ github.repository }}/blob/main/README.md) for setup.
+          body_path: release-notes.md
           files: |
             dist/syscert-linux-amd64
             dist/syscert-linux-arm64

@@ -128,9 +128,9 @@ func b2i(v bool) int64 {
 }
 
 // escapeLabel escapes a Prometheus label value: backslash, double quote and
-// newline, per the exposition format. A path or issuer CN can legitimately
+// newline (CR too, for tidiness) per the exposition format. A path or issuer CN can legitimately
 // contain a backslash or quote, and an unescaped one corrupts the whole file.
 func escapeLabel(v string) string {
-	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`)
+	r := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\r", `\r`)
 	return r.Replace(v)
 }

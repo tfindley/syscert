@@ -72,6 +72,52 @@ func outputDirs(cfg *config.Config) []string {
 	return dirs
 }
 
+// unsafeGrantDir reports why a directory must not be written into the drop-in,
+// or "" when it is fine. Both installers already refuse these shapes; the binary
+// that WRITES the unit fragment must refuse them too, or a mistyped
+// `path = "/etc/x.pem"` silently widens ProtectSystem=strict to all of /etc —
+// the outcome ADR-0048 explicitly rejected. install.sh calls this before its own
+// ACL guard runs, so this is the only thing standing between a typo and a
+// too-broad sandbox grant.
+func unsafeGrantDir(d string) string {
+	if !filepath.IsAbs(d) {
+		return "not an absolute path"
+	}
+	// systemd splits ReadWritePaths on whitespace, and a newline would inject a
+	// whole directive into the [Service] section.
+	if strings.ContainsAny(d, " \t\r\n") {
+		return "contains whitespace, which systemd treats as a separator"
+	}
+	for _, r := range d {
+		if r < 0x20 || r == 0x7f {
+			return "contains a control character"
+		}
+	}
+	// Same depth rule as packaging/install.sh: at least two path components.
+	if len(strings.Split(strings.Trim(d, "/"), "/")) < 2 {
+		return "too broad — a whole top-level directory"
+	}
+	return ""
+}
+
+// partitionGrantDirs splits dirs into those safe to grant and the refusals. The
+// store is always kept: it is syscert's own directory, created by the installer.
+func partitionGrantDirs(dirs []string, store string) (ok []string, refused map[string]string) {
+	refused = map[string]string{}
+	for _, d := range dirs {
+		if d == store {
+			ok = append(ok, d)
+			continue
+		}
+		if why := unsafeGrantDir(d); why != "" {
+			refused[d] = why
+			continue
+		}
+		ok = append(ok, d)
+	}
+	return ok, refused
+}
+
 // dropInContent renders the systemd drop-in granting write access to dirs.
 func dropInContent(dirs []string) string {
 	var b strings.Builder
@@ -103,7 +149,10 @@ func cmdSystemdPaths(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "systemd-paths: load config: %v\n", err)
 		return 2
 	}
-	dirs := distributeDirs(cfg)
+	dirs, refused := partitionGrantDirs(distributeDirs(cfg), cfg.Store.Path)
+	for d, why := range refused {
+		fmt.Fprintf(stderr, "systemd-paths: refusing %s — %s; fix the path in the config\n", d, why)
+	}
 
 	if *dirsOnly {
 		for _, d := range dirs {
@@ -118,6 +167,12 @@ func cmdSystemdPaths(args []string, stdout, stderr io.Writer) int {
 
 	if os.Geteuid() != 0 {
 		fmt.Fprintln(stderr, "systemd-paths --write: must run as root")
+		return 1
+	}
+	// Refuse to install a grant derived from a config we just objected to —
+	// otherwise the typo is written into the unit and only the ACL step complains.
+	if len(refused) > 0 {
+		fmt.Fprintln(stderr, "systemd-paths --write: refusing to write a drop-in while any directory is unusable")
 		return 1
 	}
 	// #nosec G301 -- a unit drop-in directory must be traversable by systemd; /etc/systemd/system/*.d is 0755 by convention

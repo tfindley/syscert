@@ -75,13 +75,17 @@ async function resolveVersion(signal: AbortSignal): Promise<string> {
   return m ? m[1] : SITE.version;
 }
 
+const SHA256_RE = /^[0-9a-f]{64}$/;
+
 async function fetchSums(signal: AbortSignal): Promise<ReleaseInfo["sha256"]> {
   const res = await fetch(`${RELEASES}/latest/download/sha256sums.txt`, { signal });
   if (!res.ok) throw new Error(`sha256sums.txt → HTTP ${res.status}`);
   const out: { amd64?: string; arm64?: string } = {};
   for (const line of (await res.text()).split("\n")) {
     const [hash, name] = line.trim().split(/\s+/);
-    if (!hash || !name) continue;
+    // Shape-check the digest: the site renders this as a value people paste into
+    // sha256sum, so a malformed line must be dropped rather than displayed.
+    if (!hash || !name || !SHA256_RE.test(hash)) continue;
     if (name === "syscert-linux-amd64") out.amd64 = hash;
     else if (name === "syscert-linux-arm64") out.arm64 = hash;
   }

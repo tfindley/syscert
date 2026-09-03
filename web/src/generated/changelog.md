@@ -1,3 +1,43 @@
+## [v0.5.0] — 2026-09-03
+
+### Features
+
+feat(observe): optional Prometheus textfile and Ansible facts outputs (27f4d96)
+feat(ansible): finalise the syscert role and gate it in CI (826b132)
+feat(packaging): offline install bundle tool + air-gapped install guide (112e624)
+
+### Bug Fixes
+
+fix: reconcile binary, docs, site, role and scripts after a full audit (dab816c)
+fix(install): refuse to ACL a top-level directory (3614de7)
+fix(distribute): make privileged target directories work (#14) (728380c)
+fix(systemd): ReadWritePaths must name each distribute target's directory (1e0101a)
+fix(web): tmpfs mounts for the rootless container + smoke test before publish (629c23c)
+
+### Documentation
+
+docs(site): catch the marketing site up with what actually shipped (119f745)
+docs: ship the Ansible role — new page, roadmap, compliance scope (e481b01)
+docs(configuration): mark reuse_key as accepted but not yet applied (8d314e8)
+docs(roadmap): verify, observability, ARI — differentiation vs lego CLI (863c2c7)
+docs(comparison): compare SysCert with the lego CLI (befdaf7)
+docs: unwrap hard line-wrapping repo-wide (soft-wrap; no content change) (#10) (cc2ae34)
+docs: unwrap hard line-wrapping in the new risk + offline pages (c30dbde)
+docs(compliance): human-rewrite the risk assessment (voice only) (ca417eb)
+docs(compliance): add impartial adoption + operational risk assessment (b48bdf0)
+
+### Risk & Security
+
+Low risk, with one deliberate expansion of the **install-time** footprint. The binary's own posture is unchanged: this release adds no code to key handling, secret sourcing, trust, or store permissions (`git diff v0.4.0..HEAD -- internal/acme internal/store internal/trust internal/envfile` is empty). A security review of `v0.4.0..HEAD` found no blocking issues; the advisory items are recorded in the [security assessment](/docs/compliance/security/).
+
+- **The installer now changes permissions on directories it does not own.** To fix #14, `install.sh` and the Ansible role apply a POSIX ACL (`setfacl -m u:syscert:rwx`) to each configured `[[distribute]]` and `[observe]` directory, and install a systemd drop-in naming them in `ReadWritePaths`. This is the smallest grant that works — one user, one directory, owner and group untouched — chosen over `CAP_DAC_OVERRIDE` or relaxing `ProtectSystem=strict`, either of which would be permanent and host-wide (ADR-0048). Be clear about what it gives away: `rwx` on a directory lets the syscert user create, rename and **delete every file in it**, not only its own artefacts. All three routes now refuse anything shallower than two path components — the binary that writes the drop-in gained that guard in this release, so a mistyped `path = "/etc/x.pem"` can no longer widen the sandbox to all of `/etc` — but two components is a typo guard, not a security boundary: `/etc/sudoers.d` and `/usr/bin` both satisfy it. **Treat your distribute paths as privileged configuration.** Grants are logged per directory and reversed on uninstall, though revocation is derived from the *current* config, so remove a target by re-running the installer rather than by editing the config alone.
+- **`[observe]` writes metadata, never secrets.** The new Prometheus textfile and Ansible facts outputs are off by default, write-only, and never read back, so they cannot influence behaviour. Both are `0644` deliberately — node_exporter and Ansible are not the syscert user. The snapshot carries subject, CA *name*, challenge, issuer, serial, validity and renewal times, key type and target presence; no credential, EAB HMAC, directory URL or key material appears in it, verified by running with canary secrets in the environment and grepping both outputs. Label values escape backslash, quote, CR and newline, so a crafted issuer CN cannot inject a metric line.
+- **Distribution now attempts every target instead of stopping at the first failure.** One ungranted directory no longer denies every other consumer its renewed certificate. Nothing is written more permissively as a result — a failing target is skipped, never forced — and the run still exits non-zero, so a broken target stays loud.
+- **Go 1.26.6 clears nine advisories.** Seven standard-library, plus GO-2026-6061 (grpc → v1.82.1) and GO-2026-5970 (`x/text` → v0.39.0). `govulncheck` reports zero affecting. Direct dependencies remain two.
+- **The Ansible role is in scope of the published assessment for the first time.** It verifies the release binary's checksum with no opt-out, renders secrets `0640 root:syscert` under `no_log`, and derives `ReadWritePaths` from the declared targets. Note the limit: the binary and its `sha256sums.txt` come from the same origin, so verification proves integrity, not provenance. `syscert_install_method: local` is the stronger route for high-assurance fleets.
+- **`npm audit` reports 7 high advisories in the website's build toolchain** (postcss, sharp/libvips, svgo). Build-time only: the published container is nginx serving pre-rendered static files with no Node runtime, and every input those tools process is first-party. Unrelated to the tool binary. The site container is now fully rootless — nginx as uid 101 on :8080, read-only rootfs, `cap_drop: ALL`, `no-new-privileges`.
+
+
 ## [v0.4.0] — 2026-07-19
 
 ### Features
