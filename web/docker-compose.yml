@@ -7,6 +7,10 @@
 #   • the certresolver name (here: "letsencrypt")
 #
 # To build locally instead of pulling GHCR, swap `image:` for `build: .`.
+#
+# ⚠ BREAKING (2026-09-03): the container now runs fully unprivileged and listens on 8080,
+#   not 80. The HOST's copy of this file must carry `loadbalancer.server.port=8080` and the
+#   tmpfs mounts below BEFORE the new image lands, or Traefik 502s / nginx crash-loops.
 
 services:
   syscert-web:
@@ -15,6 +19,26 @@ services:
     restart: unless-stopped
     networks:
       - traefik
+
+    # Runtime hardening. The image already runs as uid 101 with nothing root-owned that it
+    # needs to write; these are the container-side half of that. Every one of them is
+    # exercised by the smoke test in .github/workflows/web.yml before the image is pushed,
+    # so if the image boots in CI it boots here.
+    read_only: true
+    # The mode is load-bearing: Docker's default tmpfs is NOT writable by uid 101, and a tmpfs
+    # shadows whatever ownership the image set underneath it.
+    #   /tmp             nginx.pid — the one file nginx must write on a read-only rootfs
+    #   /var/cache/nginx nginx's temp paths. The current image pre-creates these, so it would
+    #                    boot without this mount — but an OLDER image does not, and `read_only`
+    #                    then crash-loops it with EROFS. Keep this so a ROLLBACK still boots.
+    tmpfs:
+      - /tmp:mode=1777
+      - /var/cache/nginx:mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
     # container-level health — Docker marks the container (un)healthy and
     # `restart: unless-stopped` + watchtower act on it. Mirrors the image's
     # baked-in HEALTHCHECK; kept here so it's visible/tunable without a rebuild.

@@ -31,9 +31,13 @@ permissions:
   contents: read
   packages: write
 
+env:
+  # Local-only tag used for the smoke test before anything is published.
+  CI_IMAGE: syscert-web:ci
+
 jobs:
   image:
-    name: Build & push image
+    name: Build, verify & push image
     runs-on: ubuntu-latest
     # On a workflow_run trigger, only build when the Release run actually succeeded.
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
@@ -87,6 +91,71 @@ jobs:
             type=raw,value=latest
             type=sha,format=short
             type=raw,value=site-v${{ steps.site.outputs.version }}
+
+      # ---- verify before publish ----------------------------------------------------
+      # Build once into the local daemon and prove the image actually works before it can
+      # be pushed to a tag the host auto-deploys. nginx.conf and the Dockerfile's
+      # unprivileged setup are only ever exercised inside a running container, so this is
+      # the only place a mistake in them surfaces. The push step re-uses this build's cache.
+      - name: Build image (local, for verification)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          load: true
+          push: false
+          tags: ${{ env.CI_IMAGE }}
+          build-args: |
+            SITE_VERSION=${{ steps.ver.outputs.version }}
+          # Always re-resolve nginx:alpine-slim so a rebuild really does pick up Alpine
+          # security patches instead of reusing a cached base layer.
+          pull: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test the runtime image
+        run: |
+          set -euo pipefail
+          # Run it exactly as web/docker-compose.yml does: unprivileged, read-only rootfs,
+          # no caps. Both tmpfs mounts carry an explicit mode — Docker's default tmpfs is
+          # NOT writable by uid 101, and a tmpfs shadows whatever ownership the image set.
+          # /var/cache/nginx is mounted even though the image pre-creates those dirs, so the
+          # deployment also boots an OLDER image that doesn't — a rollback must not
+          # crash-loop. Keep identical to docker-compose.yml, or CI stops being evidence
+          # for the deployment.
+          docker run -d --name syscert-smoke \
+            --read-only --tmpfs /tmp:mode=1777 --tmpfs /var/cache/nginx:mode=1777 \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -p 18080:8080 "$CI_IMAGE"
+
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:18080/healthz >/dev/null 2>&1 && break
+            [ "$i" = 30 ] && { docker logs syscert-smoke; exit 1; }
+            sleep 1
+          done
+
+          fail() { echo "::error::$1"; docker logs syscert-smoke; exit 1; }
+
+          # Capture responses to FILES; never pipe into `grep -q`. grep -q exits on the first
+          # match and closes the pipe, so curl dies with EPIPE (23) — and under pipefail the
+          # pipeline reports that failure even though the assertion PASSED.
+          body=$(mktemp); hdr=$(mktemp)
+
+          [ "$(docker exec syscert-smoke id -u)" = "101" ] || fail "container is not running as uid 101"
+          # the one write nginx makes on a read-only rootfs
+          docker exec syscert-smoke test -f /tmp/nginx.pid || fail "pid file not written to /tmp"
+          curl -fsS -o "$body" -D "$hdr" http://127.0.0.1:18080/ || fail "/ did not respond"
+          grep -qi "<title" "$body" || fail "/ did not render"
+          grep -qi "^x-content-type-options: nosniff" "$hdr" || fail "security headers missing on /"
+
+          # the install one-liner must stay a verbatim shell script, not text/html
+          curl -fsS -o "$body" -D "$hdr" http://127.0.0.1:18080/install.sh || fail "/install.sh did not respond"
+          grep -qi "^content-type: text/x-shellscript" "$hdr" || fail "/install.sh is not served as a shell script"
+
+          echo "smoke test passed"
+
+      - name: Stop smoke container
+        if: always()
+        run: docker rm -f syscert-smoke || true
 
       - name: Build & push
         uses: docker/build-push-action@v6
